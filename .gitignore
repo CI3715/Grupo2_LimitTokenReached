@@ -1,0 +1,24 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+.env*.local
+
+# Rust / Tauri
+target/
+Cargo.lock
+*.rs.bk
+
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+
+# IDEs y sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
