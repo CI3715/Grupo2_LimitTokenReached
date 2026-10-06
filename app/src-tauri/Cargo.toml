@@ -1,12 +1,20 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+description = "Aplicación Cuentas Claras"
+authors = [
+    "Victor Farias",
+    "Carlos Bisgono",
+    "Rosa Ramirez",
+    "Alejandra Mármol",
+    "Ricardo Garcia",
+    "Rossana Ilardo"
+
+
+]
+license = "Apache-2.0"
+repository = "https://github.com/CI3715/Grupo2_LimitTokenReached"
 edition = "2024"
-rust-version = "1.90"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -15,11 +23,21 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.7.1", features = [] }
+tauri-build = { version = "2.0", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
+# Framework ejecutable Tauri (Heredado del workspace)
+tauri = { workspace = true }
+
+# Inclusión de los crates internos del workspace
+dominio = { workspace = true }
+aplicacion = { workspace = true }
+infraestructura = { workspace = true }
+contrato = { workspace = true }
+
+# Utilidades de serialización, errores y logs (Heredadas del workspace)
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
 log = "0.4"
-tauri = { version = "2.12.1", features = [] }
 tauri-plugin-log = "2"
