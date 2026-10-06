@@ -4,3 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Dependencias hacia las capas internas del workspace
+dominio = { workspace = true }
+aplicacion = { workspace = true }
+contrato = { workspace = true }
+
+# Adaptadores I/O, Red y Persistencia SQLite
+reqwest = { workspace = true }
+rusqlite = { workspace = true }
+rust_decimal = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

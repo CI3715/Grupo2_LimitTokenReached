@@ -4,3 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Dependencia del núcleo de dominio
+dominio = { workspace = true }
+
+# Utilidades puras
+rust_decimal = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+serde = { workspace = true }

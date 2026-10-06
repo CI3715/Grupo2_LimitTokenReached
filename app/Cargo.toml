@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/dominio",
+    "crates/aplicacion",
+    "crates/infraestructura",
+    "crates/contrato",
+    "src-tauri",
+]
+
+[workspace.dependencies]
+# Manejo exacto de dinero (Obligatorio por RNF-08 / INV-03)
+rust_decimal = "1.36"
+
+# Tipado de errores
+thiserror = "1.0"
+
+# Cliente HTTP para comunicación con el servidor backend
+reqwest = { version = "0.12", features = ["json"] }
+
+# Base de datos local SQLite síncrona
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Serialización y deserialización JSON
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Manejo de fechas y tiempo
+chrono = { version = "0.4", features = ["serde"] }
+
+# Generación e identificación con UUID v4
+uuid = { version = "1.10", features = ["v4", "serde"] }
+
+# Framework ejecutable Tauri
+tauri = { version = "2.0", features = [] }
+
+# Declaración de rutas de los crates internos del workspace
+dominio = { path = "crates/dominio" }
+aplicacion = { path = "crates/aplicacion" }
+infraestructura = { path = "crates/infraestructura" }
+contrato = { path = "crates/contrato" }
