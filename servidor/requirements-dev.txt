@@ -1,0 +1,8 @@
+pytest
+httpx
+ruff
+black
+mypy
+import-linter
+pyyaml
+types-PyYAML
