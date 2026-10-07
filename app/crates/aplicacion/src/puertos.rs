@@ -1,6 +1,3 @@
-// Puerto para abstenerse de llamadas directas al reloj del SO
-// Permite inyectar horas ficticias en tests automatizados.
-
 pub trait Reloj: Send + {
     fn ahora(&self) -> String;
 
@@ -13,8 +10,7 @@ pub trait ClienteSocial: Send + Sync {
 }
 
 
-
-// Adapradores Fake
+// Adaptadores Fake
 
 #[cfg(test)]
 #[derive(Clone, Copy, Debug, Default)]
