@@ -1,4 +1,4 @@
-use aplicacion::calcular_latencia_ping;
+use aplicacion::casos_uso::verificar_conexion;
 use infraestructura::ClienteSocialHttp;
 
 #[tauri::command]
@@ -6,8 +6,9 @@ async fn ping_servidor() -> Result<String, String> {
     let url_servidor = "http://localhost:8000";
     let cliente = ClienteSocialHttp::new(url_servidor);
 
-    calcular_latencia_ping(|| async move {
-        let res = cliente.hacer_ping().await?;
+    // Se invoca la medición llamando al cliente de infraestructura
+    verificar_conexion::calcular_latencia_ping(|| async move {
+        let res = cliente.hacer_ping().await.map_err(|e| e.to_string())?;
         Ok((res.estado, res.mensaje, res.version, res.timestamp))
     })
     .await
@@ -19,5 +20,5 @@ pub fn run() {
         .plugin(tauri_plugin_log::Builder::new().build())
         .invoke_handler(tauri::generate_handler![ping_servidor])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("error al ejecutar la aplicación tauri");
 }

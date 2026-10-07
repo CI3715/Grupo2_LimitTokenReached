@@ -1,6 +1,18 @@
 use serde::{Deserialize, Serialize};
+use aplicacion::puertos::Reloj; // Importa el Trait definido en aplicacion
+use chrono::Utc;
 
-/// Estructura que mapea la respuesta JSON que enviará el servidor FastAPI en el endpoint GET /ping
+
+// Adaptador Real del Reloj del Sistema
+pub struct RelojSistema;
+
+impl Reloj for RelojSistema {
+    fn ahora(&self) -> String {
+        Utc::now().to_rfc3339() // Devuelve la fecha y hora real UTC en formato ISO 8601
+    }
+}
+
+// Estructura que mapea la respuesta JSON que enviará el servidor FastAPI en el endpoint GET /ping
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PingRespuesta {
     pub estado: String,
