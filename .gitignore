@@ -22,3 +22,11 @@ venv/
 .idea/
 .DS_Store
 Thumbs.db
+
+.venv/ 
+pycache/ 
+*.egg-info/ 
+.pytest_cache/ 
+.mypy_cache/ 
+.ruff_cache/ 
+.vscode/

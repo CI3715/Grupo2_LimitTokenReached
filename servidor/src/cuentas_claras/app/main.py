@@ -6,7 +6,7 @@ import time
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, status, HTTPException
 import httpx
-from config.config import Settings
+from cuentas_claras.app.config.config import Settings
 
 app = FastAPI(
     title="Cuentas Claras - Servidor",

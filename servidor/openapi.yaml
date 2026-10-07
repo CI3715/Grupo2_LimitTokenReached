@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Cuentas Claras - Servidor
+  version: 0.1.0
+paths:
+  /ping:
+    get:
+      summary: Conection
+      description: 'Endpoint que sirve para verificar la conexion con el servidor
+        de cuentas claras
+
+        y medir la latencia de la conexion.'
+      operationId: conection_ping_get
+      parameters:
+      - name: url
+        in: query
+        required: false
+        schema:
+          type: string
+          default: https://echo.free.beeceptor.com
+          title: Url
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Conection Ping Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
