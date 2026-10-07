@@ -1,17 +1,22 @@
+use std::future::Future;
 use std::time::Instant;
 
-// 1. La función medidora de latencia genérica
-pub async fn calcular_latencia_ping<F, Fut>(hacer_peticion: F) -> Result<String, String>
+/// Ejecuta la función de petición pasada como argumento y calcula
+/// el tiempo de latencia transcurrido en milisegundos.
+pub async fn calcular_latencia_ping<F, Fut, T, E>(hacer_peticion: F) -> Result<(T, u128), E>
 where
     F: FnOnce() -> Fut,
-    Fut: std::future::Future<Output = Result<(String, String, String, String), String>>,
+    Fut: Future<Output = Result<T, E>>,
 {
+    // 1. Iniciar el cronómetro antes de llamar a la red
     let inicio = Instant::now();
-    let (estado, mensaje, version, timestamp) = hacer_peticion().await?;
-    let latencia = inicio.elapsed().as_millis();
 
-    Ok(format!(
-        "Estado: {}\nMensaje: {}\nVersión: {}\nTimestamp: {}\nLatencia: {} ms",
-        estado, mensaje, version, timestamp, latencia
-    ))
+    // 2. Ejecutar la llamada asíncrona enviada por el adaptador
+    let resultado = hacer_peticion().await?;
+
+    // 3. Obtener el tiempo transcurrido en milisegundos
+    let latencia_ms = inicio.elapsed().as_millis();
+
+    // 4. Devolver la respuesta intacta junto con los milisegundos de latencia
+    Ok((resultado, latencia_ms))
 }
