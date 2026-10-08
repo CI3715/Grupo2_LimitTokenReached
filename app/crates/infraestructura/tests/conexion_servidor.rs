@@ -8,7 +8,7 @@ async fn verificar_conexion_servidor() {
 
     // 2. Construimos el endpoint pasando la URL como Query Parameter (?url=...)
     // FastAPI leerá el parámetro "url" automáticamente desde aquí
-    let url_endpoint = format!("{}/ping?url={}", url_base_limpia, url_base_limpia);
+    let url_endpoint = format!("{}/ping", url_base_limpia);
 
     println!("Probando conexión hacia: {}", url_endpoint);
 
