@@ -1,14 +1,11 @@
-pub trait Reloj: Send + {
+pub trait Reloj: Send {
     fn ahora(&self) -> String;
-
 }
-
 
 // Puerto para abstracción de solicitudes HTTP salientes hacia el Servidor FastAPI
 pub trait ClienteSocial: Send + Sync {
     fn hacer_ping(&self) -> impl std::future::Future<Output = Result<String, String>> + Send;
 }
-
 
 // Adaptadores Fake
 

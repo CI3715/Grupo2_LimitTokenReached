@@ -10,7 +10,7 @@ pub struct PingResultadoUI {
     pub mensaje: String,
     pub version: String,
     pub timestamp: String,
-    pub latencia_ms: u128,
+    pub latencia_ms: u64,
 }
 
 #[tauri::command]
@@ -22,7 +22,15 @@ async fn ping_servidor() -> Result<PingResultadoUI, String> {
     let (respuesta, latencia_ms) = verificar_conexion::calcular_latencia_ping(|| async move {
         cliente.hacer_ping().await
     })
-    .await?;
+    .await
+    .map_err(|err_tecnico| {
+        // Registramos el error técnico en la consola de Rust para depuración
+        eprintln!("[Error Técnico de Conexión]: {:?}", err_tecnico);
+
+        // Mensaje que sera retornado al usuario en caso de error
+        "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet o intenta más tarde.".to_string()
+
+    })?;
 
     // Retornamos la estructura serializable en JSON
     Ok(PingResultadoUI {

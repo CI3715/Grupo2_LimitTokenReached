@@ -1,7 +1,6 @@
-use serde::{Deserialize, Serialize};
 use aplicacion::puertos::Reloj; // Importa el Trait definido en aplicacion
 use chrono::Utc;
-
+use serde::{Deserialize, Serialize};
 
 // Adaptador Real del Reloj del Sistema
 pub struct RelojSistema;
