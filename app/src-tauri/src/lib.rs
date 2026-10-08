@@ -15,7 +15,7 @@ pub struct PingResultadoUI {
 
 #[tauri::command]
 async fn ping_servidor() -> Result<PingResultadoUI, String> {
-    let url_servidor = option_env!("SERVER_URL").unwrap_or("http://localhost:8000");
+    let url_servidor = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
     let cliente = ClienteSocialHttp::new(url_servidor);
 
     // Invocamos el caso de uso que mide la latencia
