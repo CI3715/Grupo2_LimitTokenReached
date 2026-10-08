@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cuentas-claras-servidor"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+
+[tool.ruff]
+line-length = 88
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.black]
+line-length = 88
+
+[tool.importlinter]
+root_package = "cuentas_claras"
+
+[[tool.importlinter.contracts]]
+name = "Regla de dependencia hexagonal"
+type = "layers"
+layers = [
+    "cuentas_claras.app",
+    "cuentas_claras.infraestructura",
+    "cuentas_claras.aplicacion",
+    "cuentas_claras.dominio",
+]

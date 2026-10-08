@@ -1,0 +1,12 @@
+pytest
+httpx
+ruff
+black
+mypy
+import-linter
+pyyaml
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+types-PyYAML

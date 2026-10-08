@@ -967,6 +967,7 @@ export default function Home() {
   */
 
   useEffect(() => {
+  const frame = window.requestAnimationFrame(() => {
     const savedTheme =
       window.localStorage.getItem(
         "cuentas-claras-theme",
@@ -977,7 +978,6 @@ export default function Home() {
       savedTheme === "light"
     ) {
       setTheme(savedTheme);
-
       return;
     }
 
@@ -991,7 +991,12 @@ export default function Home() {
         ? "light"
         : "dark",
     );
-  }, []);
+  });
+
+  return () => {
+    window.cancelAnimationFrame(frame);
+  };
+}, []);
 
   /*
     Sincronizamos también el fondo real
