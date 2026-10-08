@@ -54,6 +54,6 @@ pip install -r requirements.txt
 4. Luego para finalizar, verificaremos que los imports dentro del programa se esten llamando
     correctamente, para ello usaremos el comando: 
 
-    PYTHONPATH=src linter-imports 
+    PYTHONPATH=src lint-imports 
 
     
