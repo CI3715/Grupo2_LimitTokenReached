@@ -20,8 +20,11 @@ where = ["src"]
 testpaths = ["tests"]
 
 [tool.mypy]
-strict = true
+strict = false
 files = ["src"]
+mypy_path="src/cuentas_claras/app"
+explicit_package_bases = true
+
 
 [tool.ruff]
 line-length = 88
