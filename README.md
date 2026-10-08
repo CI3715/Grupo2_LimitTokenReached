@@ -30,3 +30,30 @@ cd ~/servidor/src/cuentas_claras/app
 pip install -r requirements.txt
 
 4. Ejecutar el comando uvicorn main:app --reload
+
+
+# Realizacion de Test en el servidor de FastAPI
+    Desde la carpeta servidor se debe probar lo siguiente, con el entorno virtual de venv activo: 
+1. Primero ejecuta el comando: 
+    ruff check .
+
+    Este comando se encarga de correr los test de Ruff en busca de errores de sintaxis, logica, etc. 
+
+2. Para verificar el formateo correcto del codigo, usamos black, ejecutando el siguiente comando: 
+
+    black --check . 
+
+    Nota: si este test no pasa, corre el comando black . para corregir los archivos y que 
+    tenga un formato valido. 
+
+3. Luego ejecuta este comando, para verificar que los tipados estaticos impuestos por pydantic se esten 
+    respetando: 
+
+    mypy
+
+4. Luego para finalizar, verificaremos que los imports dentro del programa se esten llamando
+    correctamente, para ello usaremos el comando: 
+
+    PYTHONPATH=src lint-imports 
+
+    
