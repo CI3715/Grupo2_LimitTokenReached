@@ -3,7 +3,7 @@ use std::time::Instant;
 
 /// Ejecuta la función de petición pasada como argumento y calcula
 /// el tiempo de latencia transcurrido en milisegundos.
-pub async fn calcular_latencia_ping<F, Fut, T, E>(hacer_peticion: F) -> Result<(T, u128), E>
+pub async fn calcular_latencia_ping<F, Fut, T, E>(hacer_peticion: F) -> Result<(T, u64), E>
 where
     F: FnOnce() -> Fut,
     Fut: Future<Output = Result<T, E>>,
@@ -15,7 +15,7 @@ where
     let resultado = hacer_peticion().await?;
 
     // 3. Obtener el tiempo transcurrido en milisegundos
-    let latencia_ms = inicio.elapsed().as_millis();
+    let latencia_ms = inicio.elapsed().as_millis() as u64;
 
     // 4. Devolver la respuesta intacta junto con los milisegundos de latencia
     Ok((resultado, latencia_ms))
