@@ -27,12 +27,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Instalamos el paquete en modo editable + dependencias de desarrollo
+      # Instalamos el paquete en modo editable + herramientas de desarrollo 
+      # (Nota: Instalamos las herramientas directamente ya que no tenemos requirements-dev.txt)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install -r requirements-dev.txt
+          pip install ruff mypy black import-linter pytest
 
       # Ruff: linter rápido (reemplaza a flake8 + isort + parte de pylint)
       - name: Run Ruff
@@ -45,7 +46,7 @@ jobs:
       # Import Linter: verifica la regla de dependencia de la arquitectura hexagonal
       # Si el dominio o la aplicación importan infraestructura, esto falla
       - name: Run Import Linter
-        run: lint-imports
+        run: PYTHONPATH=src lint-imports
 
   # FRONTEND (Next.js)
   # Verifica estilo y que el build estático funcione
@@ -58,20 +59,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # Node 18 porque es la LTS estable que usa Next.js en este proyecto
+      # Node 20+ porque es la versión mínima requerida por Next.js en este proyecto
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
+
+      # Instalamos pnpm globalmente ya que el equipo lo usa en lugar de npm
+      - name: Install pnpm
+        run: npm install -g pnpm
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
       # ESLint: estilo y reglas de calidad del frontend
       - name: Run ESLint
-        run: npm run lint
+        run: pnpm run lint
 
       # Build de Next.js: valida que compile con `output: 'export'` 
       # Si alguien mete Server Components o API Routes, este paso debería fallar
       - name: Build Next.js
-        run: npm run build
+        run: pnpm run build
