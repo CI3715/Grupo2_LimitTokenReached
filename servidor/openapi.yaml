@@ -5,11 +5,35 @@ info:
 paths:
   /ping:
     get:
-      summary: Connection
-      operationId: connection_ping_get
+      summary: Ping
+      operationId: ping_ping_get
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/PingRespuesta'
+components:
+  schemas:
+    PingRespuesta:
+      properties:
+        estado:
+          type: string
+          title: Estado
+        mensaje:
+          type: string
+          title: Mensaje
+        version:
+          type: string
+          title: Version
+        timestamp:
+          type: string
+          title: Timestamp
+      type: object
+      required:
+      - estado
+      - mensaje
+      - version
+      - timestamp
+      title: PingRespuesta
