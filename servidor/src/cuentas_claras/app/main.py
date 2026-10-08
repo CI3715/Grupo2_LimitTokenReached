@@ -49,7 +49,7 @@ async def conection(url: str = settings.SERVER_HOST_IP) -> JSONResponse:
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
                 content={
-                    "status": "ok",
+                    "estado": "ok",
                     "mensaje": "Servidor de Cuentas Claras activo",
                     "version": app.version,
                     "timestamp": timestamp_actual,
@@ -64,7 +64,7 @@ async def conection(url: str = settings.SERVER_HOST_IP) -> JSONResponse:
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 content={
-                    "status": "error",
+                    "estado": "error",
                     "mensaje": "No se pudo establecer conexion con el servidor",
                     "version": app.version,
                     "timestamp": "2024-06-01T12:00:00Z",
