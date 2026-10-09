@@ -10,6 +10,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
+    "pydantic-settings",
 ]
 
 [tool.setuptools.packages.find]
@@ -19,10 +20,9 @@ where = ["src"]
 testpaths = ["tests"]
 
 [tool.mypy]
-strict = false
+strict = true
 files = ["src"]
-mypy_path="src/cuentas_claras/app"
-explicit_package_bases = true
+mypy_path = "src"
 
 
 [tool.ruff]
