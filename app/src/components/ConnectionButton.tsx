@@ -18,8 +18,6 @@ export function ConnectionButton({
       onClick={onCheckConnection}
       className="tech-button group relative flex w-full max-w-sm items-center justify-between overflow-hidden rounded-2xl px-5 py-4 text-left disabled:cursor-not-allowed"
     >
-      <div className="tech-button-scan" />
-
       <div className="relative z-10">
         <p className="button-eyebrow text-[10px] uppercase tracking-[0.22em]">
           Acción del sistema
