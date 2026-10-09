@@ -61,9 +61,8 @@ jobs:
       - name: Run Import Linter
         run: PYTHONPATH=src lint-imports
 
-      # Verifica que el esquema OpenAPI generado coincida con el versionado en el repo
-      - name: Verify OpenAPI Schema
-        run: python scripts/exportar_openapi.py --check
+      # NOTA: La verificación automática del openapi.yaml se deja como trabajo futuro
+      # cuando el script scripts/exportar_openapi.py esté implementado y versionado
 
   # FRONTEND (Next.js)
   # Verifica estilo y que el build estático funcione
