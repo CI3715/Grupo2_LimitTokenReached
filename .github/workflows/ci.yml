@@ -43,9 +43,10 @@ jobs:
           pip install ruff mypy black import-linter pytest pip-licenses
 
       # Verificación de compatibilidad de licencias (Requisito de la rúbrica)
-      # Incluye las licencias permisivas compatibles con Apache-2.0 (BSD-3-Clause es usada por python-dotenv)
+      # Incluye las licencias permisivas compatibles con Apache-2.0
+      # Nota: Algunos paquetes usan nombres genéricos como "BSD License" en lugar de "BSD-3-Clause"
       - name: Check License Compatibility
-        run: pip-licenses --allow-only="Apache-2.0;MIT;BSD-3-Clause;BSD;ISC;Python-2.0;PSF"
+        run: pip-licenses --allow-only="Apache-2.0;MIT;BSD-3-Clause;BSD;BSD License;ISC;Python-2.0;PSF"
 
       # Ruff: linter rápido (reemplaza a flake8 + isort + parte de pylint)
       - name: Run Ruff
