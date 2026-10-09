@@ -32,16 +32,108 @@ export default function Home() {
   const status = getStatus(state);
 
   return (
-    <main className="app-shell min-h-screen">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6">
-        <header className="header-border flex min-h-20 items-center justify-between border-b">
-          <div>
-            <p className="primary-text text-sm font-semibold">Cuentas Claras</p>
-            <p className="secondary-soft text-[10px] uppercase tracking-[0.2em]">
-              Digital system
-            </p>
+    <main
+      data-theme={theme}
+      className="app-shell relative min-h-screen overflow-hidden"
+    >
+      <NetworkBackground
+        status={status}
+        theme={theme}
+      />
+
+      {/* ===================================================
+          AMBIENT BACKGROUND
+      ==================================================== */}
+
+      <div
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <div className="ambient-blob ambient-blob-one" />
+
+        <div className="ambient-blob ambient-blob-two" />
+
+        <div className="ambient-blob ambient-blob-three" />
+
+        <div className="ambient-ring ambient-ring-one" />
+
+        <div className="ambient-ring ambient-ring-two ambient-ring-delay" />
+
+        <div className="ambient-ring ambient-ring-three ambient-ring-slow" />
+      </div>
+
+      <div
+        className="center-light pointer-events-none fixed inset-0 z-0"
+        aria-hidden="true"
+      />
+
+      <div
+        className="bottom-fade pointer-events-none fixed inset-0 z-0"
+        aria-hidden="true"
+      />
+
+      <div
+        className="noise-layer pointer-events-none fixed inset-0 z-0"
+        aria-hidden="true"
+      />
+
+      {/* ===================================================
+          APPLICATION
+      ==================================================== */}
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1500px] flex-col px-5 sm:px-8 lg:px-12">
+        {/* HEADER */}
+
+        <header className="header-border flex h-20 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <IOSModuleIcon className="h-11 w-11" />
+
+            <div>
+              <p className="primary-text text-sm font-semibold tracking-[-0.01em]">
+                Cuentas Claras
+              </p>
+
+              <p className="secondary-soft mt-0.5 text-[10px] uppercase tracking-[0.18em]">
+                Digital System
+              </p>
+            </div>
           </div>
           <StatusIndicator status={status} />
+        </header>
+
+        <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1fr_1.2fr]">
+          <div>
+            <p className="eyebrow-text text-xs font-semibold uppercase tracking-[0.25em]">
+              Verificación de infraestructura
+            </p>
+            <h1 className="hero-title mt-5 text-5xl font-medium tracking-[-0.06em] sm:text-7xl">
+              Claridad
+              <span className="hero-gradient block">conectada.</span>
+            </h1>
+            <p className="secondary-text mt-6 max-w-lg text-sm leading-7">
+              Comprueba la comunicación entre la interfaz Next.js, el puente
+              local de Tauri y el servidor FastAPI.
+            </p>
+
+            <div className="mt-8">
+              <ConnectionButton
+                isLoading={status === "loading"}
+                isConnected={status === "success"}
+                onCheckConnection={checkConnection}
+              />
+            </div>
+
+            <ThemeToggle
+              theme={theme}
+              onToggle={
+                toggleTheme
+              }
+            />
+
+            <span className="secondary-soft hidden font-mono text-[10px] tracking-[0.12em] sm:inline">
+              v0.1.0
+            </span>
+          </div>
         </header>
 
         <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1fr_1.2fr]">
@@ -108,11 +200,20 @@ export default function Home() {
               />
             </div>
 
-            <div className="mt-4 flex items-center justify-between rounded-2xl border border-white/10 p-4">
-              <span className="secondary-soft text-xs uppercase tracking-[0.16em]">
-                Latencia medida por Rust
-              </span>
-              <LatencyBadge latency={response?.latencia_ms} />
+                {/* LAST SYNC */}
+
+                <div className="panel-divider secondary-soft relative z-10 mt-5 flex flex-col gap-3 border-t pt-5 text-[10px] uppercase tracking-[0.14em] sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    Última
+                    sincronización
+                  </span>
+
+                  <span className="font-mono">
+                    {lastCheck ??
+                      "No realizada"}
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
         </section>

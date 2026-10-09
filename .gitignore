@@ -23,5 +23,12 @@ venv/
 .DS_Store
 Thumbs.db
 
+.venv/
+pycache/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
 AGENTS.md
 CLAUDE.md
