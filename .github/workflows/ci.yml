@@ -5,6 +5,11 @@ name: CI - Cuentas Claras
 on:
   pull_request:
     branches: [ main ]
+    # Filtros de ruta: optimiza el CI para que solo corra si cambian estas carpetas
+    paths:
+      - 'servidor/**'
+      - 'app/**'
+      - '.github/workflows/**'
   push:
     branches: [ main ]
 
@@ -34,8 +39,14 @@ jobs:
           pip install -e .
           # Agregamos estas librerías porque el código actual las usa y mypy necesita sus stubs
           pip install pydantic-settings httpx
-          # Instalamos las herramientas de linting y testing
-          pip install ruff mypy black import-linter pytest
+          # Instalamos las herramientas de linting, testing y validación de licencias
+          pip install ruff mypy black import-linter pytest pip-licenses
+
+      # Verificación de compatibilidad de licencias (Requisito de la rúbrica)
+      # En lugar de una lista blanca (que puede crecer infinitamente),
+      # usamos una lista negra de licencias copyleft incompatibles con Apache-2.0
+      - name: Check License Compatibility
+        run: pip-licenses --fail-on="GPL;GPL-2.0;GPL-3.0;AGPL;AGPL-3.0;LGPL;LGPL-2.1;LGPL-3.0"
 
       # Ruff: linter rápido (reemplaza a flake8 + isort + parte de pylint)
       - name: Run Ruff
@@ -49,6 +60,10 @@ jobs:
       # Si el dominio o la aplicación importan infraestructura, esto falla
       - name: Run Import Linter
         run: PYTHONPATH=src lint-imports
+
+      # Verifica que el esquema OpenAPI generado coincida con el versionado en el repo
+      - name: Verify OpenAPI Schema
+        run: python scripts/exportar_openapi.py --check
 
   # FRONTEND (Next.js)
   # Verifica estilo y que el build estático funcione
