@@ -81,7 +81,7 @@ async def connection() -> JSONResponse:
         status_code=status.HTTP_200_OK,
         content={
             "estado": "ok",
-            "mensaje": "Servidor de Cuentas Claras activo",
+            "mensaje": "Servidor de Cuentas Claras activo :)",
             "version": app.version,
             "timestamp": timestamp_actual,
         },
