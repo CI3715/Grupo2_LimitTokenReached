@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 
-from fastapi.testclient import TestClient
-
 from cuentas_claras.app.main import app, obtener_reloj
+from fastapi.testclient import TestClient
 
 
 class RelojFijo:
