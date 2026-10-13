@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   accountTypeLabels,
-  type AccountError,
   type AccountType,
   type CreateAccountInput,
   type Currency,
@@ -14,7 +13,7 @@ type Props = {
   currencies: Currency[];
   preview: boolean;
   onClose: () => void;
-  onCreate: (input: CreateAccountInput) => Promise<AccountError | undefined>;
+  onCreate: (input: CreateAccountInput) => void;
 };
 export function NewAccountModal({
   currencies,
@@ -24,8 +23,6 @@ export function NewAccountModal({
 }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<AccountType>("efectivo");
-  const [error, setError] = useState<AccountError>();
-  const [saving, setSaving] = useState(false);
   useEffect(() => {
     const node = dialog.current;
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -39,32 +36,17 @@ export function NewAccountModal({
       previousFocus?.focus();
     };
   }, []);
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (saving) return;
     const data = new FormData(event.currentTarget);
-    setSaving(true);
-    setError(undefined);
-    const result = await onCreate({
+    onCreate({
       nombre: String(data.get("nombre") ?? ""),
       tipo: type,
       moneda: String(data.get("moneda")) as CurrencyCode,
       saldo_inicial: String(data.get("saldo_inicial") ?? "").replace(",", "."),
     });
-    setSaving(false);
-    if (result) {
-      setError(result);
-      if (result.campo)
-        dialog.current
-          ?.querySelector<HTMLElement>(`[name="${result.campo}"]`)
-          ?.focus();
-    } else onClose();
+    onClose();
   }
-  const errorProps = (field: string) => ({
-    "aria-invalid": error?.campo === field || undefined,
-    "aria-describedby":
-      error?.campo === field ? "account-form-error" : undefined,
-  });
   return (
     <dialog
       ref={dialog}
@@ -72,10 +54,10 @@ export function NewAccountModal({
       aria-labelledby="new-account-title"
       onCancel={(event) => {
         event.preventDefault();
-        if (!saving) onClose();
+        onClose();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget && !saving) {
+        if (event.target === event.currentTarget) {
           const bounds = event.currentTarget.getBoundingClientRect();
           if (
             event.clientX < bounds.left ||
@@ -100,14 +82,13 @@ export function NewAccountModal({
         <button
           className="close-account-dialog"
           aria-label="Cerrar formulario"
-          disabled={saving}
           onClick={onClose}
         >
           ×
         </button>
       </header>
-      <form onSubmit={submit} noValidate>
-        <fieldset disabled={saving}>
+      <form onSubmit={submit}>
+        <fieldset>
           <label>
             Nombre
             <input
@@ -115,7 +96,7 @@ export function NewAccountModal({
               name="nombre"
               placeholder="Ej. Cuenta nómina"
               autoComplete="off"
-              {...errorProps("nombre")}
+              required
             />
           </label>
           <fieldset className="account-type-options">
@@ -136,7 +117,7 @@ export function NewAccountModal({
           <div className="account-form-columns">
             <label>
               Moneda
-              <select name="moneda" {...errorProps("moneda")}>
+              <select name="moneda">
                 {currencies.map((currency) => (
                   <option key={currency.codigo} value={currency.codigo}>
                     {currency.codigo} · {currency.nombre}
@@ -150,28 +131,21 @@ export function NewAccountModal({
                 name="saldo_inicial"
                 inputMode="decimal"
                 defaultValue="0"
-                {...errorProps("saldo_inicial")}
+                type="number"
+                min="0"
+                step="0.01"
+                required
               />
               <small>Hasta 2 decimales; puede ser 0.</small>
             </label>
           </div>
         </fieldset>
-        {error && (
-          <p id="account-form-error" className="account-error" role="alert">
-            {error.mensaje}
-          </p>
-        )}
         <footer>
-          <button
-            type="button"
-            className="account-secondary"
-            disabled={saving}
-            onClick={onClose}
-          >
+          <button type="button" className="account-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button className="account-primary" type="submit" disabled={saving}>
-            {saving ? "Guardando…" : "Crear cuenta"}
+          <button className="account-primary" type="submit">
+            Crear cuenta
           </button>
         </footer>
       </form>

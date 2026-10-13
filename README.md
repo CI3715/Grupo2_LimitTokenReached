@@ -34,6 +34,6 @@ pip install -r requirements.txt
 
 La aplicación abre en **Mis cuentas**, con nombre, tipo, moneda y saldo, subtotales separados por moneda y formulario **Nueva cuenta**. La vista de conexión en `/conexion/` comparte el diseño y la navegación de Mis cuentas.
 
-En navegador se muestran datos de ejemplo y las cuentas creadas se pierden al recargar. En Tauri, la vista está preparada para `listar_cuentas`, `listar_monedas` y `crear_cuenta`. **Esta rama implementa la interfaz; todavía falta integrar los comandos Rust y SQLite.**
+Esta implementaci?n cubre ?nicamente la vista, con datos de muestra y estado temporal de React. Lo creado se pierde al recargar. No incluye backend, persistencia ni llamadas a Tauri. Conexi?n es una secci?n visual deshabilitada.
 
 Consulta el [contrato de integración y las comprobaciones de la vista](docs/qa-mis-cuentas.md).

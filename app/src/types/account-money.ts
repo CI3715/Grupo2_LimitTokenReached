@@ -1,4 +1,4 @@
-// Presentation arithmetic in integer minor units; Rust owns domain validation.
+// Presentation arithmetic in integer minor units for preview subtotals.
 export function minorUnits(amount: string): bigint {
   if (!/^-?\d+(?:\.\d{1,2})?$/.test(amount)) throw new Error("Monto no válido");
   const negative = amount.startsWith("-");
