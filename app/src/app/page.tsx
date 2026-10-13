@@ -20,9 +20,8 @@ export default function HomePage() {
             onCreateAccount={() => setCreateOpen(true)}
             disabled={false}
           />
-          <p className="preview-notice">
-            Vista previa · Datos de muestra. Las cuentas creadas aquí se pierden
-            al recargar.
+          <p className="accounts-guidance">
+            Agrega tus cuentas y mantén tus saldos a la vista.
           </p>
           <span className="sr-only" role="status">
             {announcement}

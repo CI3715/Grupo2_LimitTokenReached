@@ -224,12 +224,12 @@
 .account-secondary:hover:not(:disabled) {
   background: #e1eae4;
 }
-.preview-notice {
+.accounts-guidance {
   padding: 11px 14px;
-  border: 1px solid #dfdcc9;
+  border: 1px solid #dfe8e3;
   border-radius: 9px;
-  background: #faf8ef;
-  color: #736743;
+  background: #edf4ef;
+  color: #365c49;
   font-size: 11px;
   line-height: 1.6;
   margin: 20px 0 0;
