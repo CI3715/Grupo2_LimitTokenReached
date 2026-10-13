@@ -40,7 +40,6 @@ export default function HomePage() {
       {createOpen && (
         <NewAccountModal
           currencies={currencies}
-          preview
           onClose={() => setCreateOpen(false)}
           onCreate={(input) => {
             create(input);

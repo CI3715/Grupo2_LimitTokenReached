@@ -11,13 +11,11 @@ import {
 
 type Props = {
   currencies: Currency[];
-  preview: boolean;
   onClose: () => void;
   onCreate: (input: CreateAccountInput) => void;
 };
 export function NewAccountModal({
   currencies,
-  preview,
   onClose,
   onCreate,
 }: Props) {
@@ -73,11 +71,7 @@ export function NewAccountModal({
         <div>
           <p className="eyebrow">Nueva cuenta</p>
           <h2 id="new-account-title">Agrega una cuenta</h2>
-          <p>
-            {preview
-              ? "Prueba el formulario con datos de muestra."
-              : "Se guardará únicamente en este dispositivo."}
-          </p>
+          <p>Completa los datos de tu cuenta para organizar tus saldos.</p>
         </div>
         <button
           className="close-account-dialog"

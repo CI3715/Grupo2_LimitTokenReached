@@ -13,7 +13,7 @@ export default function ConnectionPage() {
                 Sistema <span>/</span> Conexión
               </p>
               <h1>Conexión</h1>
-              <p>Esta sección estará disponible próximamente.</p>
+              <p>Consulta el estado de conexión de Cuentas Claras.</p>
             </div>
           </header>
           <section
@@ -26,19 +26,18 @@ export default function ConnectionPage() {
               </div>
               <div>
                 <h2 id="connection-title">Estado de conexión</h2>
-                <p>Vista previa</p>
+                <p>Conexión de la aplicación</p>
               </div>
-              <span className="connection-status">Próximamente</span>
+              <span className="connection-status">Sin comprobar</span>
             </div>
             <div className="connection-panel-body">
               <p>
-                Por ahora puedes explorar Mis cuentas y probar su formulario con
-                datos de muestra.
+                Comprueba la conexión para conocer su estado actual.
               </p>
             </div>
             <footer className="connection-panel-footer">
-              <span>Esta vista no realiza comprobaciones.</span>
-              <button className="account-primary" disabled>
+              <span>Última comprobación: sin registros</span>
+              <button className="account-primary" type="button">
                 Comprobar conexión
               </button>
             </footer>
