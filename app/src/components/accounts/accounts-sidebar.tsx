@@ -50,7 +50,7 @@ export function AccountsSidebar({
         <strong>Tus cuentas, en un solo lugar</strong>
         <p>Organiza tu dinero y consulta tus saldos fácilmente.</p>
         <span>
-          <i /> Tu privacidad importa
+          <i /> Tus finanzas importan
         </span>
       </div>
     </aside>
