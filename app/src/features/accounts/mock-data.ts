@@ -9,7 +9,7 @@ export const demoCurrencies: Currency[] = [
 export const initialAccounts: Account[] = [
   {
     id: "demo-ves",
-    nombre: "Efectivo diario",
+    nombre: "Cuenta en bolívares",
     tipo: "efectivo",
     moneda: "VES",
     saldo: "12500.00",
