@@ -18,7 +18,7 @@ export function AccountsSummary({
           <h2 id="summary-title">Resumen</h2>
           <p>Los saldos se mantienen separados por moneda.</p>
         </div>
-        <span className="local-tag">Local</span>
+        <span className="local-tag">Disponible</span>
       </div>
       <div className="summary-grid">
         {entries.map((currency) => {

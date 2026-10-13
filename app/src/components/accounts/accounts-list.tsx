@@ -21,7 +21,8 @@ export function AccountsList({
           </p>
         </div>
         <span className="list-labels">
-          Moneda <span>Saldo</span>
+          <span>Moneda</span>
+          <span>Saldo</span>
         </span>
       </div>
       {accounts.length ? (
