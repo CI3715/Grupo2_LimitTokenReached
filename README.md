@@ -30,3 +30,10 @@ cd ~/servidor/src/cuentas_claras/app
 pip install -r requirements.txt
 
 4. Ejecutar el comando uvicorn main:app --reload
+## Vista Mis cuentas — Entrega 2
+
+La aplicación abre en **Mis cuentas**, con nombre, tipo, moneda y saldo, subtotales separados por moneda y formulario **Nueva cuenta**. La vista de conexión en `/conexion/` comparte el diseño y la navegación de Mis cuentas.
+
+En navegador se muestran datos de ejemplo y las cuentas creadas se pierden al recargar. En Tauri, la vista está preparada para `listar_cuentas`, `listar_monedas` y `crear_cuenta`. **Esta rama implementa la interfaz; todavía falta integrar los comandos Rust y SQLite.**
+
+Consulta el [contrato de integración y las comprobaciones de la vista](docs/qa-mis-cuentas.md).
