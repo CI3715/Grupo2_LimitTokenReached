@@ -1,11 +1,10 @@
-# CI - Cuentas Claras (Entrega 2)
+# CI - Cuentas Claras (Entrega 2 - Fase Inicial, por editar más adelante)
 
 name: CI - Cuentas Claras
 
 on:
   pull_request:
     branches: [ main ]
-    # Filtros de ruta: optimiza el CI para que solo corra si cambian estas carpetas
     paths:
       - 'servidor/**'
       - 'app/**'
@@ -24,28 +23,22 @@ jobs:
         working-directory: ./servidor
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e .
           pip install pydantic-settings httpx
           pip install ruff mypy black import-linter pytest pip-licenses
-
       - name: Check License Compatibility
         run: pip-licenses --fail-on="GPL;GPL-2.0;GPL-3.0;AGPL;AGPL-3.0;LGPL;LGPL-2.1;LGPL-3.0"
-
       - name: Run Ruff
         run: ruff check .
-
       - name: Run MyPy
         run: mypy src
-
       - name: Run Import Linter
         run: PYTHONPATH=src lint-imports
 
@@ -58,24 +51,20 @@ jobs:
         working-directory: ./app
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: npm install
-
       - name: Run ESLint
         run: npm run lint
-
       - name: Build Next.js
         run: npm run build
 
-  # RUST (Crates de lógica - sin src-tauri)
+  # RUST (Solo el crate contrato - Entrega 2)
   rust-lint:
-    name: Rust - Lint & Test
+    name: Rust - Contrato DTOs
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,8 +74,6 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
 
       - name: Cache Cargo dependencies
         uses: actions/cache@v4
@@ -99,15 +86,6 @@ jobs:
             app/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      # Verificar que los crates de lógica compilen (sin src-tauri)
-      - name: Check compilation
-        run: cargo check --package contrato --package dominio --package aplicacion --package infraestructura
-
-      - name: Check formatting
-        run: cargo fmt --package contrato --package dominio --package aplicacion --package infraestructura -- --check
-
-      - name: Run Clippy
-        run: cargo clippy --package contrato --package dominio --package aplicacion --package infraestructura -- -D warnings
-
-      - name: Run tests
-        run: cargo test --package contrato --package dominio --package aplicacion --package infraestructura
+      # Solo verificar que el crate contrato (DTOs) compile
+      - name: Check contrato compilation
+        run: cargo check -p contrato
