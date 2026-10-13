@@ -275,11 +275,8 @@
   border-radius: 18px;
   padding: 22px;
   background: white;
-}
-.summary-card:first-child {
-  background: #173f3b;
-  border-color: #173f3b;
-  color: white;
+  color: #1b2926;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 .summary-card > div {
   display: flex;
@@ -297,9 +294,6 @@
   border-radius: 6px;
   background: #6a9a8014;
 }
-.summary-card:first-child > div strong {
-  background: #ffffff15;
-}
 .summary-card > p {
   font-size: clamp(19px, 2vw, 26px);
   font-weight: 700;
@@ -311,6 +305,20 @@
 .summary-card > small {
   font-size: 10px;
   opacity: 0.7;
+}
+@media (hover: hover) {
+  .summary-card:hover {
+    background: #e9f0ec;
+    border-color: #e0e7e1;
+    color: #1b2926;
+  }
+  .summary-card:hover > div strong {
+    background: #6a9a8014;
+  }
+  .summary-card:hover > div span,
+  .summary-card:hover > small {
+    opacity: 1;
+  }
 }
 .accounts-list {
   --account-columns: 44px minmax(0, 1fr) 80px minmax(150px, 0.5fr);
