@@ -45,6 +45,9 @@ export function AccountsSidebar({
           {" "}
           <span aria-hidden="true">⌁</span> Conexión
         </Link>
+        <Link href="/conexion-entrega-1/">
+          <span aria-hidden="true">⌁</span> Conexión entrega 1
+        </Link>
       </nav>
       <div className="local-note">
         <strong>Tus cuentas, en un solo lugar</strong>
