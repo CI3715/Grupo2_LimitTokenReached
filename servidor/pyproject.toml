@@ -10,6 +10,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pydantic",
+    "pydantic-settings",
 ]
 
 [tool.setuptools.packages.find]
@@ -21,6 +22,8 @@ testpaths = ["tests"]
 [tool.mypy]
 strict = true
 files = ["src"]
+mypy_path = "src"
+
 
 [tool.ruff]
 line-length = 88

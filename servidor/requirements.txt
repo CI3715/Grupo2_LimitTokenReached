@@ -10,3 +10,4 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 types-PyYAML
+pydantic-settings

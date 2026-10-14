@@ -1,0 +1,81 @@
+# CI - Cuentas Claras (Entrega 1)
+
+name: CI - Cuentas Claras
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+
+  # BACKEND (FastAPI)
+  # Verifica estilo, tipos y que se respete la arquitectura hexagonal que definimos
+  backend-lint:
+    name: Backend (FastAPI) - Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./servidor   # todo corre dentro de /servidor 
+    steps:
+      - uses: actions/checkout@v4
+
+      # Usamos Python 3.11 porque es la versión objetivo del proyecto
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Instalamos el paquete en modo editable + herramientas de desarrollo
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          # Agregamos estas librerías porque el código actual las usa y mypy necesita sus stubs
+          pip install pydantic-settings httpx
+          # Instalamos las herramientas de linting y testing
+          pip install ruff mypy black import-linter pytest
+
+      # Ruff: linter rápido (reemplaza a flake8 + isort + parte de pylint)
+      - name: Run Ruff
+        run: ruff check .
+
+      # MyPy en modo strict: compensa el tipado gradual de Python 
+      - name: Run MyPy
+        run: mypy src
+
+      # Import Linter: verifica la regla de dependencia de la arquitectura hexagonal
+      # Si el dominio o la aplicación importan infraestructura, esto falla
+      - name: Run Import Linter
+        run: PYTHONPATH=src lint-imports
+
+  # FRONTEND (Next.js)
+  # Verifica estilo y que el build estático funcione
+  frontend-lint:
+    name: Frontend (Next.js) - Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app   # todo corre dentro de /app 
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 20+ porque es la versión mínima requerida por Next.js en este proyecto
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        # Usamos npm en CI para evitar el bloqueo de seguridad de pnpm con los scripts de build de Next.js
+        run: npm install
+
+      # ESLint: estilo y reglas de calidad del frontend
+      - name: Run ESLint
+        run: npm run lint
+
+      # Build de Next.js: valida que compile con `output: 'export'` 
+      # Si alguien mete Server Components o API Routes, este paso debería fallar
+      - name: Build Next.js
+        run: npm run build
