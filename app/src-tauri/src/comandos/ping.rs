@@ -1,0 +1,43 @@
+use aplicacion::casos_uso::verificar_conexion;
+use infraestructura::ClienteSocialHttp;
+use serde::Serialize;
+
+
+/// Estructura DTO serializable a JSON hacia el Frontend (Next.js)
+#[derive(Serialize)]
+pub struct PingResultadoUI {
+    pub estado: String,
+    pub mensaje: String,
+    pub version: String,
+    pub timestamp: String,
+    pub latencia_ms: u64,
+}
+
+#[tauri::command]
+pub async fn ping_servidor() -> Result<PingResultadoUI, String> {
+    let url_servidor = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
+    let cliente = ClienteSocialHttp::new(url_servidor);
+
+    // Invocamos el caso de uso que mide la latencia
+    let (respuesta, latencia_ms) = verificar_conexion::calcular_latencia_ping(|| async move {
+        cliente.hacer_ping().await
+    })
+    .await
+    .map_err(|err_tecnico| {
+        // Registramos el error técnico en la consola de Rust para depuración
+        eprintln!("[Error Técnico de Conexión]: {:?}", err_tecnico);
+
+        // Mensaje que sera retornado al usuario en caso de error
+        "No se pudo establecer conexión con el servidor. Por favor, verifica tu conexión a internet o intenta más tarde.".to_string()
+
+    })?;
+
+    // Retornamos la estructura serializable en JSON
+    Ok(PingResultadoUI {
+        estado: respuesta.estado,
+        mensaje: respuesta.mensaje,
+        version: respuesta.version,
+        timestamp: respuesta.timestamp,
+        latencia_ms,
+    })
+}
