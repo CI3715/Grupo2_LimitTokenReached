@@ -15,24 +15,24 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 
 ## Estado actual
 
-| Área                        | Implementación disponible                                                                            |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Interfaz                    | Inicio en Mis cuentas y sección Conexión en `/conexion/`.                                            |
-| Frontend                    | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri.                          |
-| Aplicación nativa           | Estructura y configuración inicial de Tauri.                                                         |
-| Backend                     | Servidor FastAPI con endpoint `GET /ping`.                                                           |
-| Comunicación de la interfaz | Conexión mediante `ping_servidor` de Tauri; cuentas con datos de muestra y estado temporal de React. |
-| Gestión financiera          | Vista de cuentas, subtotales por moneda y formulario; integración local pendiente.                   |
+| Área | Implementación disponible |
+| --- | --- |
+| Interfaz | Pantalla de estado de conexión con modos claro y oscuro. |
+| Frontend | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri. |
+| Aplicación nativa | Estructura y configuración inicial de Tauri. |
+| Backend | Servidor FastAPI con endpoint `GET /ping`. |
+| Comunicación de la interfaz | Verificación simulada; pendiente de conectar con el backend. |
+| Gestión financiera | Funcionalidad prevista para próximas entregas. |
 
-Mis cuentas es una vista previa sin persistencia ni llamadas al backend. En `/conexion/`, la comprobación real requiere ejecutar la aplicación con Tauri y tener el servidor disponible; `npm run dev` permite revisar la interfaz en el navegador.
+**El indicador «Conectado» de la interfaz no verifica todavía la disponibilidad real del servidor.**
 
 ## Tecnologías y arquitectura
 
-| Componente        | Tecnologías                                 | Responsabilidad                                  |
-| ----------------- | ------------------------------------------- | ------------------------------------------------ |
-| Interfaz          | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario.       |
-| Contenedor nativo | Tauri · Rust                                | Ejecución de la interfaz como aplicación nativa. |
-| Servidor          | FastAPI · Python · Uvicorn                  | API y coordinación de información compartida.    |
+| Componente | Tecnologías | Responsabilidad |
+| --- | --- | --- |
+| Interfaz | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario. |
+| Contenedor nativo | Tauri · Rust | Ejecución de la interfaz como aplicación nativa. |
+| Servidor | FastAPI · Python · Uvicorn | API y coordinación de información compartida. |
 
 El backend se organiza siguiendo una arquitectura hexagonal: dominio, aplicación, infraestructura, contratos y arranque de la API. El proyecto incluye configuración de Import Linter para revisar las dependencias entre capas y reglas de ESLint para organizar las dependencias del frontend.
 
@@ -49,8 +49,7 @@ Grupo2_LimitTokenReached/
 │   │   ├── aplicacion/          # Casos de uso y puertos
 │   │   ├── infraestructura/     # Adaptadores e implementaciones
 │   │   ├── contrato/            # Contratos de la API
-│   │   └── app/                 # Configuración de FastAPI
-│   ├── src/main.py             # Arranque de FastAPI
+│   │   └── app/                 # Configuración y arranque de FastAPI
 │   ├── tests/                   # Pruebas del servidor
 │   ├── pyproject.toml
 │   └── requirements.txt
@@ -63,7 +62,7 @@ Grupo2_LimitTokenReached/
 ### Requisitos
 
 - Git.
-- Node.js 20.9 o superior y npm. Para Tauri también se necesita pnpm, utilizado por sus comandos de arranque y compilación.
+- Node.js y npm. El frontend se ha compilado localmente con Node.js 22.
 - Python 3.11 o superior.
 - Para ejecutar Tauri: Rust, Cargo y las dependencias nativas correspondientes al sistema operativo.
 
@@ -80,7 +79,7 @@ Desde la raíz del repositorio:
 
 ```bash
 cd app
-npm install
+npm ci
 npm run dev
 ```
 
@@ -98,7 +97,8 @@ Los siguientes comandos se ejecutan desde la raíz del repositorio. No es necesa
 python -m venv servidor/.venv
 ./servidor/.venv/Scripts/python.exe -m pip install -e ./servidor
 ./servidor/.venv/Scripts/python.exe -m pip install -r ./servidor/requirements.txt pydantic-settings
-./servidor/.venv/Scripts/python.exe -m uvicorn main:app --app-dir servidor/src --reload
+cd servidor/src/cuentas_claras/app
+../../../.venv/Scripts/python.exe -m uvicorn main:app --reload
 ```
 
 **Linux / macOS:**
@@ -107,20 +107,21 @@ python -m venv servidor/.venv
 python3 -m venv servidor/.venv
 ./servidor/.venv/bin/python -m pip install -e ./servidor
 ./servidor/.venv/bin/python -m pip install -r ./servidor/requirements.txt pydantic-settings
-./servidor/.venv/bin/python -m uvicorn main:app --app-dir servidor/src --reload
+cd servidor/src/cuentas_claras/app
+../../../.venv/bin/python -m uvicorn main:app --reload
 ```
 
-El punto de entrada del servidor es `servidor/src/main.py`. `--app-dir servidor/src` permite resolver los imports de sus capas desde la raíz del repositorio.
+El arranque se realiza desde esa carpeta porque la implementación actual importa `config.config` como un módulo local. Se instala `pydantic-settings` explícitamente porque el código lo utiliza y todavía no está declarado en las dependencias.
 
 El endpoint actual no utiliza `SERVER_HOST_IP` para consultar otro servicio; no es necesario definir esa variable para iniciar el backend.
 
 Con el servidor en ejecución:
 
-| Recurso                   | Dirección                          |
-| ------------------------- | ---------------------------------- |
-| Documentación interactiva | http://127.0.0.1:8000/docs         |
-| Esquema OpenAPI           | http://127.0.0.1:8000/openapi.json |
-| Endpoint de conexión      | http://127.0.0.1:8000/ping         |
+| Recurso | Dirección |
+| --- | --- |
+| Documentación interactiva | http://127.0.0.1:8000/docs |
+| Esquema OpenAPI | http://127.0.0.1:8000/openapi.json |
+| Endpoint de conexión | http://127.0.0.1:8000/ping |
 
 `GET /ping` responde con HTTP **200 OK** y un objeto JSON de estado, mensaje, versión y timestamp. En el flujo de esta entrega, quien realiza el GET es Rust desde la aplicación; `/ping` solo responde el contrato JSON. La latencia se mide en la aplicación cliente y no forma parte del contrato del endpoint.
 
@@ -148,7 +149,7 @@ La UI se encarga de presentar datos y capturar eventos; el módulo de comunicaci
 
 La regla arquitectónica 2.3 de la guía, relativa a dependencias externas, exige manejar la red y el reloj mediante puertos y adaptadores; no prohíbe por sí misma que `/ping` consulte otra URL. Esta regla es distinta del apartado 2.3 de la especificación de la Entrega 1, que define el contrato de `GET /ping`. Para el flujo de esta entrega, el backend solo responde el contrato. Conforme a la arquitectura descrita en [ADR-004](docs/adr/004-arquitectura-hexagonal.md), el reloj debe exponerse mediante un puerto de aplicación y obtener la hora del sistema en un adaptador de infraestructura, en lugar de llamar directamente a `datetime.now()` desde la ruta.
 
-La sección Conexión conserva el flujo de `main`: `usePing` → `pingService` → `ping_servidor` → `GET /ping`. Este flujo es independiente de Mis cuentas y solo se ejecuta al pulsar el botón de comprobación.
+**Pendientes en el código actual:** conectar la interfaz, que todavía simula la verificación, con `invoke('ping_servidor')`; ajustar el texto del botón al solicitado; cambiar el mensaje del backend de `"Servidor de Cuentas Claras activo"` a `"Servidor Cuentas Claras activo"`; y sustituir la llamada directa a `datetime.now()` por el puerto de reloj y su adaptador. El comando Rust `ping_servidor` y su adaptador HTTP ya existen, pero aún no son invocados por la interfaz. Ejecutar ambos servicios todavía no completa la prueba de conexión de extremo a extremo.
 
 ### Ejecutar la aplicación de escritorio
 
