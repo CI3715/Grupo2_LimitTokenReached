@@ -18,7 +18,7 @@ export function AccountsSidebar({
       <p className="eyebrow">Principal</p>
       <nav aria-label="Principal">
         <Link
-          href="/"
+          href="/mis-cuentas/"
           aria-current={active === "accounts" ? "page" : undefined}
           className={active === "accounts" ? "nav-current" : undefined}
         >
