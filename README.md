@@ -15,24 +15,24 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 
 ## Estado actual
 
-| Área | Implementación disponible |
-| --- | --- |
-| Interfaz | Inicio en Mis cuentas y sección Conexión en `/conexion/`. |
-| Frontend | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri. |
-| Aplicación nativa | Estructura y configuración inicial de Tauri. |
-| Backend | Servidor FastAPI con endpoint `GET /ping`. |
+| Área                        | Implementación disponible                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Interfaz                    | Inicio en Mis cuentas y sección Conexión en `/conexion/`.                                            |
+| Frontend                    | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri.                          |
+| Aplicación nativa           | Estructura y configuración inicial de Tauri.                                                         |
+| Backend                     | Servidor FastAPI con endpoint `GET /ping`.                                                           |
 | Comunicación de la interfaz | Conexión mediante `ping_servidor` de Tauri; cuentas con datos de muestra y estado temporal de React. |
-| Gestión financiera | Vista de cuentas, subtotales por moneda y formulario; integración local pendiente. |
+| Gestión financiera          | Vista de cuentas, subtotales por moneda y formulario; integración local pendiente.                   |
 
 Mis cuentas es una vista previa sin persistencia ni llamadas al backend. En `/conexion/`, la comprobación real requiere ejecutar la aplicación con Tauri y tener el servidor disponible; `npm run dev` permite revisar la interfaz en el navegador.
 
 ## Tecnologías y arquitectura
 
-| Componente | Tecnologías | Responsabilidad |
-| --- | --- | --- |
-| Interfaz | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario. |
-| Contenedor nativo | Tauri · Rust | Ejecución de la interfaz como aplicación nativa. |
-| Servidor | FastAPI · Python · Uvicorn | API y coordinación de información compartida. |
+| Componente        | Tecnologías                                 | Responsabilidad                                  |
+| ----------------- | ------------------------------------------- | ------------------------------------------------ |
+| Interfaz          | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario.       |
+| Contenedor nativo | Tauri · Rust                                | Ejecución de la interfaz como aplicación nativa. |
+| Servidor          | FastAPI · Python · Uvicorn                  | API y coordinación de información compartida.    |
 
 El backend se organiza siguiendo una arquitectura hexagonal: dominio, aplicación, infraestructura, contratos y arranque de la API. El proyecto incluye configuración de Import Linter para revisar las dependencias entre capas y reglas de ESLint para organizar las dependencias del frontend.
 
@@ -116,11 +116,11 @@ El endpoint actual no utiliza `SERVER_HOST_IP` para consultar otro servicio; no 
 
 Con el servidor en ejecución:
 
-| Recurso | Dirección |
-| --- | --- |
-| Documentación interactiva | http://127.0.0.1:8000/docs |
-| Esquema OpenAPI | http://127.0.0.1:8000/openapi.json |
-| Endpoint de conexión | http://127.0.0.1:8000/ping |
+| Recurso                   | Dirección                          |
+| ------------------------- | ---------------------------------- |
+| Documentación interactiva | http://127.0.0.1:8000/docs         |
+| Esquema OpenAPI           | http://127.0.0.1:8000/openapi.json |
+| Endpoint de conexión      | http://127.0.0.1:8000/ping         |
 
 `GET /ping` responde con HTTP **200 OK** y un objeto JSON de estado, mensaje, versión y timestamp. En el flujo de esta entrega, quien realiza el GET es Rust desde la aplicación; `/ping` solo responde el contrato JSON. La latencia se mide en la aplicación cliente y no forma parte del contrato del endpoint.
 
@@ -213,11 +213,3 @@ No incluir archivos `.env`, credenciales ni artefactos de compilación en los co
 ## Licencia
 
 Este proyecto se distribuye bajo la **licencia Apache 2.0**. Consulta el archivo [LICENSE](LICENSE) para conocer sus términos.
-
-## Vista Mis cuentas — Entrega 2
-
-La aplicación abre en **Mis cuentas**, con nombre, tipo, moneda y saldo, subtotales separados por moneda y formulario **Nueva cuenta**. Incluye ejemplos de efectivo VES, banco USD y billetera USDT, además del catálogo VES, USD, EUR y USDT.
-
-Esta rama cubre la presentación con datos de muestra y estado temporal de React. Recargar restablece los ejemplos. La persistencia SQLite, los comandos `listar_cuentas`, `listar_monedas` y `crear_cuenta`, los eventos y las validaciones de dominio quedan a cargo de la integración posterior. Las cuentas no realizan peticiones HTTP ni invocaciones Tauri.
-
-Consulta el [contrato de integración y las comprobaciones de la vista](docs/qa-mis-cuentas.md).
