@@ -9,7 +9,7 @@ export function AccountsSummary({
   currencies: Currency[];
 }) {
   const entries = currencies.filter((currency) =>
-    accounts.some((account) => account.moneda === currency.codigo),
+    accounts.some((account) => account.moneda_codigo === currency.codigo),
   );
   return (
     <section className="accounts-summary" aria-labelledby="summary-title">
@@ -23,7 +23,7 @@ export function AccountsSummary({
       <div className="summary-grid">
         {entries.map((currency) => {
           const matching = accounts.filter(
-            (account) => account.moneda === currency.codigo,
+            (account) => account.moneda_codigo === currency.codigo,
           );
           const total = matching.reduce(
             (sum, account) => sum + minorUnits(account.saldo),

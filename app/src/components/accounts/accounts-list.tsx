@@ -32,7 +32,7 @@ export function AccountsList({
               key={account.id}
               account={account}
               currency={currencies.find(
-                (currency) => currency.codigo === account.moneda,
+                (currency) => currency.codigo === account.moneda_codigo,
               )}
             />
           ))}
