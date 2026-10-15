@@ -58,17 +58,21 @@ mod tests {
         assert!(req.saldo_inicial.starts_with('-'), "El saldo negativo debe ser detectable");
     }
 
-    #[test]
+      #[test]
     fn validacion_saldo_con_decimales_invalidos_debe_ser_detectable() {
         let mut req = request_valido();
-        req.moneda_codigo = "USD".to_string();
-        req.saldo_inicial = "10.555".to_string();
+        req.moneda_codigo = "USD".to_string(); // USD permite 2 decimales
+        req.saldo_inicial = "10.555".to_string(); // 3 decimales (inválido)
         
+        // Verificar que podemos detectar decimales inválidos
         if let Some(pos_punto) = req.saldo_inicial.find('.') {
             let decimales = req.saldo_inicial[pos_punto + 1..].len();
             let max_decimales_usd = 2;
-            assert!(decimales <= max_decimales_usd, 
-                    "USD solo permite {} decimales, se encontraron {}", max_decimales_usd, decimales);
+            // La prueba verifica que detectamos que es inválido (decimales > máximo permitido)
+            assert!(decimales > max_decimales_usd, 
+                    "Deberíamos detectar que USD tiene más decimales de los permitidos");
+        } else {
+            panic!("El saldo debería tener un punto decimal");
         }
     }
 }
