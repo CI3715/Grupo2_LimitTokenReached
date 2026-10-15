@@ -28,6 +28,9 @@ tauri-build = { version = "2.0", features = [] }
 [dependencies]
 # Framework ejecutable Tauri (Heredado del workspace)
 tauri = { workspace = true }
+rusqlite = {version = "0.31", features = ["bundled"]}
+serde_json = {workspace = true}
+serde = { workspace = true}
 
 # Inclusión de los crates internos del workspace
 dominio = { workspace = true }
@@ -36,8 +39,7 @@ infraestructura = { workspace = true }
 contrato = { workspace = true }
 
 # Utilidades de serialización, errores y logs (Heredadas del workspace)
-serde = { workspace = true }
-serde_json = { workspace = true }
+
 thiserror = { workspace = true }
 log = "0.4"
 tauri-plugin-log = "2"
