@@ -92,4 +92,4 @@ jobs:
 
       # Ejecutar pruebas de invariantes con repositorio en memoria
       - name: Run QA Tests (Invariantes en Memoria)
-        run: cargo test -p aplicacion -p infraestructura
+        run: cargo test -p contrato
