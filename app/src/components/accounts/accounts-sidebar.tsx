@@ -18,7 +18,7 @@ export function AccountsSidebar({
       <p className="eyebrow">Principal</p>
       <nav aria-label="Principal">
         <Link
-          href="/"
+          href="/mis-cuentas/"
           aria-current={active === "accounts" ? "page" : undefined}
           className={active === "accounts" ? "nav-current" : undefined}
         >
@@ -44,6 +44,9 @@ export function AccountsSidebar({
         >
           {" "}
           <span aria-hidden="true">⌁</span> Conexión
+        </Link>
+        <Link href="/conexion-entrega-1/">
+          <span aria-hidden="true">⌁</span> Conexión entrega 1
         </Link>
       </nav>
       <div className="local-note">
