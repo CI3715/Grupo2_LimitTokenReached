@@ -14,9 +14,13 @@ pub fn run() {
             app.manage(comandos::bd::BaseDatos(Mutex::new(conn)));
             Ok(())
         })
+        .plugin(tauri_plugin_log::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             comandos::ping::ping_servidor,
-            comandos::bd::registrar_evento
+            comandos::bd::registrar_evento,
+            comandos::cuentas::crear_cuenta,
+            comandos::cuentas::listar_cuentas,
+            comandos::moneda::listar_monedas
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");
