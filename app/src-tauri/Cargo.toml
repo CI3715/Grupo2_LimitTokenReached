@@ -31,6 +31,8 @@ tauri = { workspace = true }
 rusqlite = {version = "0.31", features = ["bundled"]}
 serde_json = {workspace = true}
 serde = { workspace = true}
+uuid = { version = "1", features = ["v4"]}
+chrono = "0.4"
 
 # Inclusión de los crates internos del workspace
 dominio = { workspace = true }

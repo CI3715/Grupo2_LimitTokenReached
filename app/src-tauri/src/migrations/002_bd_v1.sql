@@ -27,3 +27,8 @@ create table categoria  (
     
 );
 
+insert into moneda (codigo, nombre, simbolo, decimales) values
+('VES', 'Bolivar', 'Bs.', 2),
+('USD', 'Dolar Estadounidense', '$', 2), 
+('EUR', 'Euro', '€', 2), 
+('USDT', 'Tether', '₮', 6);
