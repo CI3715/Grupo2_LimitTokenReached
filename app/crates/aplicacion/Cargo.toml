@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 # Dependencia del núcleo de dominio
 dominio = { workspace = true }
+contrato = { path = "../contrato"}
 
 # Utilidades puras
 rust_decimal = { workspace = true }

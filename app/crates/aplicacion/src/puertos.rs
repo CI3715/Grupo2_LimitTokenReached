@@ -1,4 +1,8 @@
-pub trait Reloj: Send {
+use contrato::cuenta::CuentaDTO;
+use contrato::crear_cuenta::CrearCuentaRequest;
+use contrato::moneda::MonedaDTO;
+
+pub trait Reloj: Send + Sync {
     fn ahora(&self) -> String;
 }
 
@@ -7,6 +11,17 @@ pub trait ClienteSocial: Send + Sync {
     fn hacer_ping(&self) -> impl std::future::Future<Output = Result<String, String>> + Send;
 }
 
+
+
+pub trait RepositorioCuentas: Send + Sync {
+    fn guardar_cuenta(&self, request: &CrearCuentaRequest) -> Result<CuentaDTO, String>;
+    fn obtener_cuentas(&self) -> Result<Vec<CuentaDTO>, String>;
+}
+
+
+pub trait RepositorioMonedas: Send + Sync {
+    fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String>;
+}
 // Adaptadores Fake
 
 #[cfg(test)]
