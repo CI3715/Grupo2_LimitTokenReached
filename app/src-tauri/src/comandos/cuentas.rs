@@ -1,13 +1,15 @@
 use contrato::cuenta::{TipoCuentaDTO,CuentaDTO};
 use contrato::crear_cuenta::CrearCuentaRequest;
+use contrato::error_validacion::ErrorValidacionDTO;
 use aplicacion::puertos::RepositorioCuentas;
+
 
 
 #[tauri::command]
 pub async fn crear_cuenta(
     datos: CrearCuentaRequest,
     repo: tauri::State<'_, Box<dyn RepositorioCuentas>>,
-) -> Result<CuentaDTO, String> {
+) -> Result<CuentaDTO, ErrorValidacionDTO> {
     aplicacion::casos_uso::crear_nueva_cuenta::ejecutar(datos, repo.inner().as_ref()).await
 }
 
