@@ -39,7 +39,7 @@ infraestructura = { workspace = true }
 contrato = { workspace = true }
 
 # Utilidades de serialización, errores y logs (Heredadas del workspace)
-serde = { workspace = true }
+
 thiserror = { workspace = true }
 log = "0.4"
 tauri-plugin-log = "2"
