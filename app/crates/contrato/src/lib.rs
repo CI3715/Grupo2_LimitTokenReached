@@ -8,3 +8,6 @@ pub use cuenta::{CuentaDTO, TipoCuentaDTO};
 pub use crear_cuenta::CrearCuentaRequest;
 pub use error_validacion::ErrorValidacionDTO;
 pub use moneda::MonedaDTO;
+
+#[cfg(test)]
+mod crear_cuenta_tests;
