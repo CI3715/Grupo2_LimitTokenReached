@@ -53,3 +53,6 @@ impl ClienteSocialHttp {
             .map_err(|e| format!("Error al deserializar la respuesta del servidor: {e}"))
     }
 }
+
+// Módulo para el repositorio en memoria (Pruebas QA)
+pub mod repositorio_memoria;

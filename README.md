@@ -214,3 +214,17 @@ No incluir archivos `.env`, credenciales ni artefactos de compilación en los co
 ## Licencia
 
 Este proyecto se distribuye bajo la **licencia Apache 2.0**. Consulta el archivo [LICENSE](LICENSE) para conocer sus términos.
+
+## Pruebas y Almacenamiento Local (Entrega 2)
+
+### Almacenamiento
+Las cuentas se guardan localmente en el dispositivo usando SQLite embebido (`rusqlite`). 
+El archivo de base de datos se almacena de forma segura en el directorio de datos nativo de la aplicación (`app_data_dir` de Tauri), garantizando que los datos persistan al cerrar y reabrir la app, y que no salgan del dispositivo (Local-First).
+
+### Ejecución de Pruebas Automatizadas
+El proyecto incluye pruebas unitarias para los invariantes (INV-01, INV-03, INV-18) y validaciones de creación de cuentas, ejecutadas con un **repositorio en memoria** (sin base de datos real ni red), cumpliendo con los criterios de aceptación para la presente entrega.
+
+Para ejecutar las pruebas del núcleo Rust:
+```bash
+cd app
+cargo test --package aplicacion --package infraestructura
