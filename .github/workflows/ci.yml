@@ -90,6 +90,6 @@ jobs:
       - name: Check contrato compilation
         run: cargo check -p contrato
 
-      # Ejecutar pruebas de invariantes con repositorio en memoria
-      - name: Run QA Tests (Invariantes en Memoria)
-        run: cargo test -p contrato
+      # Ejecutar pruebas de invariantes y dominio con repositorio en memoria
+      - name: Run QA Tests (Invariantes y Dominio en Memoria)
+        run: cargo test -p contrato -p aplicacion 
