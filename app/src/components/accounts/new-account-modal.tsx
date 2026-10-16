@@ -122,6 +122,13 @@ export function NewAccountModal({
               placeholder="Ej. Cuenta nómina"
               autoComplete="off"
               required
+              onInvalid={(e) => {
+                if (e.currentTarget.validity.valueMissing) {
+                  e.currentTarget.setCustomValidity(
+                    "El nombre de la cuenta es obligatorio.",
+                  );
+                }
+              }}
               onInput={(e) => e.currentTarget.setCustomValidity("")}
             />
           </label>
@@ -161,6 +168,18 @@ export function NewAccountModal({
                 min="0"
                 step="0.01"
                 required
+                onInvalid={(e) => {
+                  if (e.currentTarget.validity.rangeUnderflow) {
+                    e.currentTarget.setCustomValidity(
+                      "El saldo inicial no puede ser negativo.",
+                    );
+                  } else if (e.currentTarget.validity.valueMissing) {
+                    e.currentTarget.setCustomValidity(
+                      "El saldo inicial es obligatorio.",
+                    );
+                  }
+                }}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
               />
               <small>Hasta 2 decimales; puede ser 0.</small>
             </label>
