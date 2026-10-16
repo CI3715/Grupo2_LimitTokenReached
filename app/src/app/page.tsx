@@ -1,5 +1,5 @@
 ﻿"use client";
-import type { ErrorValidacionDTO } from "./types/error_validacion";
+import type { ErrorValidacionDTO } from "@/types/error_validacion";
 import { useState } from "react";
 import { AccountsHeader } from "@/components/accounts/accounts-header";
 import { AccountsList } from "@/components/accounts/accounts-list";

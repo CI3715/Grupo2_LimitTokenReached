@@ -1,5 +1,5 @@
 "use client";
-import type { ErrorValidacionDTO } from "@/app/types/error_validacion";
+import type { ErrorValidacionDTO } from "@/types/error_validacion";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   accountTypeLabels,
