@@ -12,7 +12,7 @@ import {
 type Props = {
   currencies: Currency[];
   onClose: () => void;
-  onCreate: (input: CreateAccountInput) => void;
+  onCreate: (input: CreateAccountInput) => void | Promise<void>;
 };
 export function NewAccountModal({
   currencies,
@@ -48,7 +48,7 @@ export function NewAccountModal({
     // Verificación del nombre para que no sean espacios únicamente
     if (nombreValue.trim().length === 0 && nombreValue.length > 0) {
       inputNombre.setCustomValidity("El nombre no puede ser únicamente espacios.");
-      inputNombre.reportValidity(); // Fuerza al navegador a mostrar la burbuja de inmediato
+      inputNombre.reportValidity(); // Fuerza al navegador a mostrar el aviso de inmediato
       return;
     } else {
       // Limpia cualquier error previo si el texto ahora es válido
@@ -61,7 +61,7 @@ export function NewAccountModal({
       moneda_codigo: String(data.get("moneda_codigo")) as CurrencyCode,
       saldo_inicial: String(data.get("saldo_inicial") ?? "").replace(",", "."),
     });
-    onClose();
+    
   }
   return (
     <dialog

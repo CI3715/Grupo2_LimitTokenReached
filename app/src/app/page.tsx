@@ -8,9 +8,8 @@ import { NewAccountModal } from "@/components/accounts/new-account-modal";
 import { useAccounts } from "@/features/accounts/useAccounts";
 import "./accounts.css";
 export default function HomePage() {
-  const { accounts, currencies, create } = useAccounts();
+  const { accounts, currencies, announcement, create } = useAccounts();
   const [createOpen, setCreateOpen] = useState(false);
-  const [announcement, setAnnouncement] = useState("");
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
@@ -41,11 +40,12 @@ export default function HomePage() {
         <NewAccountModal
           currencies={currencies}
           onClose={() => setCreateOpen(false)}
-          onCreate={(input) => {
-            create(input);
-            setAnnouncement(
-              `Cuenta ${input.nombre} agregada a la vista previa.`,
-            );
+          onCreate={async (input) => {
+            const account = await create(input);
+
+            if (account !== null) {
+              setCreateOpen(false);
+            }
           }}
         />
       )}
