@@ -20,6 +20,7 @@ export function NewAccountModal({
   onCreate,
 }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  
   const [type, setType] = useState<AccountType>("efectivo");
   useEffect(() => {
     const node = dialog.current;
@@ -34,13 +35,30 @@ export function NewAccountModal({
       previousFocus?.focus();
     };
   }, []);
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+
+    // Obtener input del formulario
+    const form = event.currentTarget;
+    const inputNombre = form.elements.namedItem("nombre") as HTMLInputElement;
+    const nombreValue = inputNombre.value;
+
+    // Verificación del nombre para que no sean espacios únicamente
+    if (nombreValue.trim().length === 0 && nombreValue.length > 0) {
+      inputNombre.setCustomValidity("El nombre no puede ser únicamente espacios.");
+      inputNombre.reportValidity(); // Fuerza al navegador a mostrar la burbuja de inmediato
+      return;
+    } else {
+      // Limpia cualquier error previo si el texto ahora es válido
+      inputNombre.setCustomValidity("");
+    }
+
     onCreate({
       nombre: String(data.get("nombre") ?? ""),
       tipo: type,
-      moneda: String(data.get("moneda")) as CurrencyCode,
+      moneda_codigo: String(data.get("moneda_codigo")) as CurrencyCode,
       saldo_inicial: String(data.get("saldo_inicial") ?? "").replace(",", "."),
     });
     onClose();
@@ -91,6 +109,7 @@ export function NewAccountModal({
               placeholder="Ej. Cuenta nómina"
               autoComplete="off"
               required
+              onInput={(e) => e.currentTarget.setCustomValidity("")}
             />
           </label>
           <fieldset className="account-type-options">
@@ -111,7 +130,7 @@ export function NewAccountModal({
           <div className="account-form-columns">
             <label>
               Moneda
-              <select name="moneda">
+              <select name="moneda_codigo">
                 {currencies.map((currency) => (
                   <option key={currency.codigo} value={currency.codigo}>
                     {currency.codigo} · {currency.nombre}

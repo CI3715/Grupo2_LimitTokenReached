@@ -25,10 +25,10 @@ export function AccountCard({
         <h3>{account.nombre}</h3>
         <p>{accountTypeLabels[account.tipo]}</p>
       </div>
-      <span className="currency-chip">{account.moneda}</span>
+      <span className="currency-chip">{account.moneda_codigo}</span>
       <div className="account-balance">
         <strong>
-          {currency?.simbolo ?? account.moneda}{" "}
+          {currency?.simbolo ?? account.moneda_codigo}{" "}
           {formatMoney(minorUnits(account.saldo))}
         </strong>
         <small>Saldo actual</small>
