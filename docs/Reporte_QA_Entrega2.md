@@ -59,7 +59,7 @@ Para reproducir las validaciones de QA, siga estos pasos desde la raíz del repo
     ```
 2. Ejecutar las pruebas unitarias de invariantes y repositorio en memoria:
    ```bash
-   cargo test -p contrato -p aplicacion -p infraestructura
+   cargo test -p contrato -p aplicacion -p 
    ```
 3. (Opcional) Verificar que el código compila sin advertencias:
    ```bash
