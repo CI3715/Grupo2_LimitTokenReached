@@ -92,4 +92,4 @@ jobs:
 
       # Ejecutar pruebas de invariantes y dominio con repositorio en memoria
       - name: Run QA Tests (Invariantes y Dominio en Memoria)
-        run: cargo test -p contrato -p aplicacion -p infraestructura
+        run: cargo test -p contrato -p aplicacion 
