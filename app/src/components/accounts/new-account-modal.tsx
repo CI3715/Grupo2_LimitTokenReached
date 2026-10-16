@@ -50,7 +50,7 @@ export function NewAccountModal({
     // Verificación del nombre para que no sean espacios únicamente
     if (nombreValue.trim().length === 0 && nombreValue.length > 0) {
       inputNombre.setCustomValidity("El nombre no puede ser únicamente espacios.");
-      inputNombre.reportValidity(); // Fuerza al navegador a mostrar la burbuja de inmediato
+      inputNombre.reportValidity(); // Fuerza al navegador a mostrar el aviso de inmediato
       return;
     } else {
       // Limpia cualquier error previo si el texto ahora es válido
