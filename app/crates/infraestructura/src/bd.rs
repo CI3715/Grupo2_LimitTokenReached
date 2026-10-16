@@ -49,15 +49,6 @@ pub fn insertar_evento(
     Ok(id)
 }
 
-#[tauri::command]
-pub fn registrar_evento(
-    bd: tauri::State<'_, BaseDatos>,
-    tipo: String,
-    datos: serde_json::Value,
-) -> Result<String, String> {
-    let conn = bd.0.lock().map_err(|e| e.to_string())?;
-    insertar_evento(&conn, &tipo, &datos).map_err(|e| e.to_string())
-}
 
 pub fn abrir(ruta: &Path) -> Result<Connection, rusqlite::Error> {
     let mut conn = Connection::open(ruta)?;

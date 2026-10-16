@@ -13,6 +13,7 @@ create table if not exists moneda  (
 create table if not exists cuenta  (
     id integer primary key autoincrement,
     nombre text not null,
+    tipo text not null,
     moneda_codigo text not null references moneda(codigo),
     saldo real not null check (saldo >= 0)
 ); 
