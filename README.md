@@ -220,7 +220,7 @@ Para ejecutar las pruebas del núcleo Rust:
 
 ```bash
 cd app
-cargo test -p contrato -p aplicacion -p infraestructura
+cargo test -p contrato -p aplicacion 
 ```
 
 ## Contribuciones
