@@ -2,6 +2,13 @@ use aplicacion::puertos::Reloj; // Importa el Trait definido en aplicacion
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
+pub mod bd;
+pub mod repositorio_cuentas_sqlite;
+pub mod repositorio_monedas_sqlite;
+
+pub use repositorio_cuentas_sqlite::RepositorioCuentasSqlite;
+pub use repositorio_monedas_sqlite::RepositorioMonedasSqlite;
+
 // Adaptador Real del Reloj del Sistema
 pub struct RelojSistema;
 
