@@ -29,6 +29,7 @@ Se implementaron pruebas que verifican la detectabilidad de los siguientes escen
 
 ### 2.3. Resultado de la Ejecución
 Las pruebas se ejecutan exitosamente en el entorno local y en el pipeline de CI/CD de GitHub Actions.
+Nota: Las pruebas del crate infraestructura que involucran integración de red (como conexion_servidor) se ejecutan de forma manual en entornos locales con el backend activo, ya que el entorno de CI/CD no levanta el servidor Python. Las pruebas de invariantes y dominio (el núcleo de la rúbrica) se validan automáticamente en el pipeline.
 
 ---
 
@@ -59,7 +60,7 @@ Para reproducir las validaciones de QA, siga estos pasos desde la raíz del repo
     ```
 2. Ejecutar las pruebas unitarias de invariantes y repositorio en memoria:
    ```bash
-   cargo test -p contrato -p aplicacion -p 
+   cargo test -p contrato -p aplicacion 
    ```
 3. (Opcional) Verificar que el código compila sin advertencias:
    ```bash
