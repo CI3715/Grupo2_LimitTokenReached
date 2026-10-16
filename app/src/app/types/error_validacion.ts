@@ -1,4 +1,4 @@
 export interface ErrorValidacionDTO {
-  campo: "nombre" | "moneda_codigo" | "saldo_inicial" | "tipo";
+  campo: string;
   mensaje: string;
 }

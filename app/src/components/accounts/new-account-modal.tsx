@@ -1,5 +1,5 @@
 "use client";
-
+import type { ErrorValidacionDTO } from "@/app/types/error_validacion";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   accountTypeLabels,
@@ -10,14 +10,16 @@ import {
 } from "@/types/accounts";
 
 type Props = {
-  currencies: Currency[];
+   currencies: Currency[];
   onClose: () => void;
-  onCreate: (input: CreateAccountInput) => void;
+  onCreate: (input: CreateAccountInput) => Promise<void>;
+  validationError: ErrorValidacionDTO | null;
 };
 export function NewAccountModal({
   currencies,
   onClose,
   onCreate,
+  validationError,
 }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   
@@ -36,7 +38,7 @@ export function NewAccountModal({
     };
   }, []);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
 
@@ -55,13 +57,19 @@ export function NewAccountModal({
       inputNombre.setCustomValidity("");
     }
 
-    onCreate({
-      nombre: String(data.get("nombre") ?? ""),
-      tipo: type,
-      moneda_codigo: String(data.get("moneda_codigo")) as CurrencyCode,
-      saldo_inicial: String(data.get("saldo_inicial") ?? "").replace(",", "."),
-    });
-    onClose();
+    try {
+  await onCreate({
+    nombre: String(data.get("nombre") ?? ""),
+    tipo: type,
+    moneda_codigo: String(data.get("moneda_codigo")) as CurrencyCode,
+    saldo_inicial: String(data.get("saldo_inicial") ?? "").replace(",", "."),
+  });
+
+  onClose();
+} catch {
+  // El error ya fue guardado y mostrado por page.tsx.
+  // El modal debe permanecer abierto.
+}
   }
   return (
     <dialog
@@ -100,6 +108,11 @@ export function NewAccountModal({
         </button>
       </header>
       <form onSubmit={submit}>
+        {validationError && (
+          <p className="account-error" role="alert">
+            {validationError.mensaje}
+        </p>
+)}
         <fieldset>
           <label>
             Nombre
