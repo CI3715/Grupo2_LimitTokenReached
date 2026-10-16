@@ -17,14 +17,13 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 
 | Área | Implementación disponible |
 | --- | --- |
-| Interfaz | Pantalla de estado de conexión con modos claro y oscuro. |
+| Interfaz | Pantalla de estado de conexión con modos claro y oscuro. Listado y creación de cuentas. |
 | Frontend | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri. |
-| Aplicación nativa | Estructura y configuración inicial de Tauri. |
+| Aplicación nativa | Estructura y configuración inicial de Tauri. Gestión de almacenamiento local. |
 | Backend | Servidor FastAPI con endpoint `GET /ping`. |
-| Comunicación de la interfaz | Verificación simulada; pendiente de conectar con el backend. |
-| Gestión financiera | Funcionalidad prevista para próximas entregas. |
+| Gestión financiera | Creación de cuentas (efectivo, banco, billetera) con validación de dominio, almacenamiento local SQLite (Local-First) y funcionamiento offline. |
 
-**El indicador «Conectado» de la interfaz no verifica todavía la disponibilidad real del servidor.**
+El indicador «Conectado» de la interfaz no verifica todavía la disponibilidad real del servidor en todas las rutas, pero el núcleo de la aplicación funciona de forma autónoma.
 
 ## Tecnologías y arquitectura
 
@@ -37,10 +36,10 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 El backend se organiza siguiendo una arquitectura hexagonal: dominio, aplicación, infraestructura, contratos y arranque de la API. El proyecto incluye configuración de Import Linter para revisar las dependencias entre capas y reglas de ESLint para organizar las dependencias del frontend.
 
 ```text
-Grupo2_LimitTokenReached/
 ├── app/
 │   ├── src/app/                 # Páginas, estilos y layout del frontend
 │   ├── src-tauri/               # Proyecto nativo y configuración de Tauri
+│   ├── crates/                  # Crates de Rust (dominio, aplicacion, infraestructura, contrato)
 │   ├── public/                  # Recursos estáticos
 │   └── package.json             # Dependencias y scripts del frontend
 ├── servidor/
@@ -201,6 +200,28 @@ PYTHONPATH=src lint-imports
 $env:PYTHONPATH = "src"
 lint-imports
 ```
+### Núcleo Rust (Entrega 2)
+El proyecto incluye pruebas unitarias para los invariantes y validaciones de dominio. Desde app/:
+
+```bash
+# Ejecutar pruebas de invariantes (INV-01, INV-03, INV-18) y estructura de DTOs
+cargo test -p contrato
+```
+
+### Pruebas y Almacenamiento Local (Entrega 2)
+## Almacenamiento
+Las cuentas se guardan localmente en el dispositivo usando SQLite embebido (rusqlite).
+El archivo de base de datos se almacena de forma segura en el directorio de datos nativo de la aplicación (`app_data_dir` de Tauri), garantizando que los datos persistan al cerrar y reabrir la app, y que no salgan del dispositivo (Local-First).
+
+## Ejecución de Pruebas Automatizadas
+El proyecto incluye pruebas unitarias para los invariantes (INV-01, INV-03, INV-18) y validaciones de creación de cuentas, ejecutadas con un repositorio en memoria (sin base de datos real ni red), cumpliendo con los criterios de aceptación para la presente entrega.
+
+Para ejecutar las pruebas del núcleo Rust:
+
+```bash
+cd app
+cargo test -p contrato -p aplicacion 
+```
 
 ## Contribuciones
 
@@ -214,17 +235,3 @@ No incluir archivos `.env`, credenciales ni artefactos de compilación en los co
 ## Licencia
 
 Este proyecto se distribuye bajo la **licencia Apache 2.0**. Consulta el archivo [LICENSE](LICENSE) para conocer sus términos.
-
-## Pruebas y Almacenamiento Local (Entrega 2)
-
-### Almacenamiento
-Las cuentas se guardan localmente en el dispositivo usando SQLite embebido (`rusqlite`). 
-El archivo de base de datos se almacena de forma segura en el directorio de datos nativo de la aplicación (`app_data_dir` de Tauri), garantizando que los datos persistan al cerrar y reabrir la app, y que no salgan del dispositivo (Local-First).
-
-### Ejecución de Pruebas Automatizadas
-El proyecto incluye pruebas unitarias para los invariantes (INV-01, INV-03, INV-18) y validaciones de creación de cuentas, ejecutadas con un **repositorio en memoria** (sin base de datos real ni red), cumpliendo con los criterios de aceptación para la presente entrega.
-
-Para ejecutar las pruebas del núcleo Rust:
-```bash
-cd app
-cargo test --package aplicacion --package infraestructura
