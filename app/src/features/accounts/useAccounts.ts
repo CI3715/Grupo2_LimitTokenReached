@@ -1,35 +1,58 @@
 "use client";
+ 
+ import { useEffect, useState } from "react";
+ import type { Account, CreateAccountInput, Currency } from "@/types/accounts";
+ import { createAccount } from "@/services/createAcount";
+ import { listCurrencies } from "@/services/listCurrencies";
+ import { listAccounts } from "@/services/listAccounts";
+ 
+ export function useAccounts() {
+   const [accounts, setAccounts] = useState<Account[]>([]);
+   const [currencies, setCurrencies] = useState<Currency[]>([]);
+   const [announcement, setAnnouncement] = useState("");
+ 
 
-import { useEffect, useState } from "react";
-import type { Account, CreateAccountInput } from "@/types/accounts";
-import { createAccount } from "@/services/createAcount";
-import { listAccounts } from "@/services/listAccounts";
-import { demoCurrencies } from "./mock-data";
+    // C
+    useEffect(() => {
+     async function loadCurrencies() {
+       try {
+         setCurrencies(await listCurrencies());
+       } catch (error: unknown) {
+         console.error("No se pudo cargar el catálogo de monedas.", error);
+         setAnnouncement("No se pudo cargar el catálogo de monedas.");
+       }
+     }
+ 
+     void loadCurrencies();
+    }, []);
 
-export function useAccounts() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+    // Carga las cuentas guardadas en la BD
+    useEffect(() => {
+      async function loadAccounts() {
+        try {
+          setAccounts(await listAccounts());
+        } catch (error: unknown) {
+          console.error("No se pudieron cargar las cuentas:", error);
+          setAnnouncement("No se pudieron cargar las cuentas");
+        }
+      }
 
-  useEffect(() => {
-    listAccounts()
-      .then((cuentas) => {
-        setAccounts(cuentas);
-      })
-      .catch((error) => {
-        console.error("No se pudieron cargar las cuentas:", error);
-      });
-  }, []);
-  
-  async function create(input: CreateAccountInput) {
-    const account = await createAccount(input);
+      void loadAccounts()
+    }, [])
 
-    setAccounts((current) => [...current, account]);
-
-    return account;
+    async function create(input: CreateAccountInput) {
+      const account = await createAccount(input);
+ 
+      setAccounts((current) => [...current, account]);
+      setAnnouncement(`Cuenta ${account.nombre} creada correctamente.`);
+ 
+      return account;
+    }
+ 
+    return {
+      accounts,
+      currencies,
+      announcement,
+      create,
+    };
   }
-
-  return {
-    accounts,
-    currencies: demoCurrencies,
-    create,
-  };
-}
