@@ -31,7 +31,7 @@ mod tests {
     fn validacion_fecha_futura_debe_ser_detectable() {
         let mut req = request_valido();
         req.fecha = "2030-01-01".to_string();
-        assert!(req.fecha > "2026-12-31", "Fecha futura detectable en el request");
+        assert!(req.fecha.as_str() > "2026-12-31", "Fecha futura detectable en el request");
     }
 
     #[test]
