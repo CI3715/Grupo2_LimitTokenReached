@@ -1,0 +1,46 @@
+.movement-form-panel {
+  max-width: 640px;
+  padding: 24px;
+  border: 1px solid #dfe8e3;
+  border-radius: 20px;
+  background: white;
+  color: #294d3c;
+}
+.movement-form-panel h2 { margin: 0; font-size: 20px; }
+.movement-form-panel header p { font-size: 14px; }
+.movement-form-panel fieldset { margin: 20px 0; padding: 0; border: 0; min-width: 0; }
+.movement-form-panel label { display: block; margin: 16px 0 8px; font-size: 14px; font-weight: 600; }
+.movement-form-panel input,
+.movement-form-panel select,
+.movement-form-panel textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #c4d3ca;
+  border-radius: 8px;
+  background: white;
+  color: #294d3c;
+  font: inherit;
+}
+.movement-form-panel textarea { resize: vertical; }
+.movement-form-panel small { display: block; margin-top: 6px; line-height: 1.5; }
+.movement-form-panel :focus-visible { outline: 3px solid #407b66; outline-offset: 3px; }
+.movement-form-panel [aria-invalid="true"] { border-color: #9e352d; }
+.movement-form-panel button { min-height: 44px; cursor: pointer; }
+.movement-form-panel .account-primary,
+.movement-form-panel .account-secondary { padding: 10px 19px; border: 0; border-radius: 11px; font: inherit; }
+.movement-form-panel .account-primary { color: white; background: #173f3b; }
+.movement-form-panel .account-secondary { color: #51695e; background: #eef3ef; }
+.movement-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.movement-form-panel :disabled { opacity: .65; cursor: not-allowed; }
+.movement-form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.movement-form-panel footer { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.movement-error { color: #9e352d; }
+.movement-success { padding: 14px; border-radius: 8px; background: #e7f1eb; color: #326b53; }
+.movement-warning { padding: 16px; margin-bottom: 20px; border: 1px solid #b58b27; border-radius: 8px; background: #fff8e5; color: #684c10; }
+.movement-warning button { margin: 4px 12px 4px 0; }
+@media (max-width: 540px) {
+  .movement-form-panel { padding: 20px; }
+  .movement-form-columns { grid-template-columns: 1fr; gap: 0; }
+}
