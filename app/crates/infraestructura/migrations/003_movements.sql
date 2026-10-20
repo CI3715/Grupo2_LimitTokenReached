@@ -10,7 +10,7 @@ create table if not exists movimiento (
     nombre varchar not null, 
     tipo integer not null references categoria(id),
     cuenta integer references cuenta(id), 
-    monto real not null 
+    monto text not null 
     
 );
 
