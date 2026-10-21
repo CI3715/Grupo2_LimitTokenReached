@@ -48,9 +48,9 @@ Se utilizará una estructura de **monorepo** en un único repositorio público, 
 - La CI debe configurarse para ejecutar solo lo que cambió (path filters), evitando correr todo el pipeline en cada push.
 
 ### Verificación
-- [ ] La CI usa filtros por ruta para no ejecutar pruebas innecesarias.
-- [ ] El `openapi.yaml` vive en una sola ubicación y ambos lados lo referencian desde ahí.
-- [ ] El repositorio tiene un único `LICENSE` en la raíz.
+- [x] La CI usa filtros por ruta para no ejecutar pruebas innecesarias.
+- [x] El `openapi.yaml` vive en una sola ubicación y ambos lados lo referencian desde ahí.
+- [x] El repositorio tiene un único `LICENSE` en la raíz.
 
 ## Referencias
 - [ADRs – Michael Nygard](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
