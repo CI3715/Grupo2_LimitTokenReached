@@ -4,6 +4,7 @@ use rusqlite::params;
 use rusqlite::Connection;
 use std::sync::Mutex;
 use chrono::Utc;
+use uuid::Uuid;
 
 use aplicacion::puertos::RepositorioCuentas;
 use contrato::crear_cuenta::CrearCuentaRequest;
@@ -33,6 +34,9 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
             .trim_matches('"')
             .to_string();
 
+
+        let id_generado = Uuid::new_v4().to_string();
+        
         // 2. Insertar evento inmutable CuentaCreada
         let datos_evento = json!({
             "nombre": req.nombre.trim(),
@@ -46,12 +50,19 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
 
         // 3. Insertar proyección en la tabla 'cuenta'
         tx.execute(
-            "INSERT INTO cuenta (nombre, tipo, moneda_codigo, saldo) VALUES (?1, ?2, ?3, ?4)",
-            params![req.nombre.trim(), tipo_str, req.moneda_codigo, req.saldo_inicial],
+            "
+            INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+            ",
+            params![
+                id_generado,
+                req.nombre.trim(),
+                tipo_str,
+                req.moneda_codigo,
+                req.saldo_inicial,
+            ],
         )
-        .map_err(|e| format!("Error al guardar la cuenta en SQLite: {}", e))?;
-
-        let id_generado = tx.last_insert_rowid().to_string();
+        .map_err(|e| format!("Error al guardar la cuenta en SQLite: {e}"))?;
 
         // 4. Confirmar transaccion
         tx.commit().map_err(|e| format!("Error al hacer commit en SQLite: {}", e))?;
@@ -75,21 +86,21 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
 
         let iterador = stmt
             .query_map([], |row| {
-                let id: i64 = row.get(0)?;
+                let id: String = row.get(0)?;
                 let nombre: String = row.get(1)?;
                 let tipo_str: String = row.get(2)?;
                 let moneda_codigo: String = row.get(3)?;
-                let saldo: f64 = row.get(4)?;
+                let saldo: String = row.get(4)?;
 
                 let tipo: TipoCuentaDTO = serde_json::from_str(&format!("\"{}\"", tipo_str))
                     .unwrap_or(TipoCuentaDTO::Efectivo);
 
                 Ok(CuentaDTO {
-                    id: id.to_string(),
+                    id,
                     nombre,
                     tipo,
                     moneda_codigo,
-                    saldo: saldo.to_string(),
+                    saldo,
                     creada_en: Utc::now().to_rfc3339(),
                 })
             })

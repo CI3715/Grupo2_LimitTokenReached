@@ -1,13 +1,21 @@
 use aplicacion::puertos::Reloj; // Importa el Trait definido en aplicacion
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+// Módulo para el repositorio en memoria (Pruebas QA)
+pub mod repositorio_memoria;
+//
 
 pub mod bd;
 pub mod repositorio_cuentas_sqlite;
 pub mod repositorio_monedas_sqlite;
+pub mod repositorio_movimientos_sqlite;
 
 pub use repositorio_cuentas_sqlite::RepositorioCuentasSqlite;
 pub use repositorio_monedas_sqlite::RepositorioMonedasSqlite;
+pub use repositorio_movimientos_sqlite::RepositorioMovimientosSqlite;
+
+
+
 
 // Adaptador Real del Reloj del Sistema
 pub struct RelojSistema;
@@ -60,6 +68,3 @@ impl ClienteSocialHttp {
             .map_err(|e| format!("Error al deserializar la respuesta del servidor: {e}"))
     }
 }
-
-// Módulo para el repositorio en memoria (Pruebas QA)
-pub mod repositorio_memoria;
