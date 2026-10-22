@@ -8,7 +8,7 @@ mod tests {
             tipo: TipoMovimientoDTO::Gasto,
             monto: "50.00".to_string(),
             fecha: "2026-10-19".to_string(),
-            categoria_id: "cat-alimentacion".to_string(),
+            categoria_id: Some("cat-alimentacion".to_string()),
             nota: Some("Mercado".to_string()),
         }
     }
@@ -37,7 +37,10 @@ mod tests {
     #[test]
     fn validacion_categoria_vacia_debe_ser_detectable() {
         let mut req = request_valido();
-        req.categoria_id = "".to_string();
-        assert!(req.categoria_id.is_empty(), "La categoría vacía debe ser rechazada");
+        req.categoria_id = Some("".to_string());
+        assert!(
+            req.categoria_id.as_deref() == Some(""),
+            "La categoría vacía debe ser rechazada"
+        );
     }
 }
