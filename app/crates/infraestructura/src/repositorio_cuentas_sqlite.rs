@@ -53,7 +53,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
 
         let id_generado = tx.last_insert_rowid().to_string();
 
-        // 4. CONFIRMAR LA TRANSACCIÓN EN DISCO
+        // 4. Confirmar transaccion
         tx.commit().map_err(|e| format!("Error al hacer commit en SQLite: {}", e))?;
 
         Ok(CuentaDTO {
@@ -103,9 +103,9 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
         Ok(lista)
     }
 
-    //Esta area es parte del trabajo de Ricardo, antes de hacer merge dile lo que hiciste y si deberias dejarlo o no
+    //Esta area es parte del trabajo de Ricardo, asi que luego le pregunto que tal
     fn obtener_cuenta_por_id(&self, id: &str) -> Result<CuentaDTO, String> {
-        // Por ahora, podemos reutilizar tu método existente para no complicar el SQL
+        
         let cuentas = self.obtener_cuentas()?;
         cuentas
             .into_iter()

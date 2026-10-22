@@ -118,7 +118,7 @@ pub async fn ejecutar(
 
     let nuevo_id = Uuid::new_v4();
 
-    // 5. INVOCAR LA LÓGICA PURA DE DOMINIO Y MAPEAR ERRORES A ERRORVALIDACIONDTO
+    // 5. Invocar logica y mapear los errores
     let movimiento_validado = registrar_movimiento_dominio(
         nuevo_id,
         datos_dominio,
@@ -156,7 +156,6 @@ pub async fn ejecutar(
         },
     })?;
 
-    // 6. Delegar la persistencia física al adaptador de infraestructura
     repo_movimientos
         .guardar_movimiento(&movimiento_validado)
         .map_err(|mensaje| ErrorValidacionDTO {

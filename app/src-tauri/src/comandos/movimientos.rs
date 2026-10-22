@@ -23,9 +23,9 @@ pub async fn registrar_movimiento(
     .await
 }
 
-/// Comando Tauri para corregir un movimiento existente (INV-04).
+
 /// Se invoca cuando sobre un movimiento se elige "Corregir" y se indica el monto correcto.
-/// Registra el ajuste; el original queda marcado como corregido y el saldo muestra el valor correcto[cite: 4].
+/// Registra el ajuste; el original queda marcado como corregido y el saldo muestra el valor correcto
 #[tauri::command]
 pub async fn corregir_movimiento(
     datos: CorregirMovimientoRequest,
