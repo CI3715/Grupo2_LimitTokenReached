@@ -102,4 +102,17 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
 
         Ok(lista)
     }
+
+    //Esta area es parte del trabajo de Ricardo, antes de hacer merge dile lo que hiciste y si deberias dejarlo o no
+    fn obtener_cuenta_por_id(&self, id: &str) -> Result<CuentaDTO, String> {
+        // Por ahora, podemos reutilizar tu método existente para no complicar el SQL
+        let cuentas = self.obtener_cuentas()?;
+        cuentas
+            .into_iter()
+            .find(|c| c.id == id)
+            .ok_or_else(|| format!("No se encontró ninguna cuenta con el ID: {}", id))
+    }
+
+
+
 }

@@ -20,7 +20,7 @@ pub struct RegistrarMovimientoRequest {
     pub tipo: TipoMovimientoDTO,
     pub monto: String, // INV-03: String para evitar f32/f64
     pub fecha: String, // Formato ISO 8601 (ej. "2026-10-19")
-    pub categoria_id: String,
+    pub categoria_id: Option<String>, //se modifico para que fuera consistente con el struct DatosMovimientos en /dominio/src/movimiento
     pub nota: Option<String>,
 }
 

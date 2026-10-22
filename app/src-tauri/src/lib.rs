@@ -33,7 +33,9 @@ pub fn run() {
             comandos::ping::ping_servidor,
             comandos::cuentas::crear_cuenta,
             comandos::cuentas::listar_cuentas,
-            comandos::moneda::listar_monedas
+            comandos::moneda::listar_monedas,
+            comandos::movimientos::registrar_movimiento,
+            comandos::movimientos::corregir_movimiento,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");
