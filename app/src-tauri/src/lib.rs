@@ -50,6 +50,7 @@ pub fn run() {
             comandos::moneda::listar_monedas,
             comandos::movimientos::registrar_movimiento,
             comandos::movimientos::corregir_movimiento,
+            comandos::movimientos::listar_historial_movimientos,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");

@@ -4,3 +4,4 @@ pub mod listar_cuentas;
 pub mod listar_monedas;
 pub mod registrar_movimiento;
 pub mod corregir_movimiento;
+pub mod obtener_historial_movimientos;

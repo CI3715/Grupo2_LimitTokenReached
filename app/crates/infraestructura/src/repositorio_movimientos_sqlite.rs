@@ -6,13 +6,10 @@ use rust_decimal::Decimal;
 use serde_json::json;
 use uuid::Uuid;
 
-
 use aplicacion::puertos::RepositorioMovimientos;
 use contrato::movimiento::{MovimientoDTO, TipoMovimientoDTO};
 use dominio::categoria::{Categoria, TipoCategoria};
 use dominio::movimiento::{Ajuste, Movimiento, TipoMovimiento};
-
-
 
 //funciones auxiliares
 
@@ -30,14 +27,6 @@ use dominio::movimiento::{Ajuste, Movimiento, TipoMovimiento};
             _ => Err(format!("Tipo de movimiento inválido: {valor}")),
         }
     }
-
-    fn tipo_categoria_a_texto(tipo: TipoCategoria) -> &'static str {
-        match tipo {
-            TipoCategoria::Ingreso => "Ingreso",
-            TipoCategoria::Gasto => "Gasto",
-        }
-    }
-
 
     fn cargar_movimiento_desde(
     conn: &Connection,
@@ -235,26 +224,26 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
 
 
         let saldo_actual: String = tx
-    .query_row(
-        "SELECT saldo FROM cuenta WHERE id = ?1",
-        params![ajuste.cuenta_id.to_string()],
-        |row| row.get(0),
-    )
-    .map_err(|e| format!("No se pudo obtener el saldo: {e}"))?;
+        .query_row(
+            "SELECT saldo FROM cuenta WHERE id = ?1",
+            params![ajuste.cuenta_id.to_string()],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("No se pudo obtener el saldo: {e}"))?;
 
-let saldo = Decimal::from_str_exact(&saldo_actual)
-    .map_err(|e| format!("Saldo inválido: {e}"))?;
+        let saldo = Decimal::from_str_exact(&saldo_actual)
+            .map_err(|e| format!("Saldo inválido: {e}"))?;
 
-let nuevo_saldo = saldo + efecto;
+        let nuevo_saldo = saldo + efecto;
 
-tx.execute(
-    "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-    params![
-        nuevo_saldo.to_string(),
-        ajuste.cuenta_id.to_string()
-    ],
-)
-.map_err(|e| format!("No se pudo actualizar el saldo: {e}"))?;
+        tx.execute(
+            "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
+            params![
+                nuevo_saldo.to_string(),
+                ajuste.cuenta_id.to_string()
+            ],
+        )
+        .map_err(|e| format!("No se pudo actualizar el saldo: {e}"))?;
 
 
          let movimiento_original = cargar_movimiento_desde(
@@ -287,18 +276,13 @@ tx.execute(
     fn obtener_movimiento_por_id(&self, id: &Uuid) -> Result<Movimiento, String> {
 
         let conn = self
-        .conexion
-        .lock()
-        .map_err(|e| e.to_string())?;
+            .conexion
+            .lock()
+            .map_err(|e| e.to_string())?;
+            cargar_movimiento_desde(&conn, id)
+        }
 
-        cargar_movimiento_desde(&conn, id)
-
-    }
-
-  fn obtener_ajustes_de_movimiento(
-    &self,
-    original_id: &Uuid,
-) -> Result<Vec<Ajuste>, String> {
+  fn obtener_ajustes_de_movimiento(&self, original_id: &Uuid,) -> Result<Vec<Ajuste>, String> {
     let conn = self
         .conexion
         .lock()
@@ -399,6 +383,126 @@ tx.execute(
         })
         .collect()
     }
+
+   fn obtener_historial_de_cuenta(
+    &self,
+    cuenta_id: &Uuid,
+) -> Result<Vec<MovimientoDTO>, String> {
+    let conn = self
+        .conexion
+        .lock()
+        .map_err(|e| e.to_string())?;
+
+    let mut stmt = conn
+        .prepare(
+            "
+            SELECT
+                id,
+                cuenta_id,
+                tipo,
+                monto,
+                fecha,
+                categoria_id,
+                nota,
+                es_correccion,
+                movimiento_original_id
+            FROM (
+                SELECT
+                    m.id AS id,
+                    m.cuenta_id AS cuenta_id,
+                    m.tipo AS tipo,
+                    m.monto AS monto,
+                    m.fecha AS fecha,
+                    m.categoria_id AS categoria_id,
+                    m.nota AS nota,
+                    0 AS es_correccion,
+                    NULL AS movimiento_original_id,
+                    0 AS orden_evento
+                FROM movimiento m
+                WHERE m.cuenta_id = ?1
+
+                UNION ALL
+
+                SELECT
+                    a.id AS id,
+                    a.cuenta_id AS cuenta_id,
+                    a.tipo_original AS tipo,
+                    a.variacion_monto AS monto,
+                    m.fecha AS fecha,
+                    m.categoria_id AS categoria_id,
+                    NULL AS nota,
+                    1 AS es_correccion,
+                    a.movimiento_original_id AS movimiento_original_id,
+                    1 AS orden_evento
+                FROM ajuste a
+                INNER JOIN movimiento m
+                    ON m.id = a.movimiento_original_id
+                WHERE a.cuenta_id = ?1
+            )
+            ORDER BY fecha DESC, orden_evento ASC, id ASC
+            ",
+        )
+        .map_err(|e| format!("No se pudo preparar el historial: {e}"))?;
+
+    let filas = stmt
+        .query_map(params![cuenta_id.to_string()], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, i64>(7)? != 0,
+                row.get::<_, Option<String>>(8)?,
+            ))
+        })
+        .map_err(|e| format!("No se pudo consultar el historial: {e}"))?;
+
+    let filas = filas
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("No se pudieron leer las filas del historial: {e}"))?;
+
+    filas
+        .into_iter()
+        .map(
+            |(
+                id,
+                cuenta_id,
+                tipo,
+                monto,
+                fecha,
+                categoria_id,
+                nota,
+                es_correccion,
+                movimiento_original_id,
+            )| {
+                let tipo = match tipo.as_str() {
+                    "Ingreso" => TipoMovimientoDTO::Ingreso,
+                    "Gasto" => TipoMovimientoDTO::Gasto,
+                    otro => {
+                        return Err(format!(
+                            "Tipo de movimiento inválido en el historial: {otro}"
+                        ));
+                    }
+                };
+
+                Ok(MovimientoDTO {
+                    id,
+                    cuenta_id,
+                    tipo,
+                    monto,
+                    fecha,
+                    categoria_id: Some(categoria_id),
+                    nota,
+                    es_correccion,
+                    movimiento_original_id,
+                })
+            },
+        )
+        .collect()
+}
 
 }
 

@@ -33,6 +33,7 @@ pub trait RepositorioMovimientos: Send + Sync {
     fn guardar_ajuste(&self, ajuste: &dominio::movimiento::Ajuste) -> Result<MovimientoDTO, String>;
     fn obtener_movimiento_por_id(&self, id: &Uuid) -> Result<dominio::movimiento::Movimiento, String>;
     fn obtener_ajustes_de_movimiento(&self, original_id: &Uuid) -> Result<Vec<dominio::movimiento::Ajuste>, String>;
+    fn obtener_historial_de_cuenta(&self, cuenta_id: &Uuid,) -> Result<Vec<MovimientoDTO>, String>;
     fn obtener_categorias(&self) -> Result<Vec<Categoria>, String>;
 }
 // Adaptadores Fake

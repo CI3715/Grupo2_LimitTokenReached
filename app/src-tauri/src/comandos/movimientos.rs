@@ -41,3 +41,15 @@ pub async fn corregir_movimiento(
     )
     .await
 }
+
+#[tauri::command]
+pub async fn listar_historial_movimientos(
+    cuenta_id: String,
+    repo_movimientos: State<'_, Box<dyn RepositorioMovimientos>>,
+) -> Result<Vec<MovimientoDTO>, ErrorValidacionDTO> {
+    aplicacion::casos_uso::obtener_historial_movimientos::ejecutar(
+        cuenta_id,
+        repo_movimientos.inner().as_ref(),
+    )
+    .await
+}

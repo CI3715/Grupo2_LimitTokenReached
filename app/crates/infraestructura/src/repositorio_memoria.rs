@@ -3,6 +3,7 @@ use tokio::sync::Mutex;
 use contrato::{CuentaDTO, CrearCuentaRequest, ErrorValidacionDTO};
 
 /// Puerto del repositorio
+#[allow(async_fn_in_trait)]
 pub trait RepositorioEventos: Send + Sync {
     async fn guardar_cuenta(&self, request: CrearCuentaRequest) -> Result<CuentaDTO, ErrorValidacionDTO>;
     async fn listar_cuentas(&self) -> Result<Vec<CuentaDTO>, String>;
