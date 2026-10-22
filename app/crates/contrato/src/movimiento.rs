@@ -37,7 +37,7 @@ pub struct MovimientoDTO {
     pub tipo: TipoMovimientoDTO,
     pub monto: String,
     pub fecha: String,
-    pub categoria_id: String,
+    pub categoria_id: Option<String>,
     pub nota: Option<String>,
     pub es_correccion: bool,
     pub movimiento_original_id: Option<String>, // None si es original, Some(id) si es ajuste
