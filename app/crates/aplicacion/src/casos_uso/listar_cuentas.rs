@@ -1,5 +1,5 @@
-use contrato::cuenta::CuentaDTO;
 use crate::puertos::RepositorioCuentas;
+use contrato::cuenta::CuentaDTO;
 
 /// Caso de uso para consultar el listado de cuentas financieras del usuario local
 pub async fn ejecutar(repo: &dyn RepositorioCuentas) -> Result<Vec<CuentaDTO>, String> {

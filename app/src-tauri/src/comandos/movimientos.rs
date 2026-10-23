@@ -1,6 +1,6 @@
-use contrato::movimiento::{RegistrarMovimientoRequest, CorregirMovimientoRequest, MovimientoDTO,};
+use aplicacion::puertos::{Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos};
 use contrato::error_validacion::ErrorValidacionDTO;
-use aplicacion::puertos::{RepositorioMovimientos, RepositorioCuentas, RepositorioMonedas, Reloj};
+use contrato::movimiento::{CorregirMovimientoRequest, MovimientoDTO, RegistrarMovimientoRequest};
 use tauri::State;
 
 /// Comando Tauri para registrar un nuevo movimiento (ingreso o gasto).
@@ -22,7 +22,6 @@ pub async fn registrar_movimiento(
     )
     .await
 }
-
 
 /// Se invoca cuando sobre un movimiento se elige "Corregir" y se indica el monto correcto.
 /// Registra el ajuste; el original queda marcado como corregido y el saldo muestra el valor correcto

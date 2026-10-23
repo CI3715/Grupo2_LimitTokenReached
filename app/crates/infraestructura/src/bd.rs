@@ -1,24 +1,27 @@
-use rusqlite::Connection; 
-use std::{path::Path, sync::Mutex};
 use chrono::Utc;
+use rusqlite::Connection;
 use rusqlite::OptionalExtension;
+use std::{path::Path, sync::Mutex};
 use uuid::Uuid;
 
 //Las migraciones deben aplicarse siempre EN ORDEN
 
-const MIGRACIONES:  &[&str] = &[
-    include_str!("../migrations/001_events.sql"), 
-    include_str!("../migrations/002_bd_v1.sql"), 
-    include_str!("../migrations/003_movements.sql")
-]; 
+const MIGRACIONES: &[&str] = &[
+    include_str!("../migrations/001_events.sql"),
+    include_str!("../migrations/002_bd_v1.sql"),
+    include_str!("../migrations/003_movements.sql"),
+];
 
-pub struct BaseDatos(pub Mutex<Connection>); 
-
+pub struct BaseDatos(pub Mutex<Connection>);
 
 /// Devuelve el id de este dispositivo; lo crea en `meta` la primera vez.
 fn id_dispositivo(conn: &Connection) -> Result<String, rusqlite::Error> {
     let existente: Option<String> = conn
-        .query_row("SELECT valor FROM meta WHERE clave = 'dispositivo'", [], |f| f.get(0))
+        .query_row(
+            "SELECT valor FROM meta WHERE clave = 'dispositivo'",
+            [],
+            |f| f.get(0),
+        )
         .optional()?;
 
     if let Some(id) = existente {
@@ -49,7 +52,6 @@ pub fn insertar_evento(
     )?;
     Ok(id)
 }
-
 
 pub fn abrir(ruta: &Path) -> Result<Connection, rusqlite::Error> {
     let mut conn = Connection::open(ruta)?;

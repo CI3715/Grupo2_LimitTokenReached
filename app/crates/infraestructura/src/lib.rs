@@ -14,9 +14,6 @@ pub use repositorio_cuentas_sqlite::RepositorioCuentasSqlite;
 pub use repositorio_monedas_sqlite::RepositorioMonedasSqlite;
 pub use repositorio_movimientos_sqlite::RepositorioMovimientosSqlite;
 
-
-
-
 // Adaptador Real del Reloj del Sistema
 pub struct RelojSistema;
 

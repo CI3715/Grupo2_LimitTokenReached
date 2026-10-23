@@ -1,8 +1,11 @@
 pub mod comandos;
 
+use aplicacion::puertos::{Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos};
+use infraestructura::{
+    RelojSistema, RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
+    bd,
+};
 use tauri::Manager;
-use infraestructura::{bd, RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite, RelojSistema};
-use aplicacion::puertos::{RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos, Reloj,};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,10 +30,7 @@ pub fn run() {
             let state_monedas: Box<dyn RepositorioMonedas> = Box::new(repo_monedas_sqlite);
             app.manage(state_monedas);
 
-            
-
-            let repo_movimientos_sqlite =
-                RepositorioMovimientosSqlite::new(conn_movimientos);
+            let repo_movimientos_sqlite = RepositorioMovimientosSqlite::new(conn_movimientos);
 
             let state_movimientos: Box<dyn RepositorioMovimientos> =
                 Box::new(repo_movimientos_sqlite);

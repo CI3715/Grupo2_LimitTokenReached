@@ -10,6 +10,7 @@ mod tests {
             fecha: "2026-10-19".to_string(),
             categoria_id: Some("cat-alimentacion".to_string()),
             nota: Some("Mercado".to_string()),
+            confirmar_saldo_negativo: false,
         }
     }
 
@@ -24,14 +25,20 @@ mod tests {
     fn validacion_monto_cero_o_negativo_debe_ser_detectable() {
         let mut req = request_valido();
         req.monto = "-10.00".to_string();
-        assert!(req.monto.starts_with('-'), "El sistema debe detectar montos negativos");
+        assert!(
+            req.monto.starts_with('-'),
+            "El sistema debe detectar montos negativos"
+        );
     }
 
     #[test]
     fn validacion_fecha_futura_debe_ser_detectable() {
         let mut req = request_valido();
         req.fecha = "2030-01-01".to_string();
-        assert!(req.fecha.as_str() > "2026-12-31", "Fecha futura detectable en el request");
+        assert!(
+            req.fecha.as_str() > "2026-12-31",
+            "Fecha futura detectable en el request"
+        );
     }
 
     #[test]

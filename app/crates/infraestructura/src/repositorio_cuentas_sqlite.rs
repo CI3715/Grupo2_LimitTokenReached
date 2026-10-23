@@ -1,9 +1,9 @@
 use crate::bd;
-use serde_json::json;
-use rusqlite::params;
-use rusqlite::Connection;
-use std::sync::Mutex;
 use chrono::Utc;
+use rusqlite::Connection;
+use rusqlite::params;
+use serde_json::json;
+use std::sync::Mutex;
 use uuid::Uuid;
 
 use aplicacion::puertos::RepositorioCuentas;
@@ -34,9 +34,8 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
             .trim_matches('"')
             .to_string();
 
-
         let id_generado = Uuid::new_v4().to_string();
-        
+
         // 2. Insertar evento inmutable CuentaCreada
         let datos_evento = json!({
             "nombre": req.nombre.trim(),
@@ -65,7 +64,8 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
         .map_err(|e| format!("Error al guardar la cuenta en SQLite: {e}"))?;
 
         // 4. Confirmar transaccion
-        tx.commit().map_err(|e| format!("Error al hacer commit en SQLite: {}", e))?;
+        tx.commit()
+            .map_err(|e| format!("Error al hacer commit en SQLite: {}", e))?;
 
         Ok(CuentaDTO {
             id: id_generado,
@@ -116,14 +116,10 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
 
     //Esta area es parte del trabajo de Ricardo, asi que luego le pregunto que tal
     fn obtener_cuenta_por_id(&self, id: &str) -> Result<CuentaDTO, String> {
-        
         let cuentas = self.obtener_cuentas()?;
         cuentas
             .into_iter()
             .find(|c| c.id == id)
             .ok_or_else(|| format!("No se encontró ninguna cuenta con el ID: {}", id))
     }
-
-
-
 }

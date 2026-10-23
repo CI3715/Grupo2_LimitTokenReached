@@ -2,7 +2,6 @@ use aplicacion::casos_uso::verificar_conexion;
 use infraestructura::ClienteSocialHttp;
 use serde::Serialize;
 
-
 /// Estructura DTO serializable a JSON hacia el Frontend (Next.js)
 #[derive(Serialize)]
 pub struct PingResultadoUI {
