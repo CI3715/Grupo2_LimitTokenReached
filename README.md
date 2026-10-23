@@ -64,7 +64,7 @@ Grupo2_LimitTokenReached/
 ### Requisitos
 
 - Git.
-- Node.js y npm. El frontend se ha compilado localmente con Node.js 22.
+- Node.js y pnpm. El frontend se ha compilado localmente con Node.js 22.
 - Python 3.11 o superior.
 - Para ejecutar Tauri: Rust, Cargo y las dependencias nativas correspondientes al sistema operativo.
 
@@ -81,13 +81,13 @@ Desde la raíz del repositorio:
 
 ```bash
 cd app
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 ```
 
 La interfaz estará disponible en `http://localhost:3000`. Los archivos de la interfaz se encuentran en `app/src/app/`.
 
-> **Nota:** En PowerShell, si la política de ejecución bloquea `npm.ps1`, utiliza `npm.cmd` en lugar de `npm`.
+> **Nota:** En PowerShell, si la política de ejecución bloquea `pnpm.ps1`, utiliza `pnpm.cmd` en lugar de `pnpm`.
 
 ### Ejecutar el backend
 
@@ -162,16 +162,16 @@ La regla arquitectónica 2.3 de la guía, relativa a dependencias externas, exig
 Desde `app/`, con las dependencias nativas de Tauri instaladas:
 
 ```bash
-npm run tauri dev
+pnpm run tauri dev
 ```
 
 Tauri inicia el servidor de desarrollo del frontend mediante su configuración. Para generar el paquete nativo:
 
 ```bash
-npm run tauri build
+pnpm run tauri build
 ```
 
-El comando Rust utiliza por defecto `http://localhost:8000` como URL base y añade `/ping`. Si se necesita otra dirección, `SERVER_HOST_IP` debe contener la URL base completa, sin `/docs` ni `/ping`, y estar definida en el entorno al compilar o ejecutar `npm run tauri dev`: el código Rust la lee en compilación mediante `option_env!`. Un archivo `.env` del backend no configura automáticamente esta variable para Tauri.
+El comando Rust utiliza por defecto `http://localhost:8000` como URL base y añade `/ping`. Si se necesita otra dirección, `SERVER_HOST_IP` debe contener la URL base completa, sin `/docs` ni `/ping`, y estar definida en el entorno al compilar o ejecutar `pnpm run tauri dev`: el código Rust la lee en compilación mediante `option_env!`. Un archivo `.env` del backend no configura automáticamente esta variable para Tauri.
 
 ---
 
@@ -180,8 +180,8 @@ El comando Rust utiliza por defecto `http://localhost:8000` como URL base y aña
 Desde `app/`:
 
 ```bash
-npm run lint
-npm run build
+pnpm run lint
+pnpm run build
 ```
 
 La compilación revisa los tipos de TypeScript y genera la exportación estática en `app/out/`.
