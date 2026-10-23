@@ -25,6 +25,15 @@ pub trait RepositorioMonedas: Send + Sync {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String>;
 }
 
+pub trait RepositorioCategorias: Send + Sync {
+    fn obtener_categorias(&self) -> Result<Vec<Categoria>, String>;
+
+    fn guardar_categoria(
+        &self,
+        categoria: &Categoria,
+    ) -> Result<contrato::categoria::CategoriaDTO, String>;
+}
+
 pub trait RepositorioMovimientos: Send + Sync {
     fn guardar_movimiento(&self, movimiento: &Movimiento) -> Result<MovimientoDTO, String>;
     fn guardar_ajuste(&self, ajuste: &dominio::movimiento::Ajuste)
