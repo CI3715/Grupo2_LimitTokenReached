@@ -10,7 +10,10 @@ import {
   type RegistrarMovimientoRequest,
   type TipoRegistroMovimiento,
 } from "@/types/movements";
+import type { CrearCategoriaRequest } from "@/types/categories";
 import "./movement-form.css";
+
+const CREATE_CATEGORY_VALUE = "__crear_categoria__";
 
 export interface MovementFormProps {
   account: Pick<Account, "id" | "nombre" | "moneda_codigo" | "saldo">;
@@ -19,6 +22,7 @@ export interface MovementFormProps {
   categoriesLoading?: boolean;
   categoriesError?: string;
   onRetryCategories?: () => void;
+  onCreateCategory: (request: CrearCategoriaRequest) => Promise<CategoriaDTO>;
   onRegister: (request: RegistrarMovimientoRequest) => Promise<MovimientoDTO>;
   onRegistered: (movement: MovimientoDTO) => void | Promise<void>;
   onCancel: () => void;
@@ -44,6 +48,7 @@ export function MovementForm({
   categoriesLoading = false,
   categoriesError,
   onRetryCategories,
+  onCreateCategory,
   onRegister,
   onRegistered,
   onCancel,
@@ -57,6 +62,11 @@ export function MovementForm({
   const [error, setError] = useState<MovementFormError | null>(null);
   const [saved, setSaved] = useState<MovimientoDTO | null>(null);
   const [refreshFailed, setRefreshFailed] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryType, setNewCategoryType] =
+    useState<TipoRegistroMovimiento>("Gasto");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [categoryCreationError, setCategoryCreationError] = useState<string | null>(null);
   const [confirmation, setConfirmation] =
     useState<RegistrarMovimientoRequest | null>(null);
 
@@ -70,6 +80,34 @@ export function MovementForm({
 
   function fieldError(name: string) {
     return errorField === name ? error?.mensaje : undefined;
+  }
+
+  async function handleCreateCategory() {
+    if (creatingCategory || locked) return;
+
+    const nombre = newCategoryName.trim();
+    if (!nombre) {
+      setCategoryCreationError("Escribe un nombre para la categoría.");
+      return;
+    }
+
+    setCreatingCategory(true);
+    setCategoryCreationError(null);
+    try {
+      const category = await onCreateCategory({ nombre, tipo: newCategoryType });
+      setCategoria(category.id);
+      setTipo(category.tipo as TipoRegistroMovimiento);
+      setNewCategoryName("");
+    } catch (caught: unknown) {
+      const failure = caught as { mensaje?: unknown };
+      setCategoryCreationError(
+        typeof failure.mensaje === "string"
+          ? failure.mensaje
+          : "No se pudo crear la categoría.",
+      );
+    } finally {
+      setCreatingCategory(false);
+    }
   }
 
   async function persist(request: RegistrarMovimientoRequest) {
@@ -256,7 +294,9 @@ export function MovementForm({
             id={`${prefix}-categoria`}
             name="categoria_id"
             required
-            value={hasCategory ? categoria : ""}
+            value={
+              categoria === CREATE_CATEGORY_VALUE || hasCategory ? categoria : ""
+            }
             disabled={
               categoriesLoading ||
               !!categoriesError ||
@@ -267,6 +307,7 @@ export function MovementForm({
             onChange={(event) => setCategoria(event.target.value)}
           >
             <option value="">Selecciona una categoría</option>
+            <option value={CREATE_CATEGORY_VALUE}>+ Crear nueva categoría</option>
             {available.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.nombre}
@@ -290,6 +331,48 @@ export function MovementForm({
           <small id={`${prefix}-categoria-error`} className="movement-error">
             {fieldError("categoria_id")}
           </small>
+          {categoria === CREATE_CATEGORY_VALUE && (
+            <div className="movement-category-create">
+              <div>
+                <label htmlFor={`${prefix}-nueva-categoria`}>
+                  Nombre de la nueva categoría
+                </label>
+                <input
+                  id={`${prefix}-nueva-categoria`}
+                  value={newCategoryName}
+                  onChange={(event) => setNewCategoryName(event.target.value)}
+                  disabled={creatingCategory}
+                  maxLength={80}
+                  required
+                />
+                <label htmlFor={`${prefix}-tipo-nueva-categoria`}>Tipo</label>
+                <select
+                  id={`${prefix}-tipo-nueva-categoria`}
+                  value={newCategoryType}
+                  onChange={(event) =>
+                    setNewCategoryType(event.target.value as TipoRegistroMovimiento)
+                  }
+                  disabled={creatingCategory}
+                >
+                  <option value="Gasto">Gasto</option>
+                  <option value="Ingreso">Ingreso</option>
+                </select>
+                {categoryCreationError && (
+                  <small className="movement-error" role="alert">
+                    {categoryCreationError}
+                  </small>
+                )}
+                <button
+                  type="button"
+                  className="account-secondary"
+                  disabled={creatingCategory}
+                  onClick={() => void handleCreateCategory()}
+                >
+                  {creatingCategory ? "Guardando…" : "Guardar categoría"}
+                </button>
+              </div>
+            </div>
+          )}
 
           <label htmlFor={`${prefix}-nota`}>Nota (opcional)</label>
           <textarea

@@ -36,6 +36,7 @@
 .movement-form-panel :disabled { opacity: .65; cursor: not-allowed; }
 .movement-form-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .movement-form-panel footer { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.movement-category-create button { margin-top: 12px; }
 .movement-error { color: #9e352d; }
 .movement-success { padding: 14px; border-radius: 8px; background: #e7f1eb; color: #326b53; }
 .movement-warning { padding: 16px; margin-bottom: 20px; border: 1px solid #b58b27; border-radius: 8px; background: #fff8e5; color: #684c10; }
