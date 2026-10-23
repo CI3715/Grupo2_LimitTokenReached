@@ -165,7 +165,7 @@ export function MovementForm({
       </header>
 
       <form ref={form} onSubmit={submit} aria-busy={pending}>
-        {error && (
+        {error && errorField !== "monto" && (
           <p className="movement-error" role="alert">
             {error.mensaje}
           </p>
@@ -226,8 +226,7 @@ export function MovementForm({
                 aria-describedby={`${prefix}-monto-help ${prefix}-monto-error`}
               />
               <small id={`${prefix}-monto-help`}>
-                Cantidad positiva, hasta {currency.decimales} decimales. Sin
-                separadores de miles.
+                Hasta {currency.decimales} decimales. 
               </small>
               <small id={`${prefix}-monto-error`} className="movement-error">
                 {fieldError("monto")}
