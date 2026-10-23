@@ -5,3 +5,4 @@ pub mod listar_monedas;
 pub mod obtener_historial_movimientos;
 pub mod registrar_movimiento;
 pub mod verificar_conexion;
+pub mod crear_categoria;

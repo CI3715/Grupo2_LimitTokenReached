@@ -1,9 +1,9 @@
 pub mod comandos;
 
-use aplicacion::puertos::{Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos};
+use aplicacion::puertos::{Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,  RepositorioCategorias,};
 use infraestructura::{
-    RelojSistema, RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
-    bd,
+    bd,RelojSistema, RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
+    RepositorioCategoriasSqlite,
 };
 use tauri::Manager;
 
@@ -20,6 +20,7 @@ pub fn run() {
             let conn_cuentas = bd::abrir(&ruta_db)?;
             let conn_monedas = bd::abrir(&ruta_db)?;
             let conn_movimientos = bd::abrir(&ruta_db)?;
+            let conn_categorias = bd::abrir(&ruta_db)?;
 
             // Registrar repositorios
             let repo_cuentas_sqlite = RepositorioCuentasSqlite::new(conn_cuentas);
@@ -37,6 +38,12 @@ pub fn run() {
 
             app.manage(state_movimientos);
 
+            let repo_categorias_sqlite = RepositorioCategoriasSqlite::new(conn_categorias);
+            let state_categorias: Box<dyn RepositorioCategorias> =
+                Box::new(repo_categorias_sqlite);
+
+            app.manage(state_categorias);
+
             let reloj: Box<dyn Reloj> = Box::new(RelojSistema);
             app.manage(reloj);
 
@@ -51,6 +58,8 @@ pub fn run() {
             comandos::movimientos::registrar_movimiento,
             comandos::movimientos::corregir_movimiento,
             comandos::movimientos::listar_historial_movimientos,
+            comandos::categorias::crear_categoria,
+            comandos::categorias::listar_categorias,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");
