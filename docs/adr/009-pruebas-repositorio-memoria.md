@@ -37,9 +37,9 @@ Este repositorio en memoria implementará el mismo trait (puerto) `RepositorioEv
 - Requiere mantener dos implementaciones del repositorio (Real y Fake).
 
 ## Verificación (QA / CI)
-- [ ] El comando `cargo test` ejecuta las pruebas de INV-01, INV-03 e INV-18 exitosamente.
-- [ ] Las pruebas de dominio no importan ni inicializan `rusqlite` ni realizan llamadas de red.
-- [ ] El README del proyecto explica cómo ejecutar estas pruebas.
+- [x] El comando `cargo test` ejecuta las pruebas de INV-01, INV-03 e INV-18 exitosamente.
+- [x] Las pruebas de dominio no importan ni inicializan `rusqlite` ni realizan llamadas de red.
+- [x] El README del proyecto explica cómo ejecutar estas pruebas.
 
 ## Referencias
 - Especificación Técnica Entrega 2: Criterios de Aceptación (Pruebas automatizadas).

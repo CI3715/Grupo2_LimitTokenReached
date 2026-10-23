@@ -44,10 +44,10 @@ Se utilizará la licencia **Apache License 2.0** para todas las piezas del siste
 - **Mantenimiento:** se debe mantener un archivo `THIRD-PARTY-NOTICES` actualizado para garantizar la compatibilidad de todas las dependencias con Apache-2.0.
 
 ### Verificación
-- [ ] Existe un archivo `LICENSE` en la raíz del monorepo.
-- [ ] La CI incluye una verificación de compatibilidad de licencias de dependencias (por ejemplo, con `license-checker`, `pip-licenses` o similar).
-- [ ] El archivo `NOTICE` (si existe) propaga las atribuciones requeridas por dependencias Apache-2.0 que incluyan su propio `NOTICE`.
-- [ ] No se incluyen dependencias con licencias incompatibles (GPL-2.0, AGPL si el proyecto no es AGPL).
+- [x] Existe un archivo `LICENSE` en la raíz del monorepo.
+- [x] La CI incluye una verificación de compatibilidad de licencias de dependencias (por ejemplo, con `license-checker`, `pip-licenses` o similar).
+- [x] El archivo `NOTICE` (si existe) propaga las atribuciones requeridas por dependencias Apache-2.0 que incluyan su propio `NOTICE`.
+- [x] No se incluyen dependencias con licencias incompatibles (GPL-2.0, AGPL si el proyecto no es AGPL).
 
 ## Referencias
 - [Apache License 2.0 – Texto oficial](https://www.apache.org/licenses/LICENSE-2.0)

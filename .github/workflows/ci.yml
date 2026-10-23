@@ -1,4 +1,4 @@
-# CI - Cuentas Claras (Entrega 2 - Fase Inicial, por editar más adelante)
+# CI - Cuentas Claras (Entrega 3 - Movimientos, Categorías y Correcciones)
 
 name: CI - Cuentas Claras
 
@@ -62,9 +62,9 @@ jobs:
       - name: Build Next.js
         run: npm run build
 
-  # RUST (Solo el crate contrato - Entrega 2)
+  # RUST (Crates contrato, aplicacion y dominio - Entrega 3)
   rust-lint:
-    name: Rust - Contrato DTOs
+    name: Rust - Contratos, Aplicación y Dominio
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -90,6 +90,6 @@ jobs:
       - name: Check contrato compilation
         run: cargo check -p contrato
 
-      # Ejecutar pruebas de invariantes con repositorio en memoria
-      - name: Run QA Tests (Invariantes en Memoria)
-        run: cargo test -p contrato
+      # Ejecutar pruebas de invariantes y validaciones con repositorio en memoria
+      - name: Run QA Tests (Invariantes y Dominio en Memoria)
+        run: cargo test -p contrato -p aplicacion -p dominio

@@ -44,11 +44,11 @@ Se implementará un sistema **Local-First con Event Sourcing** utilizando:
 - Si el usuario desinstala la app o pierde el dispositivo, los datos se pierden.
 
 ## Verificación (QA / CI)
-- [ ] La aplicación abre, crea cuentas y lista con el WiFi desactivado y el servidor Python apagado.
-- [ ] Tras cerrar y reabrir la aplicación, las cuentas persisten.
-- [ ] El archivo SQLite existe físicamente en el `app_data_dir` de Tauri.
-- [ ] La tabla de eventos contiene registros inmutables de tipo `CuentaCreada`.
-- [ ] Ninguna operación de crear/listar cuentas genera tráfico de red (verificado con herramientas de monitoreo).
+- [x] La aplicación abre, crea cuentas y lista con el WiFi desactivado y el servidor Python apagado.
+- [x] Tras cerrar y reabrir la aplicación, las cuentas persisten.
+- [x] El archivo SQLite existe físicamente en el `app_data_dir` de Tauri.
+- [x] La tabla de eventos contiene registros inmutables de tipo `CuentaCreada`.
+- [x] Ninguna operación de crear/listar cuentas genera tráfico de red (verificado con herramientas de monitoreo).
 
 ## Referencias
 - Especificación Técnica Entrega 2: Sección 2.2 (Almacenamiento Local) y 2.3 (Flujo Completo).

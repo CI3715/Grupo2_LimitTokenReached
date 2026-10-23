@@ -47,9 +47,9 @@ El stack debe satisfacer tres restricciones no negociables:
 - **Contrato:** El `openapi.yaml` generado por FastAPI es la **fuente de verdad** para las pruebas de contrato.
 
 ### Verificación (QA / CI)
-- [ ] La CI debe fallar si se detecta un componente prohibido de Next.js o violación de la regla de dependencia (`eslint-plugin-boundaries` / `import-linter`).
-- [ ] La CI debe fallar si `mypy --strict` reporta errores.
-- [ ] Las pruebas de contrato se ejecutan automáticamente contra el `openapi.yaml` versionado.
+- [x] La CI debe fallar si se detecta un componente prohibido de Next.js o violación de la regla de dependencia (`eslint-plugin-boundaries` / `import-linter`).
+- [x] La CI debe fallar si `mypy --strict` reporta errores.
+- [x] Las pruebas de contrato se ejecutan automáticamente contra el `openapi.yaml` versionado.
 
 ## Referencias
 - [Guía Técnica del Proyecto Cuentas Claras v1.0](./)
