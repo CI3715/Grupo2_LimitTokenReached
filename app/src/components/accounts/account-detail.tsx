@@ -5,8 +5,9 @@ import { useState } from "react";
 import { formatMoney, minorUnits } from "@/types/account-money";
 import type { Account, Currency } from "@/types/accounts";
 import type { MovimientoDTO } from "@/types/movements";
-import { movementCategories } from "@/types/movement-categories";
 import { MovementForm } from "@/components/movements/movement-form";
+import type { CategoriaDTO } from "@/types/movements";
+import type { CrearCategoriaRequest } from "@/types/categories";
 import type {
   CorregirMovimientoRequest,
   RegistrarMovimientoRequest,
@@ -33,6 +34,11 @@ export function AccountDetail({
   onMovementRegistered,
   onRegister,
   onCorrect,
+  categories,
+  categoriesLoading,
+  categoriesError,
+  onRetryCategories,
+  onCreateCategory,
 }: {
   account: Account;
   currency?: Currency;
@@ -44,6 +50,11 @@ export function AccountDetail({
   onMovementRegistered: (movement: MovimientoDTO) => void | Promise<void>;
   onRegister: (request: RegistrarMovimientoRequest) => Promise<MovementResponse>;
   onCorrect: (request: CorregirMovimientoRequest) => Promise<MovementResponse>;
+  categories: CategoriaDTO[];
+  categoriesLoading: boolean;
+  categoriesError: string | null;
+  onRetryCategories: () => void;
+  onCreateCategory: (request: CrearCategoriaRequest) => Promise<CategoriaDTO>;
 }) {
   const [correctionMovement, setCorrectionMovement] = useState<MovimientoDTO | null>(null);
   const [correctionAmount, setCorrectionAmount] = useState("");
@@ -142,12 +153,15 @@ export function AccountDetail({
               <div className="movement-form-dialog">
                 <div id="movement-dialog-title" className="movement-dialog-heading">
                   <h2>Nuevo movimiento</h2>
-                  <button type="button" className="account-secondary" onClick={onCloseMovementForm}>Cerrar</button>
                 </div>
                 <MovementForm
                   account={account}
                   currency={currency}
-                  categories={movementCategories}
+                  categories={categories}
+                  categoriesLoading={categoriesLoading}
+                  categoriesError={categoriesError ?? undefined}
+                  onRetryCategories={onRetryCategories}
+                  onCreateCategory={onCreateCategory}
                   onRegister={onRegister}
                   onCancel={onCloseMovementForm}
                   onRegistered={onMovementRegistered}
