@@ -6,11 +6,20 @@ import { AccountsList } from "@/components/accounts/accounts-list";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { AccountsSummary } from "@/components/accounts/accounts-summary";
 import { NewAccountModal } from "@/components/accounts/new-account-modal";
+import { NewCategoryModal } from "@/components/categories/new-category-modal";
 import { useAccounts } from "@/features/accounts/useAccounts";
+import { useCategories } from "@/features/categories/useCategories";
 import "./accounts.css";
 export default function HomePage() {
   const { accounts, currencies, create } = useAccounts();
+  const {
+    categories,
+    error: categoriesError,
+    refresh: refreshCategories,
+    create: createCategory,
+  } = useCategories();
   const [createOpen, setCreateOpen] = useState(false);
+  const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   const [validationError, setValidationError] =
   useState<ErrorValidacionDTO | null>(null);
@@ -21,8 +30,21 @@ export default function HomePage() {
         <main className="accounts-workspace">
           <AccountsHeader
             onCreateAccount={() => setCreateOpen(true)}
+            onCreateCategory={() => setCreateCategoryOpen(true)}
             disabled={false}
           />
+          {categoriesError && (
+            <p className="account-error" role="alert">
+              {categoriesError}{" "}
+              <button
+                type="button"
+                className="account-secondary"
+                onClick={() => void refreshCategories()}
+              >
+                Reintentar
+              </button>
+            </p>
+          )}
           <p className="accounts-guidance">
             Agrega tus cuentas y mantén tus saldos a la vista.
           </p>
@@ -60,6 +82,17 @@ export default function HomePage() {
               throw error;
             }
             
+          }}
+        />
+      )}
+      {createCategoryOpen && (
+        <NewCategoryModal
+          categories={categories}
+          onClose={() => setCreateCategoryOpen(false)}
+          onCreate={async (input) => {
+            const category = await createCategory(input);
+            setAnnouncement(`Categoría ${category.nombre} creada correctamente.`);
+            return category;
           }}
         />
       )}

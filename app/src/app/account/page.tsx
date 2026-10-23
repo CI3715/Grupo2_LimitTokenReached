@@ -3,26 +3,26 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAccounts } from "@/features/accounts/useAccounts";
+import { useCategories } from "@/features/categories/useCategories";
 import { useAccountMovements } from "@/features/movements/useAccountMovements";
-import { useMovementCategories } from "@/features/movements/useMovementCategories";
 import { AccountDetail } from "@/components/accounts/account-detail";
 import { registerMovementFromForm } from "@/features/movements/register-movement";
 import { correctMovementFromForm } from "@/features/movements/correct-movement";
-import { createCategory } from "@/services/createCategory";
 import "../accounts.css";
 
 function AccountDetailContent() {
   const searchParams = useSearchParams();
   const { accounts, currencies, refresh: refreshAccounts } = useAccounts();
-  const accountId = searchParams.get("id");
-  const { movements, error: movementsError, refresh: refreshMovements } =
-    useAccountMovements(accountId);
   const {
     categories,
     loading: categoriesLoading,
     error: categoriesError,
     refresh: refreshCategories,
-  } = useMovementCategories();
+    create: createCategory,
+  } = useCategories();
+  const accountId = searchParams.get("id");
+  const { movements, error: movementsError, refresh: refreshMovements } =
+    useAccountMovements(accountId);
   const [formOpen, setFormOpen] = useState(false);
 
   const account = accounts.find((item) => item.id === accountId);
@@ -37,6 +37,11 @@ function AccountDetailContent() {
       currency={currencies.find((item) => item.codigo === account.moneda_codigo)}
       movements={movements}
       movementsError={movementsError}
+      categories={categories}
+      categoriesLoading={categoriesLoading}
+      categoriesError={categoriesError}
+      onRetryCategories={() => void refreshCategories()}
+      onCreateCategory={createCategory}
       formOpen={formOpen}
       onOpenMovementForm={() => setFormOpen(true)}
       onCloseMovementForm={() => setFormOpen(false)}
@@ -46,15 +51,6 @@ function AccountDetailContent() {
       }}
       onRegister={registerMovementFromForm}
       onCorrect={correctMovementFromForm}
-      categories={categories}
-      categoriesLoading={categoriesLoading}
-      categoriesError={categoriesError}
-      onRetryCategories={() => void refreshCategories()}
-      onCreateCategory={async (request) => {
-        const category = await createCategory(request);
-        await refreshCategories();
-        return category;
-      }}
     />
   );
 }
