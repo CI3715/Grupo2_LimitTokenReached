@@ -172,6 +172,49 @@
   padding-bottom: 27px;
   border-bottom: 1px solid #e1e6e3;
 }
+.account-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.movement-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(23, 63, 59, 0.42);
+}
+.movement-form-dialog {
+  width: min(100%, 690px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border-radius: 20px;
+  background: #f6f8f7;
+  box-shadow: 0 24px 80px rgba(23, 63, 59, 0.28);
+}
+.movement-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 0;
+}
+.movement-dialog-heading h2 {
+  margin: 0;
+  color: #173f3b;
+  font-size: 20px;
+}
+.movement-form-dialog .movement-form-panel {
+  max-width: none;
+  border: 0;
+  border-radius: 0 0 20px 20px;
+  box-shadow: none;
+}
 .breadcrumb {
   margin: 0 0 20px;
   color: #698277;
@@ -817,6 +860,138 @@
 .connection-panel-body {
   padding: 26px 24px;
   min-height: 115px;
+}
+
+.account-row {
+  position: relative;
+}
+.account-row-link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.account-row-link:focus-visible {
+  outline: 3px solid #23bdd3;
+  outline-offset: -3px;
+}
+.account-balance-hero,
+.balance-composition,
+.movements-list {
+  background: #fff;
+  border: 1px solid #d8e2df;
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(34, 65, 58, 0.06);
+}
+.account-balance-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  background: linear-gradient(120deg, #1f5147, #2c7769);
+  color: #fff;
+}
+.account-balance-hero p {
+  margin: 0 0 8px;
+  color: #d8f4ed;
+  font-size: 0.9rem;
+}
+.account-balance-hero strong {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  letter-spacing: -0.04em;
+}
+.account-balance-hero .currency-chip {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+.balance-composition,
+.movements-list {
+  padding: 24px 28px;
+  margin-bottom: 20px;
+}
+.composition-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+.composition-grid > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 9px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f5f8f7;
+}
+.composition-grid span:not(.composition-dot) {
+  color: #61736e;
+  font-size: 0.86rem;
+}
+.composition-grid strong {
+  grid-column: 2;
+  font-size: 1.05rem;
+}
+.composition-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  grid-row: span 2;
+}
+.composition-dot.initial { background: #61736e; }
+.composition-dot.income { background: #22a36f; }
+.composition-dot.expense { background: #d8655e; }
+.composition-dot.adjustment { background: #d59a2a; }
+.movement-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 4px;
+  border-top: 1px solid #e5ecea;
+}
+.movement-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+.movement-icon.income { background: #e0f5eb; color: #16845a; }
+.movement-icon.expense { background: #fbe6e4; color: #c14e48; }
+.movement-icon.adjustment { background: #fff2d8; color: #a16d0c; }
+.movement-description {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+}
+.movement-description span {
+  color: #71817d;
+  font-size: 0.84rem;
+}
+.movement-amount.income { color: #16845a; }
+.movement-amount.expense { color: #c14e48; }
+.empty-movements,
+.account-detail-loading {
+  color: #71817d;
+  text-align: center;
+  padding: 28px;
+}
+.account-detail-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+@media (max-width: 760px) {
+  .composition-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .account-balance-hero,
+  .balance-composition,
+  .movements-list {
+    padding: 20px 16px;
+  }
 }
 .connection-panel-body > p {
   margin: 0;

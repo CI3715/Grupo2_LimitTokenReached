@@ -15,6 +15,7 @@ export interface RegistrarMovimientoRequest {
   fecha: string;
   categoria_id: string;
   nota: string | null;
+  confirmar_saldo_negativo?: boolean;
 }
 
 export interface MovimientoDTO extends RegistrarMovimientoRequest {
