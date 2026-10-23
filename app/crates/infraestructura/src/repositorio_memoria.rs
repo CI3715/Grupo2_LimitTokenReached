@@ -1,10 +1,14 @@
+use contrato::{CrearCuentaRequest, CuentaDTO, ErrorValidacionDTO};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use contrato::{CuentaDTO, CrearCuentaRequest, ErrorValidacionDTO};
 
 /// Puerto del repositorio
+#[allow(async_fn_in_trait)]
 pub trait RepositorioEventos: Send + Sync {
-    async fn guardar_cuenta(&self, request: CrearCuentaRequest) -> Result<CuentaDTO, ErrorValidacionDTO>;
+    async fn guardar_cuenta(
+        &self,
+        request: CrearCuentaRequest,
+    ) -> Result<CuentaDTO, ErrorValidacionDTO>;
     async fn listar_cuentas(&self) -> Result<Vec<CuentaDTO>, String>;
 }
 
@@ -22,7 +26,10 @@ impl RepositorioMemoria {
 }
 
 impl RepositorioEventos for RepositorioMemoria {
-    async fn guardar_cuenta(&self, request: CrearCuentaRequest) -> Result<CuentaDTO, ErrorValidacionDTO> {
+    async fn guardar_cuenta(
+        &self,
+        request: CrearCuentaRequest,
+    ) -> Result<CuentaDTO, ErrorValidacionDTO> {
         // Simulamos una creación exitosa para que el esqueleto compile
         let nueva_cuenta = CuentaDTO {
             id: "test-id-123".to_string(),
@@ -32,7 +39,7 @@ impl RepositorioEventos for RepositorioMemoria {
             saldo: request.saldo_inicial,
             creada_en: "2026-10-15T12:00:00Z".to_string(),
         };
-        
+
         let mut cuentas = self.cuentas.lock().await;
         cuentas.push(nueva_cuenta.clone());
         Ok(nueva_cuenta)

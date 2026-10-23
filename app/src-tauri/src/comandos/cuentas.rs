@@ -1,9 +1,8 @@
-use tauri::State;
-use contrato::cuenta::CuentaDTO;
-use contrato::crear_cuenta::CrearCuentaRequest;
-use contrato::error_validacion::ErrorValidacionDTO;
 use aplicacion::puertos::{RepositorioCuentas, RepositorioMonedas};
-
+use contrato::crear_cuenta::CrearCuentaRequest;
+use contrato::cuenta::CuentaDTO;
+use contrato::error_validacion::ErrorValidacionDTO;
+use tauri::State;
 
 #[tauri::command]
 pub async fn crear_cuenta(
@@ -12,9 +11,11 @@ pub async fn crear_cuenta(
     repo_monedas: State<'_, Box<dyn RepositorioMonedas>>,
 ) -> Result<CuentaDTO, ErrorValidacionDTO> {
     aplicacion::casos_uso::crear_nueva_cuenta::ejecutar(
-        datos, 
+        datos,
         repo_cuentas.inner().as_ref(),
-        repo_monedas.inner().as_ref()).await
+        repo_monedas.inner().as_ref(),
+    )
+    .await
 }
 
 #[tauri::command]

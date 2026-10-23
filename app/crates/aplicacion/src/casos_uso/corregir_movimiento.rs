@@ -1,100 +1,113 @@
-
-use contrato::movimiento::{CorregirMovimientoRequest, MovimientoDTO};
+use crate::puertos::{RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos};
 use contrato::error_validacion::ErrorValidacionDTO;
-use crate::puertos::{RepositorioMovimientos, RepositorioCuentas, RepositorioMonedas};
-use dominio::movimiento::{corregir_movimiento as corregir_movimiento_dominio, MonedaCuenta,};
+use contrato::movimiento::{CorregirMovimientoRequest, MovimientoDTO};
+use dominio::movimiento::{MonedaCuenta, corregir_movimiento as corregir_movimiento_dominio};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 use uuid::Uuid;
-
 
 pub async fn ejecutar(
     datos: CorregirMovimientoRequest,
     repo_movimientos: &dyn RepositorioMovimientos,
     repo_cuentas: &dyn RepositorioCuentas,
     repo_monedas: &dyn RepositorioMonedas,
-) -> Result<MovimientoDTO, ErrorValidacionDTO> { 
-
+) -> Result<MovimientoDTO, ErrorValidacionDTO> {
     // 1. Parsear los datos de entrada que vienen del frontend
-    let movimiento_id = Uuid::from_str(&datos.movimiento_id)
-    .map_err(|_| ErrorValidacionDTO {
+    let movimiento_id = Uuid::from_str(&datos.movimiento_id).map_err(|_| ErrorValidacionDTO {
         campo: "movimiento_id".to_string(),
         mensaje: "ID de movimiento original inválido".to_string(),
     })?;
 
-    let monto_correcto = Decimal::from_str(&datos.monto_correcto)
-    .map_err(|_| ErrorValidacionDTO {
-        campo: "monto_correcto".to_string(),
-        mensaje: "El monto correcto debe ser un número decimal válido".to_string(),
-    })?;
+    let monto_correcto =
+        Decimal::from_str(&datos.monto_correcto).map_err(|_| ErrorValidacionDTO {
+            campo: "monto_correcto".to_string(),
+            mensaje: "El monto correcto debe ser un número decimal válido".to_string(),
+        })?;
 
     // 2. Obtener el movimiento original desde la base de datos a través del puerto
     let movimiento_original = repo_movimientos
-    .obtener_movimiento_por_id(&movimiento_id)
-    .map_err(|mensaje| ErrorValidacionDTO {
-        campo: "general".to_string(),
-        mensaje,
-    })?;
-    
+        .obtener_movimiento_por_id(&movimiento_id)
+        .map_err(|mensaje| ErrorValidacionDTO {
+            campo: "general".to_string(),
+            mensaje,
+        })?;
+
     // 3. Obtener todos los ajustes previos que se le hayan aplicado a este movimiento.
     // Esto es necesario porque un movimiento puede corregirse más de una vez
     let ajustes_previos = repo_movimientos
-    .obtener_ajustes_de_movimiento(&movimiento_id)
-    .map_err(|mensaje| ErrorValidacionDTO {
-        campo: "general".to_string(),
-        mensaje,
-    })?;
+        .obtener_ajustes_de_movimiento(&movimiento_id)
+        .map_err(|mensaje| ErrorValidacionDTO {
+            campo: "general".to_string(),
+            mensaje,
+        })?;
 
     let cuenta = repo_cuentas
-    .obtener_cuenta_por_id(&movimiento_original.cuenta_id.to_string())
-    .map_err(|mensaje| ErrorValidacionDTO {
-        campo: "cuenta_id".to_string(),
-        mensaje,
-    })?;
+        .obtener_cuenta_por_id(&movimiento_original.cuenta_id.to_string())
+        .map_err(|mensaje| ErrorValidacionDTO {
+            campo: "cuenta_id".to_string(),
+            mensaje,
+        })?;
 
     let monedas = repo_monedas
-    .obtener_monedas()
-    .map_err(|mensaje| ErrorValidacionDTO {
-        campo: "moneda_codigo".to_string(),
-        mensaje,
-    })?;
+        .obtener_monedas()
+        .map_err(|mensaje| ErrorValidacionDTO {
+            campo: "moneda_codigo".to_string(),
+            mensaje,
+        })?;
 
     let moneda = monedas
-    .iter()
-    .find(|moneda| moneda.codigo == cuenta.moneda_codigo)
-    .ok_or_else(|| ErrorValidacionDTO {
-        campo: "moneda_codigo".to_string(),
-        mensaje: "La moneda de la cuenta no existe en el catálogo".to_string(),
-    })?;
+        .iter()
+        .find(|moneda| moneda.codigo == cuenta.moneda_codigo)
+        .ok_or_else(|| ErrorValidacionDTO {
+            campo: "moneda_codigo".to_string(),
+            mensaje: "La moneda de la cuenta no existe en el catálogo".to_string(),
+        })?;
 
     let moneda_cuenta = MonedaCuenta {
         codigo: moneda.codigo.clone(),
         decimales: moneda.decimales,
     };
 
-    // 5. Generar el identificador único para este nuevo ajuste 
+    // 5. Generar el identificador único para este nuevo ajuste
     let id_ajuste = Uuid::new_v4();
 
     // 6. Invocar logica del dominio
     // el monto no sea negativo, o devolver 0 si el movimiento se anula por completo
     let nuevo_ajuste = corregir_movimiento_dominio(
-    id_ajuste,
-    &movimiento_original,
-    &ajustes_previos,
-    monto_correcto,
-    &moneda_cuenta,
+        id_ajuste,
+        &movimiento_original,
+        &ajustes_previos,
+        monto_correcto,
+        &moneda_cuenta,
     )
     .map_err(|err| ErrorValidacionDTO {
         campo: "monto_correcto".to_string(),
         mensaje: format!("Error de dominio al corregir: {:?}", err),
     })?;
 
-    // 7. Delegar al puerto la persistencia (esto insertará el evento MovimientoCorregido 
+    let saldo_actual = Decimal::from_str(&cuenta.saldo).map_err(|_| ErrorValidacionDTO {
+        campo: "saldo".to_string(),
+        mensaje: "El saldo actual de la cuenta no es válido.".to_string(),
+    })?;
+
+    let saldo_resultante = saldo_actual + nuevo_ajuste.efecto_en_saldo();
+
+    if saldo_resultante < Decimal::ZERO && !datos.confirmar_saldo_negativo {
+        return Err(ErrorValidacionDTO {
+            campo: "saldo".to_string(),
+            mensaje: format!(
+                "Esta corrección dejará el saldo en {}. Confirme para continuar.",
+                saldo_resultante
+            ),
+        });
+    }
+
+    // 7. Delegar al puerto la persistencia (esto insertará el evento MovimientoCorregido
     // en SQLite y actualizará el saldo, pero sin borrar ni reescribir el original
     repo_movimientos
-    .guardar_ajuste(&nuevo_ajuste)
-    .map_err(|mensaje| ErrorValidacionDTO {
-        campo: "general".to_string(),
-        mensaje,
-    })
+        .guardar_ajuste(&nuevo_ajuste)
+        .map_err(|mensaje| ErrorValidacionDTO {
+            campo: "general".to_string(),
+            mensaje,
+        })
 }

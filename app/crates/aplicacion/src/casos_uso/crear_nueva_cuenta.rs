@@ -1,7 +1,7 @@
+use crate::puertos::{RepositorioCuentas, RepositorioMonedas};
 use contrato::crear_cuenta::CrearCuentaRequest;
 use contrato::cuenta::CuentaDTO;
 use contrato::error_validacion::ErrorValidacionDTO;
-use crate::puertos::{RepositorioCuentas, RepositorioMonedas};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -21,14 +21,16 @@ pub async fn ejecutar(
     }
 
     // 2. Validación de Unicidad: Solo evaluamos los nombres existentes (case-insensitive)
-    let cuentas_existentes = repo_cuentas.obtener_cuentas().map_err(|e| ErrorValidacionDTO {
-        campo: "general".to_string(),
-        mensaje: e,
-    })?;
+    let cuentas_existentes = repo_cuentas
+        .obtener_cuentas()
+        .map_err(|e| ErrorValidacionDTO {
+            campo: "general".to_string(),
+            mensaje: e,
+        })?;
 
-    let existe_nombre = cuentas_existentes.iter().any(|c| {
-        c.nombre.trim().eq_ignore_ascii_case(nombre_limpio)
-    });
+    let existe_nombre = cuentas_existentes
+        .iter()
+        .any(|c| c.nombre.trim().eq_ignore_ascii_case(nombre_limpio));
 
     if existe_nombre {
         return Err(ErrorValidacionDTO {
@@ -38,17 +40,22 @@ pub async fn ejecutar(
     }
 
     // 3. Validación: Moneda dentro del catálogo base
-    let monedas = repo_monedas.obtener_monedas().map_err(|e| ErrorValidacionDTO {
-        campo: "general".to_string(),
-        mensaje: e,
-    })?;
+    let monedas = repo_monedas
+        .obtener_monedas()
+        .map_err(|e| ErrorValidacionDTO {
+            campo: "general".to_string(),
+            mensaje: e,
+        })?;
 
     let moneda = monedas
         .iter()
         .find(|m| m.codigo == datos.moneda_codigo)
         .ok_or_else(|| ErrorValidacionDTO {
             campo: "moneda_codigo".to_string(),
-            mensaje: format!("La moneda '{}' no existe en el catálogo.", datos.moneda_codigo),
+            mensaje: format!(
+                "La moneda '{}' no existe en el catálogo.",
+                datos.moneda_codigo
+            ),
         })?;
 
     // 4. Validación: Saldo inicial válido
@@ -76,8 +83,10 @@ pub async fn ejecutar(
     }
 
     // 6. Guardar la cuenta en SQLite y registrar el evento inmutable (CuentaCreada)
-    repo_cuentas.guardar_cuenta(&datos).map_err(|err_msg| ErrorValidacionDTO {
-        campo: "general".to_string(),
-        mensaje: err_msg,
-    })
+    repo_cuentas
+        .guardar_cuenta(&datos)
+        .map_err(|err_msg| ErrorValidacionDTO {
+            campo: "general".to_string(),
+            mensaje: err_msg,
+        })
 }

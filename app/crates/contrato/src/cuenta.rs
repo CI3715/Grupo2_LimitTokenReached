@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 /// El saldo se devuelve como string
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CuentaDTO {
-    pub id: String,             // UUID del evento CuentaCreada
-    pub nombre: String,         // "Cartera"
-    pub tipo: TipoCuentaDTO,    // Efectivo, Banco, BilleteraDigital
-    pub moneda_codigo: String,  // "VES", "USD", etc.
-    pub saldo: String,          // "1250.50" (string, no float)
-    pub creada_en: String,      // ISO 8601: "2026-10-15T12:00:00Z"
+    pub id: String,            // UUID del evento CuentaCreada
+    pub nombre: String,        // "Cartera"
+    pub tipo: TipoCuentaDTO,   // Efectivo, Banco, BilleteraDigital
+    pub moneda_codigo: String, // "VES", "USD", etc.
+    pub saldo: String,         // "1250.50" (string, no float)
+    pub creada_en: String,     // ISO 8601: "2026-10-15T12:00:00Z"
 }
 
 /// Tipos de cuenta permitidos

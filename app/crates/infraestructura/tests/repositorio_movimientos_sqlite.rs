@@ -1,19 +1,18 @@
 use chrono::NaiveDate;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use aplicacion::puertos::RepositorioMovimientos;
 use dominio::movimiento::{Ajuste, Movimiento, TipoMovimiento};
-use infraestructura::bd;
 use infraestructura::RepositorioMovimientosSqlite;
+use infraestructura::bd;
 
 fn crear_repositorio() -> RepositorioMovimientosSqlite {
-    let mut conexion = Connection::open_in_memory()
-        .expect("No se pudo crear la base SQLite en memoria");
+    let mut conexion =
+        Connection::open_in_memory().expect("No se pudo crear la base SQLite en memoria");
 
-    bd::migrar(&mut conexion)
-        .expect("No se pudieron ejecutar las migraciones");
+    bd::migrar(&mut conexion).expect("No se pudieron ejecutar las migraciones");
 
     let cuenta_id = Uuid::from_u128(1000);
 
@@ -68,8 +67,7 @@ fn guardar_ingreso_aumenta_el_saldo_y_persiste_el_movimiento() {
         cuenta_id,
         tipo: TipoMovimiento::Ingreso,
         monto: Decimal::new(50, 0),
-        fecha: NaiveDate::from_ymd_opt(2026, 10, 22)
-            .expect("Fecha de prueba inválida"),
+        fecha: NaiveDate::from_ymd_opt(2026, 10, 22).expect("Fecha de prueba inválida"),
         categoria_id: categoria_ingreso_id,
         nota: Some("Ingreso de prueba".to_string()),
     };
@@ -83,10 +81,7 @@ fn guardar_ingreso_aumenta_el_saldo_y_persiste_el_movimiento() {
     assert_eq!(dto.monto, "50");
     assert!(!dto.es_correccion);
 
-    assert_eq!(
-        consultar_saldo(&repo, &cuenta_id),
-        Decimal::new(150, 0)
-    );
+    assert_eq!(consultar_saldo(&repo, &cuenta_id), Decimal::new(150, 0));
 
     let movimiento_guardado = repo
         .obtener_movimiento_por_id(&movimiento_id)
@@ -108,8 +103,7 @@ fn guardar_gasto_disminuye_el_saldo() {
         cuenta_id,
         tipo: TipoMovimiento::Gasto,
         monto: Decimal::new(30, 0),
-        fecha: NaiveDate::from_ymd_opt(2026, 10, 22)
-            .expect("Fecha de prueba inválida"),
+        fecha: NaiveDate::from_ymd_opt(2026, 10, 22).expect("Fecha de prueba inválida"),
         categoria_id: categoria_gasto_id,
         nota: Some("Gasto de prueba".to_string()),
     };
@@ -117,10 +111,28 @@ fn guardar_gasto_disminuye_el_saldo() {
     repo.guardar_movimiento(&movimiento)
         .expect("No se pudo guardar el gasto");
 
-    assert_eq!(
-        consultar_saldo(&repo, &cuenta_id),
-        Decimal::new(70, 0)
-    );
+    assert_eq!(consultar_saldo(&repo, &cuenta_id), Decimal::new(70, 0));
+}
+
+#[test]
+fn guardar_gasto_con_saldo_negativo_persiste_el_nuevo_saldo() {
+    let repo = crear_repositorio();
+
+    let cuenta_id = Uuid::from_u128(1000);
+    let movimiento = Movimiento {
+        id: Uuid::from_u128(3500),
+        cuenta_id,
+        tipo: TipoMovimiento::Gasto,
+        monto: Decimal::new(150, 0),
+        fecha: NaiveDate::from_ymd_opt(2026, 10, 22).expect("Fecha de prueba inválida"),
+        categoria_id: Uuid::from_u128(1),
+        nota: Some("Gasto que deja saldo negativo".to_string()),
+    };
+
+    repo.guardar_movimiento(&movimiento)
+        .expect("El repositorio debe permitir persistir el saldo negativo");
+
+    assert_eq!(consultar_saldo(&repo, &cuenta_id), Decimal::new(-50, 0));
 }
 
 #[test]
@@ -137,8 +149,7 @@ fn guardar_ajuste_actualiza_el_saldo_y_persiste_la_correccion() {
         cuenta_id,
         tipo: TipoMovimiento::Ingreso,
         monto: Decimal::new(50, 0),
-        fecha: NaiveDate::from_ymd_opt(2026, 10, 22)
-            .expect("Fecha de prueba inválida"),
+        fecha: NaiveDate::from_ymd_opt(2026, 10, 22).expect("Fecha de prueba inválida"),
         categoria_id: categoria_ingreso_id,
         nota: Some("Ingreso corregible".to_string()),
     };
@@ -146,10 +157,7 @@ fn guardar_ajuste_actualiza_el_saldo_y_persiste_la_correccion() {
     repo.guardar_movimiento(&movimiento)
         .expect("No se pudo guardar el movimiento original");
 
-    assert_eq!(
-        consultar_saldo(&repo, &cuenta_id),
-        Decimal::new(150, 0)
-    );
+    assert_eq!(consultar_saldo(&repo, &cuenta_id), Decimal::new(150, 0));
 
     let ajuste = Ajuste {
         id: ajuste_id,
@@ -165,15 +173,9 @@ fn guardar_ajuste_actualiza_el_saldo_y_persiste_la_correccion() {
 
     assert_eq!(dto.id, ajuste_id.to_string());
     assert!(dto.es_correccion);
-    assert_eq!(
-        dto.movimiento_original_id,
-        Some(movimiento_id.to_string())
-    );
+    assert_eq!(dto.movimiento_original_id, Some(movimiento_id.to_string()));
 
-    assert_eq!(
-        consultar_saldo(&repo, &cuenta_id),
-        Decimal::new(130, 0)
-    );
+    assert_eq!(consultar_saldo(&repo, &cuenta_id), Decimal::new(130, 0));
 
     let ajustes = repo
         .obtener_ajustes_de_movimiento(&movimiento_id)

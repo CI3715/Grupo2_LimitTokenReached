@@ -18,16 +18,20 @@ pub struct CategoriaDTO {
 pub struct RegistrarMovimientoRequest {
     pub cuenta_id: String,
     pub tipo: TipoMovimientoDTO,
-    pub monto: String, // INV-03: String para evitar f32/f64
-    pub fecha: String, // Formato ISO 8601 (ej. "2026-10-19")
+    pub monto: String,                // INV-03: String para evitar f32/f64
+    pub fecha: String,                // Formato ISO 8601 (ej. "2026-10-19")
     pub categoria_id: Option<String>, //se modifico para que fuera consistente con el struct DatosMovimientos en /dominio/src/movimiento
     pub nota: Option<String>,
+    #[serde(default)]
+    pub confirmar_saldo_negativo: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CorregirMovimientoRequest {
     pub movimiento_id: String,
     pub monto_correcto: String, // INV-03: String
+    #[serde(default)]
+    pub confirmar_saldo_negativo: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
