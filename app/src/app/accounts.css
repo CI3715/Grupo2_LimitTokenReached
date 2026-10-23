@@ -970,8 +970,78 @@
   color: #71817d;
   font-size: 0.84rem;
 }
-.movement-amount.income { color: #16845a; }
-.movement-amount.expense { color: #c14e48; }
+.movement-amount.income { 
+  color: #16845a;
+  margin-right: 6px;
+}
+.movement-amount.expense {
+  color: #c14e48; 
+  margin-right: 6px;
+}
+.movement-row.corrected {
+  background: #f8fbfa;
+}
+.movement-adjustment-row {
+  margin-left: 52px;
+  padding-top: 10px;
+  border-top: 0;
+  background: #fffaf0;
+  border-radius: 10px;
+}
+.movement-corrected-label {
+  color: #a16d0c;
+  font-weight: 700;
+}
+.movement-correct-button {
+  padding: 7px 10px;
+  font-size: 0.78rem;
+}
+.correction-dialog {
+  width: min(100%, 520px);
+  padding: 26px;
+  background: #fff;
+}
+.correction-dialog .movement-dialog-heading {
+  padding: 0;
+  align-items: flex-start;
+}
+.correction-dialog .movement-dialog-heading p {
+  margin: 7px 0 0;
+  color: #667c71;
+  font-size: 13px;
+}
+.correction-dialog-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+}
+.correction-dialog label {
+  font-weight: 700;
+  color: #24423b;
+  font-size: 13px;
+}
+.correction-dialog input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #c7d8d3;
+  border-radius: 8px;
+  font: inherit;
+  color: #24423b;
+  background: #fbfdfc;
+}
+.correction-dialog input:focus {
+  outline: 3px solid rgba(35, 189, 211, 0.22);
+  border-color: #23a9b8;
+}
+.correction-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #e5ecea;
+}
 .empty-movements,
 .account-detail-loading {
   color: #71817d;

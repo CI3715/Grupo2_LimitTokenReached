@@ -18,6 +18,12 @@ export interface RegistrarMovimientoRequest {
   confirmar_saldo_negativo?: boolean;
 }
 
+export interface CorregirMovimientoRequest {
+  movimiento_id: string;
+  monto_correcto: string;
+  confirmar_saldo_negativo?: boolean;
+}
+
 export interface MovimientoDTO extends RegistrarMovimientoRequest {
   id: string;
   es_correccion: boolean;
