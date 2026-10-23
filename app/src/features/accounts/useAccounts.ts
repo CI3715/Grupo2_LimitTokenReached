@@ -48,11 +48,18 @@
  
       return account;
     }
+
+    async function refresh() {
+      const nextAccounts = await listAccounts();
+      setAccounts(nextAccounts);
+      return nextAccounts;
+    }
  
     return {
       accounts,
       currencies,
       announcement,
       create,
+      refresh,
     };
   }

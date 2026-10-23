@@ -4,6 +4,7 @@ import {
   type Currency,
 } from "@/types/accounts";
 import { formatMoney, minorUnits } from "@/types/account-money";
+import Link from "next/link";
 
 export function AccountCard({
   account,
@@ -14,6 +15,7 @@ export function AccountCard({
 }) {
   return (
     <li className="account-row">
+      <Link href={`/account?id=${account.id}`} className="account-row-link" aria-label={`Ver detalle de ${account.nombre}`} />
       <div className={`account-icon ${account.tipo}`} aria-hidden="true">
         {account.tipo === "efectivo"
           ? "▤"
