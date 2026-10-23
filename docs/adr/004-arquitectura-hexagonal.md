@@ -56,10 +56,10 @@ Cada puerto tendrá **al menos dos implementaciones**:
 Ambas pasarán el **mismo conjunto de pruebas de contrato**, garantizando que el comportamiento observable sea idéntico.
 
 ### Verificación
-- [ ] CI falla si el dominio importa infraestructura.
-- [ ] CI falla si la aplicación importa infraestructura directamente (solo puede importar puertos).
-- [ ] Cada puerto tiene al menos una implementación real y una fake.
-- [ ] Las pruebas de contrato de cada puerto se ejecutan contra ambas implementaciones.
+- [x] CI falla si el dominio importa infraestructura.
+- [x] CI falla si la aplicación importa infraestructura directamente (solo puede importar puertos).
+- [x] Cada puerto tiene al menos una implementación real y una fake.
+- [x] Las pruebas de contrato de cada puerto se ejecutan contra ambas implementaciones.
 
 ## Referencias
 - [Alistair Cockburn – Hexagonal Architecture](https://alistair.cockburn.us/hexagonal-architecture/)

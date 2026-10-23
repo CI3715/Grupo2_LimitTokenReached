@@ -35,10 +35,10 @@ Se utilizará la crate **`rust_decimal`** para todos los cálculos y representac
 - `rust_decimal` no soporta operaciones trigonométricas (no necesarias para este dominio).
 
 ## Verificación (QA / CI)
-- [ ] No existe ningún uso de `f32` o `f64` en los módulos de dominio relacionados con saldos o montos.
-- [ ] Las pruebas unitarias validan que `10.555` es rechazado para USD.
-- [ ] Los DTOs (`CuentaDTO`, `CrearCuentaRequest`) definen el campo `saldo` como `String`.
-- [ ] El CI de Rust compila sin errores de tipos en el dominio.
+- [x] No existe ningún uso de `f32` o `f64` en los módulos de dominio relacionados con saldos o montos.
+- [x] Las pruebas unitarias validan que `10.555` es rechazado para USD.
+- [x] Los DTOs (`CuentaDTO`, `CrearCuentaRequest`) definen el campo `saldo` como `String`.
+- [x] El CI de Rust compila sin errores de tipos en el dominio.
 
 ## Referencias
 - Especificación Técnica Entrega 2: Sección 2.1 (Reglas de validación).

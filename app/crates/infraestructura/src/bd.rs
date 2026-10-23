@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 const MIGRACIONES:  &[&str] = &[
     include_str!("../migrations/001_events.sql"), 
-    include_str!("../migrations/002_bd_v1.sql")
+    include_str!("../migrations/002_bd_v1.sql"), 
+    include_str!("../migrations/003_movements.sql")
 ]; 
 
 pub struct BaseDatos(pub Mutex<Connection>); 

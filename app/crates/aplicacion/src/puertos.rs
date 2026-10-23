@@ -1,6 +1,10 @@
+use dominio::categoria::Categoria;
+use dominio::movimiento::Movimiento;
 use contrato::cuenta::CuentaDTO;
 use contrato::crear_cuenta::CrearCuentaRequest;
 use contrato::moneda::MonedaDTO;
+use contrato::movimiento::MovimientoDTO;
+use uuid::Uuid;
 
 pub trait Reloj: Send + Sync {
     fn ahora(&self) -> String;
@@ -16,11 +20,20 @@ pub trait ClienteSocial: Send + Sync {
 pub trait RepositorioCuentas: Send + Sync {
     fn guardar_cuenta(&self, request: &CrearCuentaRequest) -> Result<CuentaDTO, String>;
     fn obtener_cuentas(&self) -> Result<Vec<CuentaDTO>, String>;
+    fn obtener_cuenta_por_id(&self, id: &str) -> Result<CuentaDTO, String>;
 }
 
 
 pub trait RepositorioMonedas: Send + Sync {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String>;
+}
+
+pub trait RepositorioMovimientos: Send + Sync {
+    fn guardar_movimiento(&self, movimiento: &Movimiento) -> Result<MovimientoDTO, String>;
+    fn guardar_ajuste(&self, ajuste: &dominio::movimiento::Ajuste) -> Result<MovimientoDTO, String>;
+    fn obtener_movimiento_por_id(&self, id: &Uuid) -> Result<dominio::movimiento::Movimiento, String>;
+    fn obtener_ajustes_de_movimiento(&self, original_id: &Uuid) -> Result<Vec<dominio::movimiento::Ajuste>, String>;
+    fn obtener_categorias(&self) -> Result<Vec<Categoria>, String>;
 }
 // Adaptadores Fake
 

@@ -10,22 +10,21 @@ create table if not exists moneda  (
 
 );
 
-create table if not exists cuenta  (
-    id integer primary key autoincrement,
-    nombre text not null,
-    tipo text not null,
-    moneda_codigo text not null references moneda(codigo),
-    saldo real not null check (saldo >= 0)
-); 
+CREATE TABLE IF NOT EXISTS cuenta (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    moneda_codigo TEXT NOT NULL REFERENCES moneda(codigo),
+    saldo TEXT NOT NULL
+);
 
 
 --TODO: esta tabla lo que guarda es el tipo de transaccion, su existencia esta en veremos 
-create table categoria  (
-    id text primary key,
-    nombre text not null,
-    padre_id text references categoria(id), 
-    archivada integer not null default 0
-    
+CREATE TABLE IF NOT EXISTS categoria (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    padre_id TEXT REFERENCES categoria(id),
+    archivada INTEGER NOT NULL DEFAULT 0
 );
 
 insert into moneda (codigo, nombre, simbolo, decimales) values
