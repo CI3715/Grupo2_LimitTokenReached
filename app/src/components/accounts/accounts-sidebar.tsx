@@ -25,9 +25,6 @@ export function AccountsSidebar({
           <span aria-hidden="true">▦</span> Mis cuentas
         </Link>
         <button disabled>
-          <span aria-hidden="true">↕</span> Movimientos <small>Pronto</small>
-        </button>
-        <button disabled>
           <span aria-hidden="true">◎</span> Grupos <small>Pronto</small>
         </button>
       </nav>
