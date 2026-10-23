@@ -6,6 +6,7 @@ import { useAccounts } from "@/features/accounts/useAccounts";
 import { useAccountMovements } from "@/features/movements/useAccountMovements";
 import { AccountDetail } from "@/components/accounts/account-detail";
 import { registerMovementFromForm } from "@/features/movements/register-movement";
+import { correctMovementFromForm } from "@/features/movements/correct-movement";
 import "../accounts.css";
 
 function AccountDetailContent() {
@@ -36,6 +37,7 @@ function AccountDetailContent() {
         setFormOpen(false);
       }}
       onRegister={registerMovementFromForm}
+      onCorrect={correctMovementFromForm}
     />
   );
 }
