@@ -1,12 +1,10 @@
+import type { TipoCategoria } from "./categories";
+
 // Espejo de crates/contrato/src/movimiento.rs. Los importes viajan como texto.
 export type TipoMovimientoDTO = "Ingreso" | "Gasto" | "Ajuste";
-export type TipoRegistroMovimiento = Exclude<TipoMovimientoDTO, "Ajuste">;
+export type TipoRegistroMovimiento = TipoCategoria;
 
-export interface CategoriaDTO {
-  id: string;
-  nombre: string;
-  tipo: TipoMovimientoDTO;
-}
+export type { CategoriaDTO, TipoCategoria } from "./categories";
 
 export interface RegistrarMovimientoRequest {
   cuenta_id: string;

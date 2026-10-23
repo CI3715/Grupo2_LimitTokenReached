@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatMoney, minorUnits } from "@/types/account-money";
 import type { Account, Currency } from "@/types/accounts";
+import type { CategoriaDTO, CrearCategoriaRequest } from "@/types/categories";
 import type { MovimientoDTO } from "@/types/movements";
 import { MovementForm } from "@/components/movements/movement-form";
-import type { CategoriaDTO } from "@/types/movements";
-import type { CrearCategoriaRequest } from "@/types/categories";
+import { NewCategoryModal } from "@/components/categories/new-category-modal";
 import type {
   CorregirMovimientoRequest,
   RegistrarMovimientoRequest,
@@ -28,35 +28,36 @@ export function AccountDetail({
   currency,
   movements,
   movementsError,
+  categories,
+  categoriesLoading,
+  categoriesError,
+  onRetryCategories,
+  onCreateCategory,
   formOpen,
   onOpenMovementForm,
   onCloseMovementForm,
   onMovementRegistered,
   onRegister,
   onCorrect,
-  categories,
-  categoriesLoading,
-  categoriesError,
-  onRetryCategories,
-  onCreateCategory,
 }: {
   account: Account;
   currency?: Currency;
   movements: MovimientoDTO[];
   movementsError: string | null;
+  categories: CategoriaDTO[];
+  categoriesLoading: boolean;
+  categoriesError: string | null;
+  onRetryCategories: () => void;
+  onCreateCategory: (request: CrearCategoriaRequest) => Promise<CategoriaDTO>;
   formOpen: boolean;
   onOpenMovementForm: () => void;
   onCloseMovementForm: () => void;
   onMovementRegistered: (movement: MovimientoDTO) => void | Promise<void>;
   onRegister: (request: RegistrarMovimientoRequest) => Promise<MovementResponse>;
   onCorrect: (request: CorregirMovimientoRequest) => Promise<MovementResponse>;
-  categories: CategoriaDTO[];
-  categoriesLoading: boolean;
-  categoriesError: string | null;
-  onRetryCategories: () => void;
-  onCreateCategory: (request: CrearCategoriaRequest) => Promise<CategoriaDTO>;
 }) {
   const [correctionMovement, setCorrectionMovement] = useState<MovimientoDTO | null>(null);
+  const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [correctionAmount, setCorrectionAmount] = useState("");
   const [correctionPending, setCorrectionPending] = useState(false);
   const [correctionError, setCorrectionError] = useState<string | null>(null);
@@ -141,6 +142,13 @@ export function AccountDetail({
               <p>{account.tipo.replace("_", " ")} · {account.moneda_codigo}</p>
             </div>
             <div className="account-detail-actions">
+              <button
+                type="button"
+                className="account-secondary"
+                onClick={() => setCategoryFormOpen(true)}
+              >
+                <span aria-hidden="true">＋</span> Nueva categoría
+              </button>
               <button type="button" className="account-primary" onClick={onOpenMovementForm}>
                 <span aria-hidden="true">＋</span> Registrar movimiento
               </button>
@@ -168,6 +176,13 @@ export function AccountDetail({
                 />
               </div>
             </div>
+          )}
+          {categoryFormOpen && (
+            <NewCategoryModal
+              categories={categories}
+              onClose={() => setCategoryFormOpen(false)}
+              onCreate={onCreateCategory}
+            />
           )}
           {correctionMovement && currency && (
             <div className="movement-form-overlay" role="dialog" aria-modal="true" aria-labelledby="correction-dialog-title">
