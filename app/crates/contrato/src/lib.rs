@@ -1,3 +1,4 @@
+pub mod categoria;
 pub mod cuenta;
 pub mod crear_cuenta;
 pub mod error_validacion;
@@ -7,12 +8,13 @@ pub mod patrimonio;
 pub mod tasa;
 
 // Re-exportaciones para uso cómodo desde otros crates
+pub use categoria::{CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO};
 pub use cuenta::{CuentaDTO, TipoCuentaDTO};
 pub use crear_cuenta::CrearCuentaRequest;
 pub use error_validacion::ErrorValidacionDTO;
 pub use moneda::{CambiarMonedaBaseRequest, CrearMonedaRequest, MonedaDTO};
 pub use movimiento::{
-    CategoriaDTO, CorregirMovimientoRequest, MovimientoDTO,
+    CorregirMovimientoRequest, MovimientoDTO,
     RegistrarMovimientoRequest, TipoMovimientoDTO,
 };
 pub use patrimonio::{

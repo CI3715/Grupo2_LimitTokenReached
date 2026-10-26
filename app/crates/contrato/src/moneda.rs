@@ -6,7 +6,7 @@ pub struct MonedaDTO {
     pub codigo: String,          // 3-5 letras mayúsculas 
     pub nombre: String,          // Nombre completo 
     pub simbolo: String,         // Símbolo 
-    pub decimales: u8,           // 0 a 8 decimales
+    pub decimales: u32,          // cambio: u8 → u32 (compatible con rust_decimal::scale())
     pub es_del_catalogo: bool,   // true si es VES/USD/EUR/USDT (no modificable)
 }
 
@@ -16,7 +16,7 @@ pub struct CrearMonedaRequest {
     pub codigo: String,          // 3-5 letras mayúsculas, único
     pub nombre: String,
     pub simbolo: String,
-    pub decimales: u8,           // 0 a 8
+    pub decimales: u32,          // cambio: u8 → u32
 }
 
 /// Request para cambiar la moneda base del usuario
