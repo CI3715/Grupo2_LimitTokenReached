@@ -1,21 +1,25 @@
-pub mod crear_cuenta;
 pub mod cuenta;
+pub mod crear_cuenta;
 pub mod error_validacion;
 pub mod moneda;
 pub mod movimiento;
-pub mod categoria;
+pub mod patrimonio;
+pub mod tasa;
 
-// Re-exportaciones para uso cómodo desde otros crates (aplicacion, infraestructura, frontend)
-pub use crear_cuenta::CrearCuentaRequest;
+// Re-exportaciones para uso cómodo desde otros crates
 pub use cuenta::{CuentaDTO, TipoCuentaDTO};
+pub use crear_cuenta::CrearCuentaRequest;
 pub use error_validacion::ErrorValidacionDTO;
-pub use moneda::MonedaDTO;
+pub use moneda::{CambiarMonedaBaseRequest, CrearMonedaRequest, MonedaDTO};
 pub use movimiento::{
-    CorregirMovimientoRequest, MovimientoDTO, RegistrarMovimientoRequest,
-    TipoMovimientoDTO,
+    CategoriaDTO, CorregirMovimientoRequest, MovimientoDTO,
+    RegistrarMovimientoRequest, TipoMovimientoDTO,
 };
-
-pub use categoria::{CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO};
+pub use patrimonio::{
+    ConsultarPatrimonioRequest, ConsultarPatrimonioResponse, SaldoCuentaDTO,
+    SubtotalMonedaDTO, TasaFaltanteDTO, TasaUsadaDTO,
+};
+pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
 
 // Módulos de pruebas
 #[cfg(test)]
@@ -23,3 +27,9 @@ mod crear_cuenta_tests;
 
 #[cfg(test)]
 mod movimiento_tests;
+
+#[cfg(test)]
+mod tasa_tests;
+
+#[cfg(test)]
+mod patrimonio_tests;

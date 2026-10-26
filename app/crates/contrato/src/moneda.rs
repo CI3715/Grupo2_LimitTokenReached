@@ -1,11 +1,26 @@
 use serde::{Deserialize, Serialize};
 
-/// Representa una moneda del catálogo base
-/// Se devuelve al frontend para poblar el <select> del formulario
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+/// DTO para mostrar una moneda (del catálogo o propia)
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonedaDTO {
-    pub codigo: String,  // "VES", "USD", "EUR", "USDT"
-    pub nombre: String,  // "Bolívar", "Dólar estadounidense", etc.
-    pub simbolo: String, // "Bs.", "$", "€", "USDT"
-    pub decimales: u32,  // 2 para todas las del catálogo actual
+    pub codigo: String,          // 3-5 letras mayúsculas 
+    pub nombre: String,          // Nombre completo 
+    pub simbolo: String,         // Símbolo 
+    pub decimales: u8,           // 0 a 8 decimales
+    pub es_del_catalogo: bool,   // true si es VES/USD/EUR/USDT (no modificable)
+}
+
+/// Request para crear una moneda propia.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CrearMonedaRequest {
+    pub codigo: String,          // 3-5 letras mayúsculas, único
+    pub nombre: String,
+    pub simbolo: String,
+    pub decimales: u8,           // 0 a 8
+}
+
+/// Request para cambiar la moneda base del usuario
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CambiarMonedaBaseRequest {
+    pub codigo: String,          // Código de la moneda a establecer como base
 }
