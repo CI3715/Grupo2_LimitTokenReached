@@ -130,11 +130,8 @@ export function AccountDetail({
           </header>
 
           {formOpen && currency && (
-            <div className="movement-form-overlay" role="dialog" aria-modal="true" aria-labelledby="movement-dialog-title">
+            <div className="movement-form-overlay" role="dialog" aria-modal="true" aria-label="Registrar movimiento">
               <div className="movement-form-dialog">
-                <div id="movement-dialog-title" className="movement-dialog-heading">
-                  <h2>Nuevo movimiento</h2>
-                </div>
                 <MovementForm
                   account={account}
                   currency={currency}

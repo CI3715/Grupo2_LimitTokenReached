@@ -16,7 +16,7 @@ export function AccountsSidebar({
     <>
       <button
         type="button"
-        className="sidebar-toggle"
+        className={`sidebar-toggle${open ? " is-hidden" : ""}`}
         aria-expanded={open}
         aria-controls="accounts-navigation"
         onClick={() => setOpen((isOpen) => !isOpen)}
