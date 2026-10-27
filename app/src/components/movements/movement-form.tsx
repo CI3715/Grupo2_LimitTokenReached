@@ -11,7 +11,7 @@ import {
   type TipoRegistroMovimiento,
 } from "@/types/movements";
 import type { CrearCategoriaRequest } from "@/types/categories";
-import { sanitizeAmountInput } from "@/types/account-money";
+import { sanitizeFreeAmountInput } from "@/types/account-money";
 import "./movement-form.css";
 
 const CREATE_CATEGORY_VALUE = "__crear_categoria__";
@@ -164,10 +164,7 @@ export function MovementForm({
     event.preventDefault();
     if (
       locked ||
-      confirmation ||
-      !hasCategory ||
-      categoriesLoading ||
-      categoriesError
+      confirmation
     ) {
       return;
     }
@@ -204,7 +201,7 @@ export function MovementForm({
       </header>
 
       <form ref={form} onSubmit={submit} aria-busy={pending}>
-        {error && errorField !== "monto" && (
+        {error && !errorField && (
           <p className="movement-error" role="alert">
             {error.mensaje}
           </p>
@@ -258,25 +255,15 @@ export function MovementForm({
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
-                required
-                pattern={
-                  currency.decimales > 0
-                    ? `[0-9]+([.,][0-9]{1,${currency.decimales}})?`
-                    : "[0-9]+"
-                }
                 placeholder="Ej. 50,00"
                 aria-invalid={!!fieldError("monto")}
                 aria-describedby={`${prefix}-monto-help ${prefix}-monto-error`}
                 onInput={(event) => {
-                  event.currentTarget.value = sanitizeAmountInput(
+                  event.currentTarget.value = sanitizeFreeAmountInput(
                     event.currentTarget.value,
-                    currency.decimales,
                   );
                 }}
               />
-              <small id={`${prefix}-monto-help`}>
-                Hasta {currency.decimales} decimales. 
-              </small>
               <small id={`${prefix}-monto-error`} className="movement-error">
                 {fieldError("monto")}
               </small>
@@ -288,9 +275,7 @@ export function MovementForm({
                 id={`${prefix}-fecha`}
                 name="fecha"
                 type="date"
-                required
                 defaultValue={today()}
-                max={today()}
                 aria-invalid={!!fieldError("fecha")}
                 aria-describedby={`${prefix}-fecha-error`}
               />
@@ -304,7 +289,6 @@ export function MovementForm({
           <select
             id={`${prefix}-categoria`}
             name="categoria_id"
-            required
             value={
               categoria === CREATE_CATEGORY_VALUE || hasCategory ? categoria : ""
             }

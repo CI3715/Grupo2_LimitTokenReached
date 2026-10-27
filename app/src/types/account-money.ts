@@ -16,3 +16,15 @@ export function sanitizeAmountInput(value: string, decimalPlaces: number): strin
     .slice(0, decimalPlaces);
   return `${whole}.${fraction}`;
 }
+
+export function sanitizeFreeAmountInput(value: string): string {
+  const normalized = value.replace(",", ".").replace(/[^\d.-]/g, "");
+  const sign = normalized.startsWith("-") ? "-" : "";
+  const unsigned = normalized.replace(/-/g, "");
+  const separatorIndex = unsigned.indexOf(".");
+  if (separatorIndex < 0) return `${sign}${unsigned}`;
+
+  const whole = unsigned.slice(0, separatorIndex);
+  const fraction = unsigned.slice(separatorIndex + 1).replace(/\./g, "");
+  return `${sign}${whole}.${fraction}`;
+}
