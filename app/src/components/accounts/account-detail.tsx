@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { formatMoney, minorUnits } from "@/types/account-money";
+import Decimal from "decimal.js";
+import { minorUnits, sanitizeAmountInput } from "@/types/account-money";
 import type { Account, Currency } from "@/types/accounts";
 import type { MovimientoDTO } from "@/types/movements";
 import { MovementForm } from "@/components/movements/movement-form";
+import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import type { CategoriaDTO } from "@/types/movements";
 import type { CrearCategoriaRequest } from "@/types/categories";
 import type {
@@ -14,13 +16,13 @@ import type {
   MovimientoDTO as MovementResponse,
 } from "@/types/movements";
 
-function amount(value: bigint, currency?: Currency) {
-  return `${currency?.simbolo ?? ""} ${formatMoney(value)}`.trim();
+function amount(value: Decimal, currency?: Currency) {
+  return `${currency?.simbolo ?? ""} ${value.toString()}`.trim();
 }
 
-function movementEffect(movement: MovimientoDTO): bigint {
+function movementEffect(movement: MovimientoDTO): Decimal {
   const value = minorUnits(movement.monto);
-  return movement.tipo === "Gasto" ? -value : value;
+  return movement.tipo === "Gasto" ? value.neg() : value;
 }
 
 export function AccountDetail({
@@ -64,14 +66,14 @@ export function AccountDetail({
   const currentBalance = minorUnits(account.saldo);
   const income = movements
     .filter((movement) => movement.tipo === "Ingreso" && !movement.es_correccion)
-    .reduce((total, movement) => total + minorUnits(movement.monto), BigInt(0));
+    .reduce((total, movement) => total.plus(minorUnits(movement.monto)), minorUnits("0"));
   const expenses = movements
     .filter((movement) => movement.tipo === "Gasto" && !movement.es_correccion)
-    .reduce((total, movement) => total + minorUnits(movement.monto), BigInt(0));
+    .reduce((total, movement) => total.plus(minorUnits(movement.monto)), minorUnits("0"));
   const adjustments = movements
     .filter((movement) => movement.es_correccion)
-    .reduce((total, movement) => total + movementEffect(movement), BigInt(0));
-  const initial = currentBalance - income + expenses - adjustments;
+    .reduce((total, movement) => total.plus(movementEffect(movement)), minorUnits("0"));
+  const initial = currentBalance.minus(income).plus(expenses).minus(adjustments);
   const correctionByOriginal = new Map<string, MovimientoDTO[]>();
   for (const movement of movements) {
     if (!movement.es_correccion || !movement.movimiento_original_id) continue;
@@ -83,11 +85,6 @@ export function AccountDetail({
   async function submitCorrection(confirmNegativeBalance = false) {
     if (!correctionMovement || correctionPending) return;
     const amount = correctionAmount.trim().replace(",", ".");
-    if (!/^\d+(?:\.\d{1,2})?$/.test(amount)) {
-      setCorrectionError("Ingresa un monto válido con hasta dos decimales.");
-      return;
-    }
-
     setCorrectionPending(true);
     setCorrectionError(null);
     try {
@@ -116,23 +113,7 @@ export function AccountDetail({
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
-        <aside className="accounts-sidebar">
-          <Link href="/" className="accounts-brand">
-            <span className="brand-mark" aria-hidden="true">C</span>
-            <span>Cuentas Claras<small>finanzas locales</small></span>
-          </Link>
-          <p className="eyebrow">Principal</p>
-          <nav aria-label="Principal">
-            <Link href="/"><span aria-hidden="true">▦</span> Mis cuentas</Link>
-            <button disabled><span aria-hidden="true">◎</span> Grupos <small>Pronto</small></button>
-          </nav>
-          <div className="sidebar-divider" />
-          <p className="eyebrow">Sistema</p>
-          <nav aria-label="Sistema">
-            <button disabled><span aria-hidden="true">⚙</span> Preferencias <small>Pronto</small></button>
-            <Link href="/conexion/"><span aria-hidden="true">⌁</span> Conexión</Link>
-          </nav>
-        </aside>
+        <AccountsSidebar />
         <main className="accounts-workspace account-detail-workspace">
           <header className="accounts-header">
             <div>
@@ -149,11 +130,8 @@ export function AccountDetail({
           </header>
 
           {formOpen && currency && (
-            <div className="movement-form-overlay" role="dialog" aria-modal="true" aria-labelledby="movement-dialog-title">
+            <div className="movement-form-overlay" role="dialog" aria-modal="true" aria-label="Registrar movimiento">
               <div className="movement-form-dialog">
-                <div id="movement-dialog-title" className="movement-dialog-heading">
-                  <h2>Nuevo movimiento</h2>
-                </div>
                 <MovementForm
                   account={account}
                   currency={currency}
@@ -184,15 +162,29 @@ export function AccountDetail({
                     id="corrected-amount"
                     type="text"
                     inputMode="decimal"
+                    pattern={
+                      currency.decimales > 0
+                        ? `[0-9]+([.,][0-9]{1,${currency.decimales}})?`
+                        : "[0-9]+"
+                    }
                     value={correctionAmount}
                     onChange={(event) => {
-                      setCorrectionAmount(event.target.value);
+                      setCorrectionAmount(
+                        sanitizeAmountInput(
+                          event.target.value,
+                          currency.decimales,
+                        ),
+                      );
                       setCorrectionNeedsConfirmation(false);
                       setCorrectionError(null);
                     }}
                     disabled={correctionPending}
                     autoFocus
                   />
+                  <small>
+                    Hasta {currency.decimales}{" "}
+                    {currency.decimales === 1 ? "decimal" : "decimales"}.
+                  </small>
                 </div>
                 {correctionError && <p className="account-error" role="alert">{correctionError}</p>}
                 <div className="correction-actions">
@@ -227,10 +219,10 @@ export function AccountDetail({
               </div>
             </div>
             <div className="composition-grid">
-              <div><span className="composition-dot initial" /><span>Saldo inicial</span><strong>{amount(initial, currency)}</strong></div>
-              <div><span className="composition-dot income" /><span>Ingresos</span><strong>{amount(income, currency)}</strong></div>
-              <div><span className="composition-dot expense" /><span>Gastos</span><strong>{amount(-expenses, currency)}</strong></div>
-              <div><span className="composition-dot adjustment" /><span>Ajustes</span><strong>{amount(adjustments, currency)}</strong></div>
+              <div><span className="composition-dot initial" /><span>Saldo inicial</span><strong className="composition-money">{amount(initial, currency)}</strong></div>
+              <div><span className="composition-dot income" /><span>Ingresos</span><strong className="composition-money">{amount(income, currency)}</strong></div>
+              <div><span className="composition-dot expense" /><span>Gastos</span><strong className="composition-money">{amount(expenses.neg(), currency)}</strong></div>
+              <div><span className="composition-dot adjustment" /><span>Ajustes</span><strong className="composition-money">{amount(adjustments, currency)}</strong></div>
             </div>
           </section>
 
@@ -248,7 +240,7 @@ export function AccountDetail({
                   if (movement.es_correccion) return null;
                   const isExpense = movement.tipo === "Gasto";
                   const value = minorUnits(movement.monto);
-                  const signedValue = isExpense ? -value : value;
+                  const signedValue = isExpense ? value.neg() : value;
                   const corrections = correctionByOriginal.get(movement.id) ?? [];
                   const isCorrected = corrections.length > 0;
                   return (
@@ -258,8 +250,9 @@ export function AccountDetail({
                           {isExpense ? "−" : movement.es_correccion ? "↕" : "+"}
                         </span>
                         <div className="movement-description">
-                          <strong>{movement.es_correccion ? "Ajuste de corrección" : movement.tipo}</strong>
-                          <span>{movement.nota || "Sin nota"} · {movement.fecha}</span>
+                          <strong>{movement.es_correccion ? "Corrección" : movement.tipo}</strong>
+                          <span>{movement.nota || "Sin nota"}</span>
+                          <span className="movement-date">{movement.fecha}</span>
                           {!movement.es_correccion && isCorrected && <small className="movement-corrected-label">Corregido</small>}
                         </div>
                         <strong className={`movement-amount ${isExpense ? "expense" : "income"}`}>
@@ -271,7 +264,12 @@ export function AccountDetail({
                             className="account-secondary movement-correct-button"
                             onClick={() => {
                               setCorrectionMovement(movement);
-                              setCorrectionAmount(movement.monto);
+                              setCorrectionAmount(
+                                sanitizeAmountInput(
+                                  movement.monto,
+                                  currency?.decimales ?? 0,
+                                ),
+                              );
                               setCorrectionError(null);
                             }}
                           >
@@ -283,8 +281,11 @@ export function AccountDetail({
                         <div className="movement-row movement-adjustment-row" key={correction.id}>
                           <span className="movement-icon adjustment" aria-hidden="true">↕</span>
                           <div className="movement-description">
-                            <strong>Ajuste de corrección</strong>
-                            <span>Nuevo monto: {amount(value + minorUnits(correction.monto), currency)} · {correction.fecha}</span>
+                            <strong>Corrección</strong>
+                            <span className="movement-adjustment-amount">
+                              Nuevo monto: {amount(value.plus(minorUnits(correction.monto)), currency)}
+                            </span>
+                            <span className="movement-date">{correction.fecha}</span>
                           </div>
                           <strong className={`movement-amount ${isExpense ? "expense" : "income"}`}>
                             {amount(movementEffect(correction), currency)}

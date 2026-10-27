@@ -1,7 +1,6 @@
-﻿.accounts-page {
+.accounts-page {
   min-height: 100vh;
-  padding: 12px;
-  background: #e8edeb;
+  background: #f1f5f3;
   color: #1b2926;
   color-scheme: light;
   font:
@@ -9,14 +8,65 @@
     Helvetica,
     sans-serif;
 }
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  object-fit: cover;
+}
 .accounts-page button:not(:disabled),
 .new-account-dialog button:not(:disabled) {
   cursor: pointer;
+}
+.sidebar-toggle,
+.sidebar-backdrop {
+  display: none;
 }
 .accounts-page button:disabled,
 .new-account-dialog button:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+@media (max-width: 959px) {
+  .accounts-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 244px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 12px 0 30px rgba(34, 65, 58, 0.12);
+  }
+  .accounts-sidebar.is-open {
+    transform: translateX(0);
+  }
+  .sidebar-toggle {
+    display: grid;
+    place-items: center;
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 30;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #d7e4de;
+    border-radius: 12px;
+    background: #f4f8f6;
+    color: #356b5e;
+    font-size: 20px;
+  }
+  .sidebar-toggle.is-hidden {
+    display: none;
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    width: 100%;
+    border: 0;
+    background: rgba(25, 51, 44, 0.28);
+  }
 }
 .accounts-page :focus-visible,
 .new-account-dialog :focus-visible {
@@ -25,14 +75,8 @@
 }
 .accounts-shell {
   display: flex;
-  min-height: calc(100vh - 24px);
-  max-width: 1500px;
-  margin: auto;
-  overflow: hidden;
-  border: 1px solid white;
-  border-radius: 28px;
+  min-height: 100vh;
   background: #f6f8f7;
-  box-shadow: 0 20px 70px #2537330d;
 }
 .accounts-sidebar {
   display: flex;
@@ -41,7 +85,8 @@
   flex-shrink: 0;
   padding: 28px 20px 20px;
   border-right: 1px solid #dde4e1;
-  background: #f9fbfa;
+  background: #f4f8f6;
+  z-index: 20;
 }
 .accounts-brand {
   display: flex;
@@ -53,16 +98,6 @@
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.4px;
-}
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 13px;
-  background: #173f3b;
-  color: white;
-  font-size: 23px;
 }
 .accounts-brand small {
   display: block;
@@ -102,15 +137,15 @@
   text-decoration: none;
 }
 .accounts-sidebar nav a:hover {
-  background: #e9f0ec;
+  background: #e5eeea;
 }
 .accounts-sidebar nav .nav-current {
-  background: #173f3b;
+  background: #3b7165;
   color: white;
   font-weight: 600;
 }
 .accounts-sidebar nav .nav-current:hover {
-  background: #20534d;
+  background: #4a8174;
 }
 .accounts-sidebar nav span {
   width: 20px;
@@ -128,36 +163,6 @@
 .sidebar-divider {
   margin: 26px 0;
   border-top: 1px solid #e1e7e5;
-}
-.local-note {
-  margin-top: auto;
-  padding: 18px 15px;
-  border: 1px solid #dfe8e3;
-  border-radius: 16px;
-  background: white;
-  font-size: 12px;
-}
-.local-note p {
-  font-size: 11px;
-  line-height: 1.7;
-  color: #647a70;
-  margin: 8px 0 14px;
-}
-.local-note span {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #407b66;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-.local-note i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #589e7e;
 }
 .accounts-workspace {
   flex: 1;
@@ -182,7 +187,7 @@
 .movement-form-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 40;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -251,10 +256,10 @@
 }
 .account-primary {
   color: white;
-  background: #173f3b;
+  background: #3b7165;
 }
 .account-primary:hover:not(:disabled) {
-  background: #20534d;
+  background: #4a8174;
 }
 .account-primary span {
   font-size: 21px;
@@ -266,16 +271,6 @@
 }
 .account-secondary:hover:not(:disabled) {
   background: #e1eae4;
-}
-.accounts-guidance {
-  padding: 11px 14px;
-  border: 1px solid #dfe8e3;
-  border-radius: 9px;
-  background: #edf4ef;
-  color: #365c49;
-  font-size: 11px;
-  line-height: 1.6;
-  margin: 20px 0 0;
 }
 .accounts-summary {
   margin-top: 28px;
@@ -319,7 +314,7 @@
   padding: 22px;
   background: white;
   color: #1b2926;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 .summary-card > div {
   display: flex;
@@ -342,26 +337,14 @@
   font-weight: 700;
   letter-spacing: -0.7px;
   margin: 25px 0 13px;
-  overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
+}
+.summary-money {
+  white-space: nowrap;
 }
 .summary-card > small {
   font-size: 10px;
   opacity: 0.7;
-}
-@media (hover: hover) {
-  .summary-card:hover {
-    background: #e9f0ec;
-    border-color: #e0e7e1;
-    color: #1b2926;
-  }
-  .summary-card:hover > div strong {
-    background: #6a9a8014;
-  }
-  .summary-card:hover > div span,
-  .summary-card:hover > small {
-    opacity: 1;
-  }
 }
 .accounts-list {
   --account-columns: 44px minmax(0, 1fr) 80px minmax(150px, 0.5fr);
@@ -409,6 +392,13 @@
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #edf1ed;
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+@media (hover: hover) {
+  .account-row:hover {
+    background: #e9f2ee;
+    box-shadow: inset 4px 0 0 #5c9987;
+  }
 }
 .account-row:last-child {
   border-bottom: 0;
@@ -655,16 +645,12 @@
   font-size: 12px;
   line-height: 1.7;
 }
-@media (min-width: 1200px) {
-  .accounts-sidebar {
-    position: sticky;
-    top: 12px;
-    height: calc(100vh - 24px);
-  }
-}
-@media (max-width: 1000px) {
+@media (max-width: 959px) {
   .accounts-workspace {
     padding: 30px 24px;
+  }
+  .accounts-header > div:first-child {
+    padding-left: 52px;
   }
   .accounts-sidebar {
     width: 215px;
@@ -686,57 +672,20 @@
   .accounts-page {
     padding: 0;
   }
-  .accounts-shell {
-    display: block;
-    border: 0;
-    border-radius: 0;
-    min-height: 100vh;
-  }
-  .accounts-sidebar {
-    width: 100%;
-    padding: 18px 20px;
-    border-right: 0;
-    border-bottom: 1px solid #dde4e1;
-  }
-  .accounts-brand {
-    margin: 0 0 18px;
-  }
-  .accounts-sidebar nav {
-    display: flex;
-    flex-wrap: wrap;
-  }
-  .accounts-sidebar nav a,
-  .accounts-sidebar nav button {
-    width: auto;
-    padding: 9px;
-    font-size: 11px;
-    gap: 5px;
-  }
-  .accounts-sidebar nav span {
-    font-size: 16px;
-  }
-  .accounts-sidebar > .eyebrow,
-  .sidebar-divider,
-  .local-note,
-  .accounts-sidebar nav[aria-label="Sistema"] button {
-    display: none;
-  }
-  .accounts-sidebar nav[aria-label="Sistema"] {
-    margin-top: 6px;
-  }
   .accounts-workspace {
-    padding: 25px 18px 35px;
+    padding: 30px 18px 35px;
   }
   .accounts-header {
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: flex-end;
     gap: 18px;
   }
-  .accounts-header h1 {
-    font-size: 28px;
+  .accounts-header > .account-primary {
+    margin-left: 52px;
   }
-  .accounts-header div > p:last-child {
-    font-size: 12px;
+  .account-detail-actions {
+    margin-left: 52px;
+    justify-content: flex-start;
   }
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -760,7 +709,7 @@
     padding: 20px;
   }
   .account-row {
-    grid-template-columns: 38px minmax(0, 1fr) auto;
+    grid-template-columns: 38px minmax(0, 1fr) auto minmax(92px, auto);
     gap: 10px;
     padding: 18px;
   }
@@ -769,11 +718,12 @@
     height: 38px;
   }
   .currency-chip {
-    grid-column: 2;
-    grid-row: 2;
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
   }
   .account-balance {
-    grid-column: 3;
+    grid-column: 4;
     grid-row: 1 / span 2;
     max-width: 125px;
   }
@@ -932,6 +882,9 @@
   grid-column: 2;
   font-size: 1.05rem;
 }
+.composition-money {
+  white-space: nowrap;
+}
 .composition-dot {
   width: 10px;
   height: 10px;
@@ -969,6 +922,11 @@
 .movement-description span {
   color: #71817d;
   font-size: 0.84rem;
+}
+.movement-date,
+.movement-adjustment-amount {
+  display: block;
+  white-space: nowrap;
 }
 .movement-amount.income { 
   color: #16845a;

@@ -1,5 +1,5 @@
 import type { Account, Currency } from "@/types/accounts";
-import { formatMoney, minorUnits } from "@/types/account-money";
+import { minorUnits } from "@/types/account-money";
 
 export function AccountsSummary({
   accounts,
@@ -26,8 +26,8 @@ export function AccountsSummary({
             (account) => account.moneda_codigo === currency.codigo,
           );
           const total = matching.reduce(
-            (sum, account) => sum + minorUnits(account.saldo),
-            BigInt(0),
+            (sum, account) => sum.plus(minorUnits(account.saldo)),
+            minorUnits("0"),
           );
           return (
             <article className="summary-card" key={currency.codigo}>
@@ -36,7 +36,9 @@ export function AccountsSummary({
                 <strong>{currency.codigo}</strong>
               </div>
               <p>
-                {currency.simbolo} {formatMoney(total)}
+                <span className="summary-money">
+                  {currency.simbolo} {total.toString()}
+                </span>
               </p>
               <small>
                 {matching.length} {matching.length === 1 ? "cuenta" : "cuentas"}

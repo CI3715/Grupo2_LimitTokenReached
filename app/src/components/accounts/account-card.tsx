@@ -3,7 +3,7 @@ import {
   type Account,
   type Currency,
 } from "@/types/accounts";
-import { formatMoney, minorUnits } from "@/types/account-money";
+import { minorUnits } from "@/types/account-money";
 import Link from "next/link";
 
 export function AccountCard({
@@ -31,7 +31,7 @@ export function AccountCard({
       <div className="account-balance">
         <strong>
           {currency?.simbolo ?? account.moneda_codigo}{" "}
-          {formatMoney(minorUnits(account.saldo))}
+          {minorUnits(account.saldo).toString()}
         </strong>
         <small>Saldo actual</small>
       </div>

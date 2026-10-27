@@ -30,7 +30,7 @@
 .movement-form-panel button { min-height: 44px; cursor: pointer; }
 .movement-form-panel .account-primary,
 .movement-form-panel .account-secondary { padding: 10px 19px; border: 0; border-radius: 11px; font: inherit; }
-.movement-form-panel .account-primary { color: white; background: #173f3b; }
+.movement-form-panel .account-primary { color: white; background: #3b7165; }
 .movement-form-panel .account-secondary { color: #51695e; background: #eef3ef; }
 .movement-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .movement-form-panel :disabled { opacity: .65; cursor: not-allowed; }

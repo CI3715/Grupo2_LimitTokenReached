@@ -8,6 +8,7 @@ import {
   type Currency,
   type CurrencyCode,
 } from "@/types/accounts";
+import { sanitizeAmountInput } from "@/types/account-money";
 
 type Props = {
    currencies: Currency[];
@@ -24,6 +25,17 @@ export function NewAccountModal({
   const dialog = useRef<HTMLDialogElement>(null);
   
   const [type, setType] = useState<AccountType>("efectivo");
+  const [currencyCode, setCurrencyCode] = useState<CurrencyCode>(
+    currencies[0]?.codigo ?? "USD",
+  );
+  const selectedCurrency = currencies.find(
+    (currency) => currency.codigo === currencyCode,
+  );
+  const decimalPlaces = selectedCurrency?.decimales ?? 0;
+  const decimalPattern =
+    decimalPlaces > 0
+      ? `[0-9]+([.,][0-9]{0,${decimalPlaces}})?`
+      : "[0-9]+";
   useEffect(() => {
     const node = dialog.current;
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -150,7 +162,13 @@ export function NewAccountModal({
           <div className="account-form-columns">
             <label>
               Moneda
-              <select name="moneda_codigo">
+              <select
+                name="moneda_codigo"
+                value={currencyCode}
+                onChange={(event) =>
+                  setCurrencyCode(event.currentTarget.value as CurrencyCode)
+                }
+              >
                 {currencies.map((currency) => (
                   <option key={currency.codigo} value={currency.codigo}>
                     {currency.codigo} · {currency.nombre}
@@ -164,24 +182,39 @@ export function NewAccountModal({
                 name="saldo_inicial"
                 inputMode="decimal"
                 defaultValue="0"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                pattern={decimalPattern}
+                aria-describedby="saldo-inicial-help"
                 required
                 onInvalid={(e) => {
-                  if (e.currentTarget.validity.rangeUnderflow) {
+                  if (e.currentTarget.validity.patternMismatch) {
                     e.currentTarget.setCustomValidity(
-                      "El saldo inicial no puede ser negativo.",
+                      `El saldo inicial admite hasta ${decimalPlaces} decimales.`,
                     );
                   } else if (e.currentTarget.validity.valueMissing) {
                     e.currentTarget.setCustomValidity(
                       "El saldo inicial es obligatorio.",
                     );
+                  } else {
+                    e.currentTarget.setCustomValidity("");
                   }
                 }}
-                onInput={(e) => e.currentTarget.setCustomValidity("")}
+                onInput={(e) => {
+                  e.currentTarget.value = sanitizeAmountInput(
+                    e.currentTarget.value,
+                    decimalPlaces,
+                  );
+                  e.currentTarget.setCustomValidity("");
+                  if (e.currentTarget.validity.patternMismatch) {
+                    e.currentTarget.setCustomValidity(
+                      `El saldo inicial admite hasta ${decimalPlaces} decimales.`,
+                    );
+                  }
+                }}
               />
-              <small>Hasta 2 decimales; puede ser 0.</small>
+              <small id="saldo-inicial-help">
+                Hasta {decimalPlaces} {decimalPlaces === 1 ? "decimal" : "decimales"}; puede ser 0.
+              </small>
             </label>
           </div>
         </fieldset>

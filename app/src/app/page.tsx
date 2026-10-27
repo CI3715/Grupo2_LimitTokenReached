@@ -23,9 +23,6 @@ export default function HomePage() {
             onCreateAccount={() => setCreateOpen(true)}
             disabled={false}
           />
-          <p className="accounts-guidance">
-            Agrega tus cuentas y mantén tus saldos a la vista.
-          </p>
           <span className="sr-only" role="status">
             {announcement}
           </span>
