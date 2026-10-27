@@ -11,6 +11,7 @@ import {
   type TipoRegistroMovimiento,
 } from "@/types/movements";
 import type { CrearCategoriaRequest } from "@/types/categories";
+import { sanitizeAmountInput } from "@/types/account-money";
 import "./movement-form.css";
 
 const CREATE_CATEGORY_VALUE = "__crear_categoria__";
@@ -258,10 +259,20 @@ export function MovementForm({
                 inputMode="decimal"
                 autoComplete="off"
                 required
-                pattern="[0-9]+([.,][0-9]+)?"
+                pattern={
+                  currency.decimales > 0
+                    ? `[0-9]+([.,][0-9]{1,${currency.decimales}})?`
+                    : "[0-9]+"
+                }
                 placeholder="Ej. 50,00"
                 aria-invalid={!!fieldError("monto")}
                 aria-describedby={`${prefix}-monto-help ${prefix}-monto-error`}
+                onInput={(event) => {
+                  event.currentTarget.value = sanitizeAmountInput(
+                    event.currentTarget.value,
+                    currency.decimales,
+                  );
+                }}
               />
               <small id={`${prefix}-monto-help`}>
                 Hasta {currency.decimales} decimales. 
