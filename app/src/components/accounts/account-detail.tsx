@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Decimal from "decimal.js";
-import { minorUnits } from "@/types/account-money";
+import { minorUnits, sanitizeAmountInput } from "@/types/account-money";
 import type { Account, Currency } from "@/types/accounts";
 import type { MovimientoDTO } from "@/types/movements";
 import { MovementForm } from "@/components/movements/movement-form";
@@ -162,15 +162,29 @@ export function AccountDetail({
                     id="corrected-amount"
                     type="text"
                     inputMode="decimal"
+                    pattern={
+                      currency.decimales > 0
+                        ? `[0-9]+([.,][0-9]{1,${currency.decimales}})?`
+                        : "[0-9]+"
+                    }
                     value={correctionAmount}
                     onChange={(event) => {
-                      setCorrectionAmount(event.target.value);
+                      setCorrectionAmount(
+                        sanitizeAmountInput(
+                          event.target.value,
+                          currency.decimales,
+                        ),
+                      );
                       setCorrectionNeedsConfirmation(false);
                       setCorrectionError(null);
                     }}
                     disabled={correctionPending}
                     autoFocus
                   />
+                  <small>
+                    Hasta {currency.decimales}{" "}
+                    {currency.decimales === 1 ? "decimal" : "decimales"}.
+                  </small>
                 </div>
                 {correctionError && <p className="account-error" role="alert">{correctionError}</p>}
                 <div className="correction-actions">
@@ -250,7 +264,12 @@ export function AccountDetail({
                             className="account-secondary movement-correct-button"
                             onClick={() => {
                               setCorrectionMovement(movement);
-                              setCorrectionAmount(movement.monto);
+                              setCorrectionAmount(
+                                sanitizeAmountInput(
+                                  movement.monto,
+                                  currency?.decimales ?? 0,
+                                ),
+                              );
                               setCorrectionError(null);
                             }}
                           >
