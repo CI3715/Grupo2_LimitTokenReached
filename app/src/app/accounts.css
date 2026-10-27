@@ -645,13 +645,6 @@
   font-size: 12px;
   line-height: 1.7;
 }
-@media (min-width: 1200px) {
-  .accounts-sidebar {
-    position: sticky;
-    top: 12px;
-    height: calc(100vh - 24px);
-  }
-}
 @media (max-width: 959px) {
   .accounts-workspace {
     padding: 30px 24px;
