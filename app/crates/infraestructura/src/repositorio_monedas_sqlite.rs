@@ -31,6 +31,7 @@ impl RepositorioMonedas for RepositorioMonedasSqlite {
                 let decimales: u32 = row.get(3)?;
 
                 Ok(MonedaDTO {
+                    es_del_catalogo: matches!(codigo.as_str(), "VES" | "USD" | "EUR" | "USDT"),
                     codigo,
                     nombre,
                     simbolo,
