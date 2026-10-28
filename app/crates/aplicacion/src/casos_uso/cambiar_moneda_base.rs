@@ -1,8 +1,5 @@
 use crate::puertos::{RepositorioMonedas, RepositorioPreferencias};
-use contrato::{
-    error_validacion::ErrorValidacionDTO,
-    moneda::CambiarMonedaBaseRequest,
-};
+use contrato::{error_validacion::ErrorValidacionDTO, moneda::CambiarMonedaBaseRequest};
 
 pub async fn ejecutar(
     datos: CambiarMonedaBaseRequest,

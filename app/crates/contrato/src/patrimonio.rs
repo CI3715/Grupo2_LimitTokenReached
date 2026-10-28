@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// Request para consultar el patrimonio consolidado
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsultarPatrimonioRequest {
-    pub fecha_consulta: String,  // Formato ISO 8601 (ej. "2026-10-23")
+    pub fecha_consulta: String, // Formato ISO 8601 (ej. "2026-10-23")
 }
 
 /// DTO con el resultado completo de la consulta de patrimonio
@@ -27,14 +27,14 @@ pub struct SaldoCuentaDTO {
     pub cuenta_id: String,
     pub nombre_cuenta: String,
     pub moneda: String,
-    pub saldo: String,           // INV-03: String
+    pub saldo: String, // INV-03: String
 }
 
 /// Subtotal consolidado por moneda
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtotalMonedaDTO {
     pub moneda: String,
-    pub subtotal: String,        // INV-03: String
+    pub subtotal: String, // INV-03: String
 }
 
 /// Detalle de una tasa usada en el cálculo del patrimonio
@@ -42,10 +42,10 @@ pub struct SubtotalMonedaDTO {
 pub struct TasaUsadaDTO {
     pub moneda_origen: String,
     pub moneda_destino: String,
-    pub valor: String,           // INV-03: String
+    pub valor: String, // INV-03: String
     pub fecha: String,
     pub fuente: String,
-    pub es_inversa: bool,        // true si se usó 1/valor (inversa)
+    pub es_inversa: bool, // true si se usó 1/valor (inversa)
 }
 
 /// Aviso de tasa faltante para un par de monedas
@@ -53,5 +53,5 @@ pub struct TasaUsadaDTO {
 pub struct TasaFaltanteDTO {
     pub moneda_origen: String,
     pub moneda_destino: String,
-    pub fecha_limite: String,    // Fecha máxima para la tasa requerida
+    pub fecha_limite: String, // Fecha máxima para la tasa requerida
 }

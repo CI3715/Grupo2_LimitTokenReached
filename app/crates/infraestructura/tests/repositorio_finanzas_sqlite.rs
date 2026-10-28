@@ -1,11 +1,7 @@
 use aplicacion::puertos::{RepositorioPatrimonio, RepositorioTasas};
 use chrono::NaiveDate;
 use contrato::tasa::RegistrarTasaRequest;
-use infraestructura::{
-    bd,
-    RepositorioPatrimonioSqlite,
-    RepositorioTasasSqlite,
-};
+use infraestructura::{RepositorioPatrimonioSqlite, RepositorioTasasSqlite, bd};
 use rusqlite::Connection;
 
 fn conexion_migrada() -> Connection {
@@ -31,9 +27,11 @@ fn registrar_tasa_preserva_precision_y_registra_evento() {
     let encontradas = repo
         .obtener_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 27).unwrap())
         .unwrap();
-    assert!(encontradas
-        .iter()
-        .any(|tasa| tasa.valor == "887.96000000123456789"));
+    assert!(
+        encontradas
+            .iter()
+            .any(|tasa| tasa.valor == "887.96000000123456789")
+    );
 }
 
 #[test]
@@ -80,4 +78,119 @@ fn consulta_saldo_historico_aplica_movimientos_y_ajustes_por_fecha() {
         .obtener_saldos_a_fecha(NaiveDate::from_ymd_opt(2026, 1, 10).unwrap())
         .unwrap();
     assert_eq!(saldos[0].saldo, "135");
+}
+
+#[test]
+fn eliminar_tasa_marca_la_tasa_sin_borrarla() {
+    let conn = conexion_migrada();
+    let repo = RepositorioTasasSqlite::new(conn);
+
+    let tasa = repo
+        .guardar_tasa(&RegistrarTasaRequest {
+            moneda_origen: "USD".to_string(),
+            moneda_destino: "VES".to_string(),
+            valor: "900.12345678".to_string(),
+            fecha: "2026-10-28".to_string(),
+            fuente: "BCV".to_string(),
+        })
+        .unwrap();
+
+    repo.eliminar_tasa(&tasa.id).unwrap();
+
+    let historial = repo
+        .obtener_historial_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 28).unwrap())
+        .unwrap();
+
+    let eliminada = historial
+        .iter()
+        .find(|registro| registro.id == tasa.id)
+        .expect("La tasa debe permanecer en el historial");
+
+    assert!(eliminada.eliminada);
+
+    let activas = repo
+        .obtener_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 28).unwrap())
+        .unwrap();
+
+    assert!(
+        activas.iter().all(|registro| registro.id != tasa.id),
+        "La tasa eliminada no debe aparecer entre las tasas activas"
+    );
+}
+
+#[test]
+fn historial_respeta_la_fecha_limite() {
+    let repo = RepositorioTasasSqlite::new(conexion_migrada());
+
+    let tasa = repo
+        .guardar_tasa(&RegistrarTasaRequest {
+            moneda_origen: "USD".to_string(),
+            moneda_destino: "VES".to_string(),
+            valor: "900".to_string(),
+            fecha: "2026-10-28".to_string(),
+            fuente: "BCV".to_string(),
+        })
+        .unwrap();
+
+    let historial = repo
+        .obtener_historial_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 27).unwrap())
+        .unwrap();
+
+    assert!(
+        historial.iter().all(|registro| registro.id != tasa.id),
+        "La tasa del 2026-10-28 no debe aparecer al consultar hasta el 2026-10-27"
+    );
+}
+
+#[test]
+fn usa_la_tasa_mas_reciente_cuando_hay_dos_en_la_misma_fecha() {
+    let repo = RepositorioTasasSqlite::new(conexion_migrada());
+
+    let primera_tasa = repo
+        .guardar_tasa(&RegistrarTasaRequest {
+            moneda_origen: "USD".to_string(),
+            moneda_destino: "VES".to_string(),
+            valor: "900".to_string(),
+            fecha: "2026-10-28".to_string(),
+            fuente: "Fuente anterior".to_string(),
+        })
+        .unwrap();
+
+    let segunda_tasa = repo
+        .guardar_tasa(&RegistrarTasaRequest {
+            moneda_origen: "USD".to_string(),
+            moneda_destino: "VES".to_string(),
+            valor: "905".to_string(),
+            fecha: "2026-10-28".to_string(),
+            fuente: "Fuente reciente".to_string(),
+        })
+        .unwrap();
+
+    let tasas = repo
+        .obtener_tasas_hasta(
+            NaiveDate::from_ymd_opt(2026, 10, 28).unwrap(),
+        )
+        .unwrap();
+
+    let tasas_del_par: Vec<_> = tasas
+        .iter()
+        .filter(|tasa| {
+            tasa.id == primera_tasa.id || tasa.id == segunda_tasa.id
+        })
+        .collect();
+
+    assert_eq!(
+        tasas_del_par.len(),
+        2,
+        "Las dos tasas del mismo par y fecha deben coexistir"
+    );
+
+    assert_eq!(
+        tasas_del_par[0].id,
+        segunda_tasa.id,
+        "La tasa registrada más recientemente debe aparecer primero"
+    );
+
+    assert_eq!(tasas_del_par[0].valor, "905");
+    assert_eq!(tasas_del_par[0].fuente, "Fuente reciente");
 }

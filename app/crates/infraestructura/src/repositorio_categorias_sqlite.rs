@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -86,10 +86,7 @@ impl RepositorioCategorias for RepositorioCategoriasSqlite {
         Ok(categorias)
     }
 
-    fn guardar_categoria(
-        &self,
-        categoria: &Categoria,
-    ) -> Result<CategoriaDTO, String> {
+    fn guardar_categoria(&self, categoria: &Categoria) -> Result<CategoriaDTO, String> {
         let mut conexion = self.conexion.lock().map_err(|e| e.to_string())?;
         let transaccion = conexion
             .transaction()

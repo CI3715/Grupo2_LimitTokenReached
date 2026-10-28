@@ -20,10 +20,7 @@ impl RepositorioPatrimonioSqlite {
 }
 
 impl RepositorioPatrimonio for RepositorioPatrimonioSqlite {
-    fn obtener_saldos_a_fecha(
-        &self,
-        fecha: NaiveDate,
-    ) -> Result<Vec<SaldoCuentaDTO>, String> {
+    fn obtener_saldos_a_fecha(&self, fecha: NaiveDate) -> Result<Vec<SaldoCuentaDTO>, String> {
         let mut conn = self.conexion.lock().map_err(|e| e.to_string())?;
         let tx = conn.transaction().map_err(|e| e.to_string())?;
         let mut stmt = tx
@@ -127,7 +124,9 @@ fn calcular_saldo(
         cuenta_id: cuenta_id.to_string(),
         nombre_cuenta: nombre.to_string(),
         moneda: moneda.to_string(),
-        saldo: (saldo_inicial + actividad_hasta_fecha).normalize().to_string(),
+        saldo: (saldo_inicial + actividad_hasta_fecha)
+            .normalize()
+            .to_string(),
     })
 }
 
