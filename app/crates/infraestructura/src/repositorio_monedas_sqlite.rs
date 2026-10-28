@@ -32,6 +32,7 @@ impl RepositorioMonedas for RepositorioMonedasSqlite {
                 let es_del_catalogo = matches!(codigo.as_str(), "VES"|"USD"|"EUR"|"USDT");
 
                 Ok(MonedaDTO {
+                    es_del_catalogo: matches!(codigo.as_str(), "VES" | "USD" | "EUR" | "USDT"),
                     codigo,
                     nombre,
                     simbolo,

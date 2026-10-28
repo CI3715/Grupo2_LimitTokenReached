@@ -1,4 +1,4 @@
-# CI - Cuentas Claras (Entrega 3 - Movimientos, Categorías y Correcciones)
+# CI - Cuentas Claras (Entregas 3 y 4)
 
 name: CI - Cuentas Claras
 
@@ -9,6 +9,8 @@ on:
       - 'servidor/**'
       - 'app/**'
       - '.github/workflows/**'
+      - 'README.md'
+      - 'docs/**'
   push:
     branches: [ main ]
 
@@ -54,17 +56,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install dependencies
         run: npm install
       - name: Run ESLint
         run: npm run lint
+      - name: Run movement frontend tests
+        run: npm run test:movements
       - name: Build Next.js
         run: npm run build
 
-  # RUST (Crates contrato, aplicacion y dominio - Entrega 3)
+  # RUST: contratos E4 y regresión E3; no certifica el flujo E4 completo.
   rust-lint:
-    name: Rust - Contratos, Aplicación y Dominio
+    name: Rust - Contratos, núcleo y SQLite local
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -90,6 +94,11 @@ jobs:
       - name: Check contrato compilation
         run: cargo check -p contrato
 
-      # Ejecutar pruebas de invariantes y validaciones con repositorio en memoria
-      - name: Run QA Tests (Invariantes y Dominio en Memoria)
+      # Incluye tasa_tests y patrimonio_tests: prueban DTOs, no casos de uso E4.
+      - name: Run contract and core unit tests
         run: cargo test -p contrato -p aplicacion -p dominio
+
+      # Selección explícita: conexion_servidor necesita FastAPI y queda fuera.
+      # SQLite en memoria prueba adaptadores, no sustituye el fake exigido en E4.
+      - name: Run local SQLite regression tests
+        run: cargo test -p infraestructura --test repositorio_movimientos_sqlite --test repositorio_categorias_sqlite --test repositorio_monedas_sqlite

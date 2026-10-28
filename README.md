@@ -15,23 +15,42 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 
 ## Estado actual
 
-| Área | Implementación disponible |
-| --- | --- |
-| Interfaz | Pantalla de estado de conexión con modos claro y oscuro. Listado y creación de cuentas. Detalle de cuenta con saldo, composición y lista de movimientos. Formulario para registrar movimientos y flujo de corrección. |
-| Frontend | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri. |
-| Aplicación nativa | Estructura y configuración inicial de Tauri. Gestión de almacenamiento local. |
-| Backend | Servidor FastAPI con endpoint `GET /ping`. |
-| Gestión financiera | **Entrega 3 completada:** Registro de gastos e ingresos, corrección de movimientos con ajustes inmutables, cálculo automático de saldo y funcionamiento 100% offline (Local-First). |
+| Área               | Implementación disponible                                                                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Interfaz           | Pantalla de estado de conexión con modos claro y oscuro. Listado y creación de cuentas. Detalle de cuenta con saldo, composición y lista de movimientos. Formulario para registrar movimientos y flujo de corrección. |
+| Frontend           | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri.                                                                                                                                           |
+| Aplicación nativa  | Estructura y configuración inicial de Tauri. Gestión de almacenamiento local.                                                                                                                                         |
+| Backend            | Servidor FastAPI con endpoint `GET /ping`.                                                                                                                                                                            |
+| Gestión financiera | **Entrega 3 completada:** Registro de gastos e ingresos, corrección de movimientos con ajustes inmutables, cálculo automático de saldo y funcionamiento 100% offline (Local-First).                                   |
 
 El indicador «Conectado» de la interfaz no verifica todavía la disponibilidad real del servidor en todas las rutas, pero el núcleo de la aplicación funciona de forma autónoma.
 
+### Entrega 4: monedas, tasas y patrimonio
+
+Están integrados los DTOs de monedas, tasas y patrimonio y las pruebas de contrato de tasas y patrimonio. Estas pruebas construyen requests/responses; todavía no verifican rechazos reales del dominio, selección de tasas, inversas ni redondeo. En el código actual faltan los casos de uso, la persistencia de eventos y los comandos Tauri de la Entrega 4, junto con sus pantallas.
+
+Desde la raíz del repositorio:
+
+```bash
+cd app
+# Suite de contratos y núcleo (incluye las pruebas de contrato de Entrega 4)
+cargo test -p contrato -p aplicacion -p dominio
+# Ejecutar únicamente cada grupo nuevo de contratos
+cargo test -p contrato tasa_tests::
+cargo test -p contrato patrimonio_tests::
+```
+
+La [guía de QA de Entrega 4](docs/qa-entrega-4.md) detalla los pasos y resultados del ejemplo 2.3: **316.100,00 VES**, bloqueo por falta de **USDT→USD** y **350,00 USD** al registrar la tasa faltante. Incluye selección por fecha, validaciones, autonomía y pendientes para la evaluación. El flujo manual podrá ejecutarse cuando se integren backend y frontend; no está certificado por las pruebas de DTOs.
+
+Decisiones propuestas para revisión del equipo: [ADR-012: eventos de tasas y monedas](docs/adr/012-eventos-tasas-monedas.md) y [ADR-013: patrimonio y precisión decimal](docs/adr/013-patrimonio-multimoneda.md).
+
 ## Tecnologías y arquitectura
 
-| Componente | Tecnologías | Responsabilidad |
-| --- | --- | --- |
-| Interfaz | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario. |
-| Contenedor nativo | Tauri · Rust | Ejecución de la interfaz como aplicación nativa. |
-| Servidor | FastAPI · Python · Uvicorn | API y coordinación de información compartida. |
+| Componente        | Tecnologías                                 | Responsabilidad                                  |
+| ----------------- | ------------------------------------------- | ------------------------------------------------ |
+| Interfaz          | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario.       |
+| Contenedor nativo | Tauri · Rust                                | Ejecución de la interfaz como aplicación nativa. |
+| Servidor          | FastAPI · Python · Uvicorn                  | API y coordinación de información compartida.    |
 
 El backend se organiza siguiendo una arquitectura hexagonal: dominio, aplicación, infraestructura, contratos y arranque de la API. El proyecto incluye configuración de Import Linter para revisar las dependencias entre capas y reglas de ESLint para organizar las dependencias del frontend.
 
@@ -119,11 +138,11 @@ El endpoint actual no utiliza `SERVER_HOST_IP` para consultar otro servicio; no 
 
 Con el servidor en ejecución:
 
-| Recurso | Dirección |
-| --- | --- |
-| Documentación interactiva | `http://127.0.0.1:8000/docs` |
-| Esquema OpenAPI | `http://127.0.0.1:8000/openapi.json` |
-| Endpoint de conexión | `http://127.0.0.1:8000/ping` |
+| Recurso                   | Dirección                            |
+| ------------------------- | ------------------------------------ |
+| Documentación interactiva | `http://127.0.0.1:8000/docs`         |
+| Esquema OpenAPI           | `http://127.0.0.1:8000/openapi.json` |
+| Endpoint de conexión      | `http://127.0.0.1:8000/ping`         |
 
 `GET /ping` responde con HTTP 200 OK y un objeto JSON de estado, mensaje, versión y timestamp. En el flujo de esta entrega, quien realiza el GET es Rust desde la aplicación; `/ping` solo responde el contrato JSON. La latencia se mide en la aplicación cliente y no forma parte del contrato del endpoint.
 
@@ -252,12 +271,12 @@ Además de los invariantes de la Entrega 2, la Entrega 3 valida:
 
 El siguiente ejemplo reproduce el flujo de corrección exigido por la rúbrica. Cuenta "Billetera dólares" en USD:
 
-| Paso | Movimiento | Efecto | Saldo |
-| --- | --- | --- | --- |
-| 1 | Saldo inicial | — | 1.000,00 |
-| 2 | Ingreso · Salario | + 800,00 | 1.800,00 |
-| 3 | Gasto · Alimentación (era 50, se anotó 500) | − 500,00 | 1.300,00 |
-| 4 | Ajuste del paso 3 (monto correcto: 50,00) | + 450,00 | 1.750,00 |
+| Paso | Movimiento                                  | Efecto   | Saldo    |
+| ---- | ------------------------------------------- | -------- | -------- |
+| 1    | Saldo inicial                               | —        | 1.000,00 |
+| 2    | Ingreso · Salario                           | + 800,00 | 1.800,00 |
+| 3    | Gasto · Alimentación (era 50, se anotó 500) | − 500,00 | 1.300,00 |
+| 4    | Ajuste del paso 3 (monto correcto: 50,00)   | + 450,00 | 1.750,00 |
 
 El paso 3 sigue en el historial marcado como corregido, y el saldo final es el correcto: $1.000 + 800 - 50 = 1.750$.
 
