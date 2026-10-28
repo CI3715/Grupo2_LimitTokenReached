@@ -4,7 +4,7 @@ create table if not exists tasas (
     tasa_id integer primary key not null, 
     moneda_entrada text not null references moneda (codigo),
     moneda_salida text not null references moneda(codigo),
-    valor decimal(10,8) not null, 
+    valor text not null,
     fecha text not null, 
     fuente text not null
 );

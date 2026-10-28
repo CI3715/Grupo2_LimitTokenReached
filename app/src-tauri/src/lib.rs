@@ -1,9 +1,13 @@
 pub mod comandos;
 
-use aplicacion::puertos::{Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,  RepositorioCategorias,};
+use aplicacion::puertos::{
+    Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,
+    RepositorioCategorias, RepositorioTasas, RepositorioPatrimonio, RepositorioPreferencias,
+};
 use infraestructura::{
-    bd,RelojSistema, RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
-    RepositorioCategoriasSqlite,
+    bd, RelojSistema, RepositorioCuentasSqlite, RepositorioMonedasSqlite,
+    RepositorioMovimientosSqlite, RepositorioCategoriasSqlite, RepositorioTasasSqlite,
+    RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite,
 };
 use tauri::Manager;
 
@@ -21,6 +25,9 @@ pub fn run() {
             let conn_monedas = bd::abrir(&ruta_db)?;
             let conn_movimientos = bd::abrir(&ruta_db)?;
             let conn_categorias = bd::abrir(&ruta_db)?;
+            let conn_tasas = bd::abrir(&ruta_db)?;
+            let conn_patrimonio = bd::abrir(&ruta_db)?;
+            let conn_preferencias = bd::abrir(&ruta_db)?;
 
             // Registrar repositorios
             let repo_cuentas_sqlite = RepositorioCuentasSqlite::new(conn_cuentas);
@@ -44,6 +51,18 @@ pub fn run() {
 
             app.manage(state_categorias);
 
+            let state_tasas: Box<dyn RepositorioTasas> =
+                Box::new(RepositorioTasasSqlite::new(conn_tasas));
+            app.manage(state_tasas);
+
+            let state_patrimonio: Box<dyn RepositorioPatrimonio> =
+                Box::new(RepositorioPatrimonioSqlite::new(conn_patrimonio));
+            app.manage(state_patrimonio);
+
+            let state_preferencias: Box<dyn RepositorioPreferencias> =
+                Box::new(RepositorioPreferenciasSqlite::new(conn_preferencias));
+            app.manage(state_preferencias);
+
             let reloj: Box<dyn Reloj> = Box::new(RelojSistema);
             app.manage(reloj);
 
@@ -58,6 +77,9 @@ pub fn run() {
             comandos::movimientos::registrar_movimiento,
             comandos::movimientos::corregir_movimiento,
             comandos::movimientos::listar_historial_movimientos,
+            comandos::tasas::registrar_tasa,
+            comandos::patrimonio::consultar_patrimonio,
+            comandos::preferencias::cambiar_moneda_base,
             comandos::categorias::crear_categoria,
             comandos::categorias::listar_categorias,
         ])
