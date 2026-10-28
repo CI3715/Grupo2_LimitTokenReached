@@ -82,7 +82,7 @@ pub async fn ejecutar(
     )
     .map_err(|err| ErrorValidacionDTO {
         campo: "monto_correcto".to_string(),
-        mensaje: format!("Error de dominio al corregir: {:?}", err),
+        mensaje: err.to_string(),
     })?;
 
     let saldo_actual = Decimal::from_str(&cuenta.saldo).map_err(|_| ErrorValidacionDTO {
