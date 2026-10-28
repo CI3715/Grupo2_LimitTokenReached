@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import Decimal from "decimal.js";
-import { minorUnits, sanitizeAmountInput } from "@/types/account-money";
+import { minorUnits, clearAmountInput } from "@/types/account-money";
 import type { Account, Currency } from "@/types/accounts";
 import type { MovimientoDTO } from "@/types/movements";
 import { MovementForm } from "@/components/movements/movement-form";
@@ -170,9 +170,8 @@ export function AccountDetail({
                     value={correctionAmount}
                     onChange={(event) => {
                       setCorrectionAmount(
-                        sanitizeAmountInput(
+                        clearAmountInput(
                           event.target.value,
-                          currency.decimales,
                         ),
                       );
                       setCorrectionNeedsConfirmation(false);
@@ -265,9 +264,8 @@ export function AccountDetail({
                             onClick={() => {
                               setCorrectionMovement(movement);
                               setCorrectionAmount(
-                                sanitizeAmountInput(
+                                clearAmountInput(
                                   movement.monto,
-                                  currency?.decimales ?? 0,
                                 ),
                               );
                               setCorrectionError(null);

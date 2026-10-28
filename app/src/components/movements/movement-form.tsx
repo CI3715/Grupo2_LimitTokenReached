@@ -11,7 +11,7 @@ import {
   type TipoRegistroMovimiento,
 } from "@/types/movements";
 import type { CrearCategoriaRequest } from "@/types/categories";
-import { sanitizeFreeAmountInput } from "@/types/account-money";
+import { clearAmountInput } from "@/types/account-money";
 import "./movement-form.css";
 
 const CREATE_CATEGORY_VALUE = "__crear_categoria__";
@@ -259,7 +259,7 @@ export function MovementForm({
                 aria-invalid={!!fieldError("monto")}
                 aria-describedby={`${prefix}-monto-help ${prefix}-monto-error`}
                 onInput={(event) => {
-                  event.currentTarget.value = sanitizeFreeAmountInput(
+                  event.currentTarget.value = clearAmountInput(
                     event.currentTarget.value,
                   );
                 }}

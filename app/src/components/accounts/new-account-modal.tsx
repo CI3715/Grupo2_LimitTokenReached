@@ -8,7 +8,7 @@ import {
   type Currency,
   type CurrencyCode,
 } from "@/types/accounts";
-import { sanitizeFreeAmountInput } from "@/types/account-money";
+import { clearAmountInput } from "@/types/account-money";
 
 type Props = {
    currencies: Currency[];
@@ -192,7 +192,7 @@ export function NewAccountModal({
                 }`}
                 required
                 onInput={(e) => {
-                  e.currentTarget.value = sanitizeFreeAmountInput(
+                  e.currentTarget.value = clearAmountInput(
                     e.currentTarget.value,
                   );
                 }}
