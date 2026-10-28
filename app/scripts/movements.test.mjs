@@ -87,6 +87,23 @@ test('preserva el campo y mensaje del error de dominio en objeto o JSON', async 
   assert.equal(service.movementError('No disponible').mensaje, 'No disponible');
 });
 
+test('delega la fecha futura al backend y conserva su error de campo', async () => {
+  const futureRequest = { ...request, fecha: '2030-01-01' };
+  const error = { campo: 'fecha', mensaje: 'La fecha no puede ser futura' };
+  const service = load('src/services/registerMovement.ts', {
+    '@tauri-apps/api/core': { invoke: async (command, args) => {
+      assert.equal(command, 'registrar_movimiento');
+      assert.deepEqual(args, { datos: futureRequest });
+      throw error;
+    } },
+  });
+  await assert.rejects(service.registerMovement(futureRequest), (caught) => caught === error);
+  for (const value of [error, JSON.stringify(error)]) {
+    assert.equal(service.movementError(value).campo, 'fecha');
+    assert.equal(service.movementError(value).mensaje, error.mensaje);
+  }
+});
+
 test('advertencia exacta: igualdad, fracciones, saldo negativo y cantidades superiores a Number.MAX_SAFE_INTEGER', () => {
   const { expenseExceedsBalance: exceeds } = load('src/types/movements.ts');
   assert.equal(exceeds('0.30', '0.3'), false);
@@ -126,7 +143,9 @@ test('formulario inicial: cuenta recibida, solo ingreso/gasto, IDs reales y cate
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const dateInput = html.match(/<input\b[^>]*name="fecha"[^>]*>/)?.[0] ?? '';
-  assert.match(dateInput, new RegExp(`max="${today}"`));
+  // El dominio rechaza fechas futuras; el formulario presenta el error devuelto.
+  assert.match(dateInput, /type="date"/);
+  assert.match(dateInput, /aria-describedby="[^"]*-fecha-error"/);
   assert.match(dateInput, new RegExp(`value="${today}"`));
 });
 
