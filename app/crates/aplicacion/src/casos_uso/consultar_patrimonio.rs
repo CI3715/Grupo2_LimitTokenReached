@@ -23,13 +23,18 @@ pub async fn ejecutar(
     repo_monedas: &dyn RepositorioMonedas,
     reloj: &dyn Reloj,
 ) -> Result<ConsultarPatrimonioResponse, ErrorValidacionDTO> {
-    let fecha = NaiveDate::parse_from_str(&datos.fecha_consulta, "%Y-%m-%d")
-        .map_err(|_| error("fecha_consulta", "Formato inválido. Use AAAA-MM-DD."))?;
-    let hoy = reloj
-        .ahora()
-        .get(..10)
-        .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
-        .ok_or_else(|| error("fecha_consulta", "No se pudo obtener la fecha actual."))?;
+   let hoy = reloj
+    .ahora()
+    .get(..10)
+    .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
+    .ok_or_else(|| error("fecha_consulta", "No se pudo obtener la fecha actual."))?;
+
+let fecha = if datos.fecha_consulta.trim().is_empty() {
+    hoy
+} else {
+    NaiveDate::parse_from_str(&datos.fecha_consulta, "%Y-%m-%d")
+        .map_err(|_| error("fecha_consulta", "Formato inválido. Use AAAA-MM-DD."))?
+};
     if fecha > hoy {
         return Err(error(
             "fecha_consulta",

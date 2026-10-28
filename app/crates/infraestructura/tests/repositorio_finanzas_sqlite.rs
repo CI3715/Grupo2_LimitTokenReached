@@ -1,7 +1,8 @@
-use aplicacion::puertos::{RepositorioPatrimonio, RepositorioTasas};
+use aplicacion::puertos::{RepositorioPatrimonio, RepositorioTasas, RepositorioMonedas,};
 use chrono::NaiveDate;
 use contrato::tasa::RegistrarTasaRequest;
-use infraestructura::{RepositorioPatrimonioSqlite, RepositorioTasasSqlite, bd};
+use contrato::moneda::CrearMonedaRequest;
+use infraestructura::{RepositorioPatrimonioSqlite, RepositorioTasasSqlite, RepositorioMonedasSqlite,bd,};
 use rusqlite::Connection;
 
 fn conexion_migrada() -> Connection {
@@ -193,4 +194,56 @@ fn usa_la_tasa_mas_reciente_cuando_hay_dos_en_la_misma_fecha() {
 
     assert_eq!(tasas_del_par[0].valor, "905");
     assert_eq!(tasas_del_par[0].fuente, "Fuente reciente");
+}
+
+#[test]
+fn guarda_moneda_propia_y_la_lista() {
+    let conexion = conexion_migrada();
+    let repo = RepositorioMonedasSqlite::new(conexion);
+
+    let request = CrearMonedaRequest {
+        codigo: "GBP".to_string(),
+        nombre: "Libra Esterlina".to_string(),
+        simbolo: "£".to_string(),
+        decimales: 2,
+    };
+
+    let creada = repo.guardar_moneda(&request).unwrap();
+
+    assert_eq!(creada.codigo, "GBP");
+    assert_eq!(creada.nombre, "Libra Esterlina");
+    assert_eq!(creada.simbolo, "£");
+    assert_eq!(creada.decimales, 2);
+    assert!(!creada.es_del_catalogo);
+
+    let monedas = repo.obtener_monedas().unwrap();
+
+    let encontrada = monedas
+        .iter()
+        .find(|moneda| moneda.codigo == "GBP")
+        .expect("La moneda propia debe aparecer en el catálogo");
+
+    assert_eq!(encontrada.nombre, "Libra Esterlina");
+    assert_eq!(encontrada.simbolo, "£");
+    assert_eq!(encontrada.decimales, 2);
+    assert!(!encontrada.es_del_catalogo);
+}
+
+#[test]
+fn moneda_propia_puede_ser_referenciada_por_una_cuenta() {
+    let conexion = conexion_migrada();
+    let repo_monedas = RepositorioMonedasSqlite::new(conexion);
+
+    let request = CrearMonedaRequest {
+        codigo: "GBP".to_string(),
+        nombre: "Libra Esterlina".to_string(),
+        simbolo: "£".to_string(),
+        decimales: 2,
+    };
+
+    repo_monedas.guardar_moneda(&request).unwrap();
+
+    let monedas = repo_monedas.obtener_monedas().unwrap();
+
+    assert!(monedas.iter().any(|moneda| moneda.codigo == "GBP"));
 }

@@ -73,6 +73,7 @@ pub fn run() {
             comandos::cuentas::crear_cuenta,
             comandos::cuentas::listar_cuentas,
             comandos::moneda::listar_monedas,
+            comandos::moneda::crear_moneda,
             comandos::movimientos::registrar_movimiento,
             comandos::movimientos::corregir_movimiento,
             comandos::movimientos::listar_historial_movimientos,

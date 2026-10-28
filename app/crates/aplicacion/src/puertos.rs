@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use contrato::crear_cuenta::CrearCuentaRequest;
 use contrato::cuenta::CuentaDTO;
-use contrato::moneda::MonedaDTO;
+use contrato::moneda::{CrearMonedaRequest, MonedaDTO};
 use contrato::movimiento::MovimientoDTO;
 use contrato::patrimonio::SaldoCuentaDTO;
 use contrato::tasa::{RegistrarTasaRequest, TasaDTO};
@@ -26,6 +26,11 @@ pub trait RepositorioCuentas: Send + Sync {
 
 pub trait RepositorioMonedas: Send + Sync {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String>;
+
+    fn guardar_moneda(
+        &self,
+        request: &CrearMonedaRequest,
+    ) -> Result<MonedaDTO, String>;
 }
 
 pub trait RepositorioTasas: Send + Sync {
@@ -39,7 +44,6 @@ pub trait RepositorioTasas: Send + Sync {
 
 pub trait RepositorioPatrimonio: Send + Sync {
     fn obtener_saldos_a_fecha(&self, fecha: NaiveDate) -> Result<Vec<SaldoCuentaDTO>, String>;
- ) -> Result<Vec<SaldoCuentaDTO>, String>;
 }
 
 pub trait RepositorioPreferencias: Send + Sync {

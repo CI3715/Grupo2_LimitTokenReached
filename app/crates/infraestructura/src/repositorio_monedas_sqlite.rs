@@ -2,7 +2,7 @@ use rusqlite::Connection;
 use std::sync::Mutex;
 
 use aplicacion::puertos::RepositorioMonedas;
-use contrato::moneda::MonedaDTO;
+use contrato::moneda::{CrearMonedaRequest, MonedaDTO};
 
 pub struct RepositorioMonedasSqlite {
     pub conexion: Mutex<Connection>,
@@ -32,7 +32,6 @@ impl RepositorioMonedas for RepositorioMonedasSqlite {
                 let es_del_catalogo = matches!(codigo.as_str(), "VES" | "USD" | "EUR" | "USDT");
 
                 Ok(MonedaDTO {
-                    es_del_catalogo: matches!(codigo.as_str(), "VES" | "USD" | "EUR" | "USDT"),
                     codigo,
                     nombre,
                     simbolo,
@@ -49,4 +48,61 @@ impl RepositorioMonedas for RepositorioMonedasSqlite {
 
         Ok(lista)
     }
+    fn guardar_moneda(
+    &self,
+    request: &CrearMonedaRequest,
+) -> Result<MonedaDTO, String> {
+    let mut conexion = self
+        .conexion
+        .lock()
+        .map_err(|error| format!("No se pudo acceder a la base de datos: {error}"))?;
+
+    let transaccion = conexion
+        .transaction()
+        .map_err(|error| format!("No se pudo iniciar la transacción: {error}"))?;
+
+    transaccion
+        .execute(
+            "
+            INSERT INTO moneda (codigo, nombre, simbolo, decimales)
+            VALUES (?1, ?2, ?3, ?4)
+            ",
+            (
+                &request.codigo,
+                &request.nombre,
+                &request.simbolo,
+                request.decimales,
+            ),
+        )
+        .map_err(|error| {
+            format!(
+                "No se pudo guardar la moneda '{}': {error}",
+                request.codigo
+            )
+        })?;
+
+    let datos_evento = serde_json::json!({
+        "codigo": request.codigo,
+        "nombre": request.nombre,
+        "simbolo": request.simbolo,
+        "decimales": request.decimales,
+        "es_del_catalogo": false,
+    });
+
+    crate::bd::insertar_evento(&transaccion, "MonedaCreada", &datos_evento)
+        .map_err(|error| format!("No se pudo registrar el evento de moneda: {error}"))?;
+
+    transaccion
+        .commit()
+        .map_err(|error| format!("No se pudo confirmar la moneda: {error}"))?;
+
+    Ok(MonedaDTO {
+        codigo: request.codigo.clone(),
+        nombre: request.nombre.clone(),
+        simbolo: request.simbolo.clone(),
+        decimales: request.decimales,
+        es_del_catalogo: false,
+    })
+}
+
 }

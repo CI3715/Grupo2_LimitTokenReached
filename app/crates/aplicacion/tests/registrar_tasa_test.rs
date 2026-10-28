@@ -5,7 +5,7 @@ use aplicacion::{
 use chrono::NaiveDate;
 use contrato::{
     error_validacion::ErrorValidacionDTO,
-    moneda::MonedaDTO,
+    moneda::{MonedaDTO, CrearMonedaRequest},
     tasa::{RegistrarTasaRequest, TasaDTO},
 };
 use std::sync::Mutex;
@@ -54,6 +54,21 @@ impl RepositorioMonedasPrueba {
 impl RepositorioMonedas for RepositorioMonedasPrueba {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String> {
         Ok(self.monedas.clone())
+    }
+
+    fn guardar_moneda(
+        &self,
+        request: &CrearMonedaRequest,
+    ) -> Result<MonedaDTO, String> {
+        let moneda = MonedaDTO {
+            codigo: request.codigo.clone(),
+            nombre: request.nombre.clone(),
+            simbolo: request.simbolo.clone(),
+            decimales: request.decimales,
+            es_del_catalogo: false,
+        };
+
+        Ok(moneda)
     }
 }
 
