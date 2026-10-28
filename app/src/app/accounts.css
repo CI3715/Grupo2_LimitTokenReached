@@ -641,6 +641,8 @@
   margin-top: 24px;
 }
 .account-error {
+  display: block;
+  margin: 6px 0 0;
   color: #9e352d;
   font-size: 12px;
   line-height: 1.7;
@@ -739,6 +741,13 @@
   }
   .account-type-options label {
     font-size: 10px;
+  }
+}
+
+@media (max-width: 494px) {
+  .accounts-page,
+  .accounts-shell {
+    min-width: 495px;
   }
 }
 

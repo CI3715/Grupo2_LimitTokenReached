@@ -8,7 +8,7 @@ import {
   type Currency,
   type CurrencyCode,
 } from "@/types/accounts";
-import { sanitizeAmountInput } from "@/types/account-money";
+import { clearAmountInput } from "@/types/account-money";
 
 type Props = {
    currencies: Currency[];
@@ -32,10 +32,12 @@ export function NewAccountModal({
     (currency) => currency.codigo === currencyCode,
   );
   const decimalPlaces = selectedCurrency?.decimales ?? 0;
-  const decimalPattern =
-    decimalPlaces > 0
-      ? `[0-9]+([.,][0-9]{0,${decimalPlaces}})?`
-      : "[0-9]+";
+
+  function fieldError(...names: string[]) {
+    return names.includes(validationError?.campo ?? "")
+      ? validationError?.mensaje
+      : undefined;
+  }
   useEffect(() => {
     const node = dialog.current;
     const previousFocus = document.activeElement as HTMLElement | null;
@@ -53,21 +55,6 @@ export function NewAccountModal({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-
-    // Obtener input del formulario
-    const form = event.currentTarget;
-    const inputNombre = form.elements.namedItem("nombre") as HTMLInputElement;
-    const nombreValue = inputNombre.value;
-
-    // Verificación del nombre para que no sean espacios únicamente
-    if (nombreValue.trim().length === 0 && nombreValue.length > 0) {
-      inputNombre.setCustomValidity("El nombre no puede ser únicamente espacios.");
-      inputNombre.reportValidity(); // Fuerza al navegador a mostrar el aviso de inmediato
-      return;
-    } else {
-      // Limpia cualquier error previo si el texto ahora es válido
-      inputNombre.setCustomValidity("");
-    }
 
     try {
   await onCreate({
@@ -120,11 +107,11 @@ export function NewAccountModal({
         </button>
       </header>
       <form onSubmit={submit}>
-        {validationError && (
+        {validationError && !validationError.campo && (
           <p className="account-error" role="alert">
             {validationError.mensaje}
-        </p>
-)}
+          </p>
+        )}
         <fieldset>
           <label>
             Nombre
@@ -133,16 +120,14 @@ export function NewAccountModal({
               name="nombre"
               placeholder="Ej. Cuenta nómina"
               autoComplete="off"
-              required
-              onInvalid={(e) => {
-                if (e.currentTarget.validity.valueMissing) {
-                  e.currentTarget.setCustomValidity(
-                    "El nombre de la cuenta es obligatorio.",
-                  );
-                }
-              }}
-              onInput={(e) => e.currentTarget.setCustomValidity("")}
+              aria-invalid={!!fieldError("nombre")}
+              aria-describedby={fieldError("nombre") ? "nombre-error" : undefined}
             />
+            {fieldError("nombre") && (
+              <small id="nombre-error" className="account-error" role="alert">
+                {fieldError("nombre")}
+              </small>
+            )}
           </label>
           <fieldset className="account-type-options">
             <legend>Tipo de cuenta</legend>
@@ -158,6 +143,11 @@ export function NewAccountModal({
                 {accountTypeLabels[value]}
               </label>
             ))}
+            {fieldError("tipo") && (
+              <small id="tipo-error" className="account-error" role="alert">
+                {fieldError("tipo")}
+              </small>
+            )}
           </fieldset>
           <div className="account-form-columns">
             <label>
@@ -168,6 +158,12 @@ export function NewAccountModal({
                 onChange={(event) =>
                   setCurrencyCode(event.currentTarget.value as CurrencyCode)
                 }
+                aria-invalid={!!fieldError("moneda", "moneda_codigo")}
+                aria-describedby={
+                  fieldError("moneda", "moneda_codigo")
+                    ? "moneda-error"
+                    : undefined
+                }
               >
                 {currencies.map((currency) => (
                   <option key={currency.codigo} value={currency.codigo}>
@@ -175,6 +171,11 @@ export function NewAccountModal({
                   </option>
                 ))}
               </select>
+              {fieldError("moneda", "moneda_codigo") && (
+                <small id="moneda-error" className="account-error" role="alert">
+                  {fieldError("moneda", "moneda_codigo")}
+                </small>
+              )}
             </label>
             <label>
               Saldo inicial
@@ -183,38 +184,27 @@ export function NewAccountModal({
                 inputMode="decimal"
                 defaultValue="0"
                 type="text"
-                pattern={decimalPattern}
-                aria-describedby="saldo-inicial-help"
+                aria-invalid={!!fieldError("saldo", "saldo_inicial")}
+                aria-describedby={`saldo-inicial-help${
+                  fieldError("saldo", "saldo_inicial")
+                    ? " saldo-inicial-error"
+                    : ""
+                }`}
                 required
-                onInvalid={(e) => {
-                  if (e.currentTarget.validity.patternMismatch) {
-                    e.currentTarget.setCustomValidity(
-                      `El saldo inicial admite hasta ${decimalPlaces} decimales.`,
-                    );
-                  } else if (e.currentTarget.validity.valueMissing) {
-                    e.currentTarget.setCustomValidity(
-                      "El saldo inicial es obligatorio.",
-                    );
-                  } else {
-                    e.currentTarget.setCustomValidity("");
-                  }
-                }}
                 onInput={(e) => {
-                  e.currentTarget.value = sanitizeAmountInput(
+                  e.currentTarget.value = clearAmountInput(
                     e.currentTarget.value,
-                    decimalPlaces,
                   );
-                  e.currentTarget.setCustomValidity("");
-                  if (e.currentTarget.validity.patternMismatch) {
-                    e.currentTarget.setCustomValidity(
-                      `El saldo inicial admite hasta ${decimalPlaces} decimales.`,
-                    );
-                  }
                 }}
               />
               <small id="saldo-inicial-help">
                 Hasta {decimalPlaces} {decimalPlaces === 1 ? "decimal" : "decimales"}; puede ser 0.
               </small>
+              {fieldError("saldo", "saldo_inicial") && (
+                <small id="saldo-inicial-error" className="account-error" role="alert">
+                  {fieldError("saldo", "saldo_inicial")}
+                </small>
+              )}
             </label>
           </div>
         </fieldset>
