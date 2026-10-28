@@ -158,6 +158,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         let mut conn = self.conexion.lock().map_err(|e| e.to_string())?;
 
         let tx = conn.transaction().map_err(|e| e.to_string())?;
+        let fecha_ajuste = chrono::Utc::now().date_naive().to_string();
 
         let efecto = match ajuste.tipo_original {
             TipoMovimiento::Ingreso => ajuste.variacion_monto,
@@ -167,8 +168,8 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         tx.execute(
             "
             INSERT INTO ajuste
-                (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto)
-            VALUES (?1, ?2, ?3, ?4, ?5)
+                (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto, fecha)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
             ",
             params![
                 ajuste.id.to_string(),
@@ -176,6 +177,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 ajuste.cuenta_id.to_string(),
                 tipo_a_texto(ajuste.tipo_original),
                 ajuste.variacion_monto.to_string(),
+                fecha_ajuste,
             ],
         )
         .map_err(|e| format!("Error al guardar el ajuste: {e}"))?;

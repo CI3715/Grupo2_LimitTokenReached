@@ -6,3 +6,6 @@ pub mod obtener_historial_movimientos;
 pub mod registrar_movimiento;
 pub mod verificar_conexion;
 pub mod crear_categoria;
+pub mod registrar_tasa;
+pub mod consultar_patrimonio;
+pub mod cambiar_moneda_base;
