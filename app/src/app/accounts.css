@@ -744,6 +744,13 @@
   }
 }
 
+@media (max-width: 494px) {
+  .accounts-page,
+  .accounts-shell {
+    min-width: 495px;
+  }
+}
+
 .connection-panel {
   margin-top: 28px;
   border: 1px solid #e0e6e2;
