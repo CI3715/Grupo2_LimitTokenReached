@@ -35,13 +35,16 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
             .to_string();
 
         let id_generado = Uuid::new_v4().to_string();
+        let creada_en = Utc::now().date_naive().to_string();
 
         // 2. Insertar evento inmutable CuentaCreada
         let datos_evento = json!({
+            "id": id_generado,
             "nombre": req.nombre.trim(),
             "tipo": tipo_str,
             "moneda_codigo": req.moneda_codigo,
-            "saldo_inicial": req.saldo_inicial
+            "saldo_inicial": req.saldo_inicial,
+            "creada_en": creada_en
         });
 
         bd::insertar_evento(&tx, "CuentaCreada", &datos_evento)
@@ -50,8 +53,8 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
         // 3. Insertar proyección en la tabla 'cuenta'
         tx.execute(
             "
-            INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo)
-            VALUES (?1, ?2, ?3, ?4, ?5)
+            INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo, creada_en)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
             ",
             params![
                 id_generado,
@@ -59,6 +62,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
                 tipo_str,
                 req.moneda_codigo,
                 req.saldo_inicial,
+                creada_en,
             ],
         )
         .map_err(|e| format!("Error al guardar la cuenta en SQLite: {e}"))?;

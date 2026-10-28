@@ -29,12 +29,14 @@ impl RepositorioMonedas for RepositorioMonedasSqlite {
                 let nombre: String = row.get(1)?;
                 let simbolo: String = row.get(2)?;
                 let decimales: u32 = row.get(3)?;
+                let es_del_catalogo = matches!(codigo.as_str(), "VES"|"USD"|"EUR"|"USDT");
 
                 Ok(MonedaDTO {
                     codigo,
                     nombre,
                     simbolo,
                     decimales,
+                    es_del_catalogo,
                 })
             })
             .map_err(|e| e.to_string())?;

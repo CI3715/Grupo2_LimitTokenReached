@@ -10,11 +10,17 @@ pub mod repositorio_cuentas_sqlite;
 pub mod repositorio_monedas_sqlite;
 pub mod repositorio_movimientos_sqlite;
 pub mod repositorio_categorias_sqlite;
+pub mod repositorio_tasas_sqlite;
+pub mod repositorio_patrimonio_sqlite;
+pub mod repositorio_preferencias_sqlite;
 
 pub use repositorio_cuentas_sqlite::RepositorioCuentasSqlite;
 pub use repositorio_monedas_sqlite::RepositorioMonedasSqlite;
 pub use repositorio_movimientos_sqlite::RepositorioMovimientosSqlite;
 pub use repositorio_categorias_sqlite::RepositorioCategoriasSqlite;
+pub use repositorio_tasas_sqlite::RepositorioTasasSqlite;
+pub use repositorio_patrimonio_sqlite::RepositorioPatrimonioSqlite;
+pub use repositorio_preferencias_sqlite::RepositorioPreferenciasSqlite;
 
 // Adaptador Real del Reloj del Sistema
 pub struct RelojSistema;
