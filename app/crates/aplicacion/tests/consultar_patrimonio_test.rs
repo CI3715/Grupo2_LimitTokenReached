@@ -31,8 +31,8 @@ impl RepositorioPatrimonioPrueba {
             fecha_recibida: Mutex::new(None),
             saldos: vec![SaldoCuentaDTO {
                 cuenta_id: "cuenta-1".to_string(),
-                nombre_cuenta: "Cuenta USD".to_string(),
-                moneda: "USD".to_string(),
+                nombre_cuenta: "Cuenta EUR".to_string(),
+                moneda: "EUR".to_string(),
                 saldo: "100.00".to_string(),
             }],
         }
@@ -95,13 +95,22 @@ struct RepositorioMonedasPrueba;
 
 impl RepositorioMonedas for RepositorioMonedasPrueba {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String> {
-        Ok(vec![MonedaDTO {
-            codigo: "USD".to_string(),
-            nombre: "Dólar Estadounidense".to_string(),
-            simbolo: "$".to_string(),
-            decimales: 2,
-            es_del_catalogo: true,
-        }])
+        Ok(vec![
+            MonedaDTO {
+                codigo: "USD".to_string(),
+                nombre: "Dólar Estadounidense".to_string(),
+                simbolo: "$".to_string(),
+                decimales: 2,
+                es_del_catalogo: true,
+            },
+            MonedaDTO {
+                codigo: "EUR".to_string(),
+                nombre: "Euro".to_string(),
+                simbolo: "€".to_string(),
+                decimales: 2,
+                es_del_catalogo: true,
+            },
+        ])
     }
 
     fn guardar_moneda(&self, request: &CrearMonedaRequest) -> Result<MonedaDTO, String> {
@@ -226,4 +235,24 @@ async fn formato_de_fecha_invalido_se_rechaza() {
 
     assert_eq!(error.campo, "fecha_consulta");
     assert_eq!(error.mensaje, "Formato inválido. Use AAAA-MM-DD.");
+}
+
+#[tokio::test]
+async fn informa_tasa_faltante_y_no_calcula_total() {
+    let repo_patrimonio = RepositorioPatrimonioPrueba::nuevo();
+    let repo_tasas = RepositorioTasasPrueba::nuevo();
+
+    let respuesta = consultar_con_fecha("2026-10-28", &repo_patrimonio, &repo_tasas)
+        .await
+        .unwrap();
+
+    assert_eq!(respuesta.total_consolidado, None);
+    assert_eq!(respuesta.subtotales_por_moneda.len(), 1);
+    assert_eq!(respuesta.tasas_faltantes.len(), 1);
+
+    let faltante = &respuesta.tasas_faltantes[0];
+
+    assert_eq!(faltante.moneda_origen, "EUR");
+    assert_eq!(faltante.moneda_destino, "USD");
+    assert_eq!(faltante.fecha_limite, "2026-10-28");
 }
