@@ -12,3 +12,4 @@ pub mod registrar_movimiento;
 pub mod registrar_tasa;
 pub mod verificar_conexion;
 pub mod crear_moneda;
+pub mod eliminar_moneda;

@@ -12,7 +12,7 @@ pub use categoria::{CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO};
 pub use crear_cuenta::CrearCuentaRequest;
 pub use cuenta::{CuentaDTO, TipoCuentaDTO};
 pub use error_validacion::ErrorValidacionDTO;
-pub use moneda::{CambiarMonedaBaseRequest, CrearMonedaRequest, MonedaDTO};
+pub use moneda::{CambiarMonedaBaseRequest, CrearMonedaRequest,EliminarMonedaRequest,  MonedaDTO};
 pub use movimiento::{
     CorregirMovimientoRequest, MovimientoDTO, RegistrarMovimientoRequest, TipoMovimientoDTO,
 };

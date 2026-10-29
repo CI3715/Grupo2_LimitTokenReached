@@ -14,6 +14,7 @@ const MIGRACIONES: &[&str] = &[
     include_str!("../migrations/005_tasas_cambio.sql"),
     include_str!("../migrations/006_tasas_y_saldos_historicos.sql"),
     include_str!("../migrations/007_eliminacion_tasas.sql"),
+    include_str!("../migrations/008_decimales_moneda.sql"),
 ];
 
 pub struct BaseDatos(pub Mutex<Connection>);
@@ -69,10 +70,29 @@ pub fn migrar(conn: &mut Connection) -> Result<(), rusqlite::Error> {
     let aplicadas: i64 = conn.pragma_query_value(None, "user_version", |f| f.get(0))?;
 
     for (i, sql) in MIGRACIONES.iter().enumerate().skip(aplicadas as usize) {
-        let tx = conn.transaction()?;
-        tx.execute_batch(sql)?;
-        tx.pragma_update(None, "user_version", (i + 1) as i64)?;
-        tx.commit()?;
+        // SQLite solo permite cambiar foreign_keys fuera de una transacción.
+        let es_migracion_008 = i == 7;
+        if es_migracion_008 {
+            conn.pragma_update(None, "foreign_keys", "OFF")?;
+        }
+
+        let resultado = (|| {
+            let tx = conn.transaction()?;
+            tx.execute_batch(sql)?;
+            tx.pragma_update(None, "user_version", (i + 1) as i64)?;
+            tx.commit()
+        })();
+
+        if es_migracion_008 {
+            conn.pragma_update(None, "foreign_keys", "ON")?;
+
+            let mut verificacion = conn.prepare("PRAGMA foreign_key_check")?;
+            if verificacion.query([])?.next()?.is_some() {
+                return Err(rusqlite::Error::InvalidQuery);
+            }
+        }
+
+        resultado?;
     }
     Ok(())
 }
@@ -84,6 +104,7 @@ mod pruebas {
     #[test]
     fn migra_y_repetir_no_cambia_nada() {
         let mut conn = Connection::open_in_memory().unwrap();
+        conn.pragma_update(None, "foreign_keys", "ON").unwrap();
         migrar(&mut conn).unwrap();
         migrar(&mut conn).unwrap();
 
@@ -91,6 +112,11 @@ mod pruebas {
             .pragma_query_value(None, "user_version", |f| f.get(0))
             .unwrap();
         assert_eq!(version, MIGRACIONES.len() as i64);
+
+        let claves_foraneas_activadas: bool = conn
+            .pragma_query_value(None, "foreign_keys", |f| f.get(0))
+            .unwrap();
+        assert!(claves_foraneas_activadas);
 
         let monedas: i64 = conn
             .query_row("SELECT COUNT(*) FROM moneda", [], |f| f.get(0))

@@ -3,7 +3,6 @@ use aplicacion::{
     puertos::RepositorioMonedas,
 };
 use contrato::{
-    error_validacion::ErrorValidacionDTO,
     moneda::{CrearMonedaRequest, MonedaDTO},
 };
 use std::sync::Mutex;
@@ -76,6 +75,10 @@ impl RepositorioMonedas for RepositorioMonedasPrueba {
             .push(moneda.clone());
 
         Ok(moneda)
+    }
+
+    fn eliminar_moneda(&self, _codigo: &str) -> Result<(), String> {
+        Err("No se usa eliminar_moneda en esta prueba.".to_string())
     }
 }
 

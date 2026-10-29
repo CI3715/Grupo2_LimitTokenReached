@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import yaml
+
 from cuentas_claras.app.main import app
 
 DESTINO = Path(__file__).resolve().parent.parent / "openapi.yaml"

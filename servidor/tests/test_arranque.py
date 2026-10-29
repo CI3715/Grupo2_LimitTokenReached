@@ -1,5 +1,6 @@
-from cuentas_claras.app.main import app
 from fastapi.testclient import TestClient
+
+from cuentas_claras.app.main import app
 
 
 def test_documentacion_disponible() -> None:
