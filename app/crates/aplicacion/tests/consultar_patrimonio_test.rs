@@ -129,6 +129,10 @@ impl RepositorioMonedas for RepositorioMonedasPrueba {
             es_del_catalogo: false,
         })
     }
+
+    fn eliminar_moneda(&self, _codigo: &str) -> Result<(), String> {
+        Err("No se usa eliminar_moneda en esta prueba.".to_string())
+    }
 }
 
 struct RepositorioPreferenciasPrueba;
