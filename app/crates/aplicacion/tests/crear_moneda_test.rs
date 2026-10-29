@@ -1,10 +1,5 @@
-use aplicacion::{
-    casos_uso::crear_moneda,
-    puertos::RepositorioMonedas,
-};
-use contrato::{
-    moneda::{CrearMonedaRequest, MonedaDTO},
-};
+use aplicacion::{casos_uso::crear_moneda, puertos::RepositorioMonedas};
+use contrato::moneda::{CrearMonedaRequest, MonedaDTO};
 use std::sync::Mutex;
 
 #[derive(Default)]
@@ -57,10 +52,7 @@ impl RepositorioMonedas for RepositorioMonedasPrueba {
             .map_err(|error| error.to_string())
     }
 
-    fn guardar_moneda(
-        &self,
-        request: &CrearMonedaRequest,
-    ) -> Result<MonedaDTO, String> {
+    fn guardar_moneda(&self, request: &CrearMonedaRequest) -> Result<MonedaDTO, String> {
         let moneda = MonedaDTO {
             codigo: request.codigo.clone(),
             nombre: request.nombre.clone(),

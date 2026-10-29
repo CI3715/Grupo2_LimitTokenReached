@@ -1,7 +1,7 @@
-use crate::puertos::RepositorioMonedas; 
-use::contrato::{
-    error_validacion::ErrorValidacionDTO, 
-    moneda::{EliminarMonedaRequest, CODIGOS_MONEDAS_CATALOGO},
+use crate::puertos::RepositorioMonedas;
+use ::contrato::{
+    error_validacion::ErrorValidacionDTO,
+    moneda::{CODIGOS_MONEDAS_CATALOGO, EliminarMonedaRequest},
 };
 
 pub async fn ejecutar(
@@ -11,7 +11,10 @@ pub async fn ejecutar(
     let codigo = datos.codigo.trim();
 
     if codigo.is_empty() {
-        return Err(error("codigo", "El código de la moneda no puede estar vacío."));
+        return Err(error(
+            "codigo",
+            "El código de la moneda no puede estar vacío.",
+        ));
     }
 
     if CODIGOS_MONEDAS_CATALOGO.contains(&codigo) {
@@ -31,4 +34,3 @@ fn error(campo: &str, mensaje: &str) -> ErrorValidacionDTO {
         mensaje: mensaje.to_string(),
     }
 }
-

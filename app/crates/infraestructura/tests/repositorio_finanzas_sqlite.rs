@@ -1,8 +1,10 @@
-use aplicacion::puertos::{RepositorioPatrimonio, RepositorioTasas, RepositorioMonedas,};
+use aplicacion::puertos::{RepositorioMonedas, RepositorioPatrimonio, RepositorioTasas};
 use chrono::NaiveDate;
-use contrato::tasa::RegistrarTasaRequest;
 use contrato::moneda::CrearMonedaRequest;
-use infraestructura::{RepositorioPatrimonioSqlite, RepositorioTasasSqlite, RepositorioMonedasSqlite,bd,};
+use contrato::tasa::RegistrarTasaRequest;
+use infraestructura::{
+    RepositorioMonedasSqlite, RepositorioPatrimonioSqlite, RepositorioTasasSqlite, bd,
+};
 use rusqlite::Connection;
 
 fn conexion_migrada() -> Connection {
@@ -168,16 +170,12 @@ fn usa_la_tasa_mas_reciente_cuando_hay_dos_en_la_misma_fecha() {
         .unwrap();
 
     let tasas = repo
-        .obtener_tasas_hasta(
-            NaiveDate::from_ymd_opt(2026, 10, 28).unwrap(),
-        )
+        .obtener_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 28).unwrap())
         .unwrap();
 
     let tasas_del_par: Vec<_> = tasas
         .iter()
-        .filter(|tasa| {
-            tasa.id == primera_tasa.id || tasa.id == segunda_tasa.id
-        })
+        .filter(|tasa| tasa.id == primera_tasa.id || tasa.id == segunda_tasa.id)
         .collect();
 
     assert_eq!(
@@ -187,8 +185,7 @@ fn usa_la_tasa_mas_reciente_cuando_hay_dos_en_la_misma_fecha() {
     );
 
     assert_eq!(
-        tasas_del_par[0].id,
-        segunda_tasa.id,
+        tasas_del_par[0].id, segunda_tasa.id,
         "La tasa registrada más recientemente debe aparecer primero"
     );
 

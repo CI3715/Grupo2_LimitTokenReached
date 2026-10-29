@@ -1,5 +1,5 @@
 use aplicacion::puertos::RepositorioMonedas;
-use infraestructura::{bd, RepositorioMonedasSqlite};
+use infraestructura::{RepositorioMonedasSqlite, bd};
 use rusqlite::Connection;
 
 #[test]

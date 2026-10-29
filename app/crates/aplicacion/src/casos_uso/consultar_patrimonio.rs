@@ -10,10 +10,7 @@ use contrato::{
     },
 };
 use rust_decimal::Decimal;
-use std::{
-    collections::BTreeMap,
-    str::FromStr,
-};
+use std::{collections::BTreeMap, str::FromStr};
 
 pub async fn ejecutar(
     datos: ConsultarPatrimonioRequest,
@@ -23,18 +20,18 @@ pub async fn ejecutar(
     repo_monedas: &dyn RepositorioMonedas,
     reloj: &dyn Reloj,
 ) -> Result<ConsultarPatrimonioResponse, ErrorValidacionDTO> {
-   let hoy = reloj
-    .ahora()
-    .get(..10)
-    .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
-    .ok_or_else(|| error("fecha_consulta", "No se pudo obtener la fecha actual."))?;
+    let hoy = reloj
+        .ahora()
+        .get(..10)
+        .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
+        .ok_or_else(|| error("fecha_consulta", "No se pudo obtener la fecha actual."))?;
 
-let fecha = if datos.fecha_consulta.trim().is_empty() {
-    hoy
-} else {
-    NaiveDate::parse_from_str(&datos.fecha_consulta, "%Y-%m-%d")
-        .map_err(|_| error("fecha_consulta", "Formato inválido. Use AAAA-MM-DD."))?
-};
+    let fecha = if datos.fecha_consulta.trim().is_empty() {
+        hoy
+    } else {
+        NaiveDate::parse_from_str(&datos.fecha_consulta, "%Y-%m-%d")
+            .map_err(|_| error("fecha_consulta", "Formato inválido. Use AAAA-MM-DD."))?
+    };
     if fecha > hoy {
         return Err(error(
             "fecha_consulta",
@@ -123,10 +120,7 @@ fn encontrar_conversion(
 
     if let Some(tasa) = tasa_directa {
         let valor = valor_tasa(tasa)?;
-        return Ok(Some((
-            valor,
-            vec![detalle_tasa(tasa, false)],
-        )));
+        return Ok(Some((valor, vec![detalle_tasa(tasa, false)])));
     }
 
     let tasa_inversa = tasas
@@ -135,10 +129,7 @@ fn encontrar_conversion(
 
     if let Some(tasa) = tasa_inversa {
         let valor = valor_tasa(tasa)?;
-        return Ok(Some((
-            Decimal::ONE / valor,
-            vec![detalle_tasa(tasa, true)],
-        )));
+        return Ok(Some((Decimal::ONE / valor, vec![detalle_tasa(tasa, true)])));
     }
 
     Ok(None)
@@ -156,10 +147,7 @@ fn valor_tasa(tasa: &contrato::tasa::TasaDTO) -> Result<Decimal, ErrorValidacion
     Ok(valor)
 }
 
-fn detalle_tasa(
-    tasa: &contrato::tasa::TasaDTO,
-    es_inversa: bool,
-) -> TasaUsadaDTO {
+fn detalle_tasa(tasa: &contrato::tasa::TasaDTO, es_inversa: bool) -> TasaUsadaDTO {
     TasaUsadaDTO {
         moneda_origen: tasa.moneda_origen.clone(),
         moneda_destino: tasa.moneda_destino.clone(),

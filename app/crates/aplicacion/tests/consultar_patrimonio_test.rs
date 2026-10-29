@@ -1,8 +1,7 @@
 use aplicacion::{
     casos_uso::consultar_patrimonio,
     puertos::{
-        RepositorioMonedas, RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
-        Reloj,
+        Reloj, RepositorioMonedas, RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
     },
 };
 use chrono::NaiveDate;
@@ -48,10 +47,7 @@ impl RepositorioPatrimonioPrueba {
 }
 
 impl RepositorioPatrimonio for RepositorioPatrimonioPrueba {
-    fn obtener_saldos_a_fecha(
-        &self,
-        fecha: NaiveDate,
-    ) -> Result<Vec<SaldoCuentaDTO>, String> {
+    fn obtener_saldos_a_fecha(&self, fecha: NaiveDate) -> Result<Vec<SaldoCuentaDTO>, String> {
         *self.fecha_recibida.lock().unwrap() = Some(fecha);
         Ok(self.saldos.clone())
     }
@@ -77,25 +73,16 @@ impl RepositorioTasasPrueba {
 }
 
 impl RepositorioTasas for RepositorioTasasPrueba {
-    fn guardar_tasa(
-        &self,
-        _request: &RegistrarTasaRequest,
-    ) -> Result<TasaDTO, String> {
+    fn guardar_tasa(&self, _request: &RegistrarTasaRequest) -> Result<TasaDTO, String> {
         Err("No se usa guardar_tasa en esta prueba.".to_string())
     }
 
-    fn obtener_tasas_hasta(
-        &self,
-        fecha: NaiveDate,
-    ) -> Result<Vec<TasaDTO>, String> {
+    fn obtener_tasas_hasta(&self, fecha: NaiveDate) -> Result<Vec<TasaDTO>, String> {
         *self.fecha_recibida.lock().unwrap() = Some(fecha);
         Ok(Vec::new())
     }
 
-    fn obtener_historial_tasas_hasta(
-        &self,
-        _fecha: NaiveDate,
-    ) -> Result<Vec<TasaDTO>, String> {
+    fn obtener_historial_tasas_hasta(&self, _fecha: NaiveDate) -> Result<Vec<TasaDTO>, String> {
         Ok(Vec::new())
     }
 
@@ -117,10 +104,7 @@ impl RepositorioMonedas for RepositorioMonedasPrueba {
         }])
     }
 
-    fn guardar_moneda(
-        &self,
-        request: &CrearMonedaRequest,
-    ) -> Result<MonedaDTO, String> {
+    fn guardar_moneda(&self, request: &CrearMonedaRequest) -> Result<MonedaDTO, String> {
         Ok(MonedaDTO {
             codigo: request.codigo.clone(),
             nombre: request.nombre.clone(),
@@ -151,8 +135,10 @@ async fn consultar_con_fecha(
     fecha_consulta: &str,
     repo_patrimonio: &RepositorioPatrimonioPrueba,
     repo_tasas: &RepositorioTasasPrueba,
-) -> Result<contrato::patrimonio::ConsultarPatrimonioResponse, contrato::error_validacion::ErrorValidacionDTO>
-{
+) -> Result<
+    contrato::patrimonio::ConsultarPatrimonioResponse,
+    contrato::error_validacion::ErrorValidacionDTO,
+> {
     consultar_patrimonio::ejecutar(
         ConsultarPatrimonioRequest {
             fecha_consulta: fecha_consulta.to_string(),
@@ -226,10 +212,7 @@ async fn fecha_futura_se_rechaza() {
     let error = resultado.expect_err("Una fecha futura debe rechazarse");
 
     assert_eq!(error.campo, "fecha_consulta");
-    assert_eq!(
-        error.mensaje,
-        "La fecha de consulta no puede ser futura."
-    );
+    assert_eq!(error.mensaje, "La fecha de consulta no puede ser futura.");
 }
 
 #[tokio::test]
@@ -242,8 +225,5 @@ async fn formato_de_fecha_invalido_se_rechaza() {
     let error = resultado.expect_err("El formato inválido debe rechazarse");
 
     assert_eq!(error.campo, "fecha_consulta");
-    assert_eq!(
-        error.mensaje,
-        "Formato inválido. Use AAAA-MM-DD."
-    );
+    assert_eq!(error.mensaje, "Formato inválido. Use AAAA-MM-DD.");
 }
