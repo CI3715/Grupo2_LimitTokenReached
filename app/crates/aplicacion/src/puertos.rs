@@ -1,12 +1,12 @@
+use chrono::NaiveDate;
 use contrato::crear_cuenta::CrearCuentaRequest;
 use contrato::cuenta::CuentaDTO;
-use contrato::moneda::MonedaDTO;
+use contrato::moneda::{CrearMonedaRequest, MonedaDTO};
 use contrato::movimiento::MovimientoDTO;
 use contrato::patrimonio::SaldoCuentaDTO;
 use contrato::tasa::{RegistrarTasaRequest, TasaDTO};
 use dominio::categoria::Categoria;
 use dominio::movimiento::Movimiento;
-use chrono::NaiveDate;
 use uuid::Uuid;
 
 pub trait Reloj: Send + Sync {
@@ -26,18 +26,24 @@ pub trait RepositorioCuentas: Send + Sync {
 
 pub trait RepositorioMonedas: Send + Sync {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String>;
+
+    fn guardar_moneda(
+        &self,
+        request: &CrearMonedaRequest,
+    ) -> Result<MonedaDTO, String>;
 }
 
 pub trait RepositorioTasas: Send + Sync {
     fn guardar_tasa(&self, request: &RegistrarTasaRequest) -> Result<TasaDTO, String>;
+    /// Retorna únicamente tasas activas con fecha igual o anterior a la consulta.
     fn obtener_tasas_hasta(&self, fecha: NaiveDate) -> Result<Vec<TasaDTO>, String>;
+    /// Retorna tasas activas y eliminadas con fecha igual o anterior a la consulta.
+    fn obtener_historial_tasas_hasta(&self, fecha: NaiveDate) -> Result<Vec<TasaDTO>, String>;
+    fn eliminar_tasa(&self, tasa_id: &str) -> Result<(), String>;
 }
 
 pub trait RepositorioPatrimonio: Send + Sync {
-    fn obtener_saldos_a_fecha(
-        &self,
-        fecha: NaiveDate,
-    ) -> Result<Vec<SaldoCuentaDTO>, String>;
+    fn obtener_saldos_a_fecha(&self, fecha: NaiveDate) -> Result<Vec<SaldoCuentaDTO>, String>;
 }
 
 pub trait RepositorioPreferencias: Send + Sync {

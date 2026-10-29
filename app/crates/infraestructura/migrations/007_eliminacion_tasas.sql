@@ -1,0 +1,3 @@
+ALTER TABLE tasas
+ADD COLUMN eliminada INTEGER NOT NULL DEFAULT 0
+CHECK (eliminada IN (0, 1));

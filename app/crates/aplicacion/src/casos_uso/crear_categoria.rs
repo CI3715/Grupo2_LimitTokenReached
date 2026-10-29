@@ -1,11 +1,7 @@
 use crate::puertos::RepositorioCategorias;
-use contrato::categoria::{
-    CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO,
-};
+use contrato::categoria::{CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO};
 use contrato::error_validacion::ErrorValidacionDTO;
-use dominio::categoria::{
-    crear_categoria as crear_categoria_dominio, TipoCategoria,
-};
+use dominio::categoria::{TipoCategoria, crear_categoria as crear_categoria_dominio};
 use dominio::errores::ErrorDominio;
 use uuid::Uuid;
 
@@ -27,27 +23,21 @@ pub async fn ejecutar(
             mensaje,
         })?;
 
-    let categoria = crear_categoria_dominio(
-        &existentes,
-        Uuid::new_v4(),
-        &datos.nombre,
-        tipo,
-    )
-    .map_err(|error| match error {
-        ErrorDominio::NombreCategoriaVacio => ErrorValidacionDTO {
-            campo: "nombre".to_string(),
-            mensaje: "El nombre de la categoría no puede estar vacío.".to_string(),
-        },
-        ErrorDominio::CategoriaDuplicada => ErrorValidacionDTO {
-            campo: "nombre".to_string(),
-            mensaje: "Ya existe una categoría con ese nombre para ese tipo."
-                .to_string(),
-        },
-        error => ErrorValidacionDTO {
-            campo: error.campo().to_string(),
-            mensaje: error.to_string(),
-        },
-    })?;
+    let categoria = crear_categoria_dominio(&existentes, Uuid::new_v4(), &datos.nombre, tipo)
+        .map_err(|error| match error {
+            ErrorDominio::NombreCategoriaVacio => ErrorValidacionDTO {
+                campo: "nombre".to_string(),
+                mensaje: "El nombre de la categoría no puede estar vacío.".to_string(),
+            },
+            ErrorDominio::CategoriaDuplicada => ErrorValidacionDTO {
+                campo: "nombre".to_string(),
+                mensaje: "Ya existe una categoría con ese nombre para ese tipo.".to_string(),
+            },
+            error => ErrorValidacionDTO {
+                campo: error.campo().to_string(),
+                mensaje: error.to_string(),
+            },
+        })?;
 
     repositorio
         .guardar_categoria(&categoria)

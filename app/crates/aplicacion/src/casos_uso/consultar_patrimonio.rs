@@ -11,7 +11,7 @@ use contrato::{
 };
 use rust_decimal::Decimal;
 use std::{
-    collections::{BTreeMap, HashSet, VecDeque},
+    collections::BTreeMap,
     str::FromStr,
 };
 
@@ -23,12 +23,18 @@ pub async fn ejecutar(
     repo_monedas: &dyn RepositorioMonedas,
     reloj: &dyn Reloj,
 ) -> Result<ConsultarPatrimonioResponse, ErrorValidacionDTO> {
-    let fecha = NaiveDate::parse_from_str(&datos.fecha_consulta, "%Y-%m-%d").map_err(|_| {
-        error("fecha_consulta", "Formato inválido. Use AAAA-MM-DD.")
-    })?;
-    let hoy = reloj.ahora().get(..10)
-        .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
-        .ok_or_else(|| error("fecha_consulta", "No se pudo obtener la fecha actual."))?;
+   let hoy = reloj
+    .ahora()
+    .get(..10)
+    .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
+    .ok_or_else(|| error("fecha_consulta", "No se pudo obtener la fecha actual."))?;
+
+let fecha = if datos.fecha_consulta.trim().is_empty() {
+    hoy
+} else {
+    NaiveDate::parse_from_str(&datos.fecha_consulta, "%Y-%m-%d")
+        .map_err(|_| error("fecha_consulta", "Formato inválido. Use AAAA-MM-DD."))?
+};
     if fecha > hoy {
         return Err(error(
             "fecha_consulta",
@@ -97,12 +103,7 @@ pub async fn ejecutar(
         saldos_por_cuenta: saldos,
         subtotales_por_moneda,
         total_consolidado: if tasas_faltantes.is_empty() {
-            Some(
-                total
-                    .round_dp(decimales_base)
-                    .normalize()
-                    .to_string(),
-            )
+            Some(total.round_dp(decimales_base).normalize().to_string())
         } else {
             None
         },
@@ -116,72 +117,57 @@ fn encontrar_conversion(
     destino: &str,
     tasas: &[contrato::tasa::TasaDTO],
 ) -> Result<Option<(Decimal, Vec<TasaUsadaDTO>)>, ErrorValidacionDTO> {
-    let mut pares = HashSet::new();
-    let mut aristas = Vec::new();
-    for tasa in tasas {
-        let valor = Decimal::from_str(&tasa.valor)
-            .map_err(|_| error_general(format!("La tasa {} tiene un valor inválido.", tasa.id)))?;
-        if valor <= Decimal::ZERO {
-            return Err(error_general(format!(
-                "La tasa {} debe ser mayor que cero.",
-                tasa.id
-            )));
-        }
-        let clave = (tasa.moneda_origen.clone(), tasa.moneda_destino.clone());
-        if !pares.insert(clave) {
-            continue;
-        }
-        aristas.push((
-            tasa.moneda_origen.clone(),
-            tasa.moneda_destino.clone(),
-            valor,
-            TasaUsadaDTO {
-                moneda_origen: tasa.moneda_origen.clone(),
-                moneda_destino: tasa.moneda_destino.clone(),
-                valor: tasa.valor.clone(),
-                fecha: tasa.fecha.clone(),
-                fuente: tasa.fuente.clone(),
-                es_inversa: false,
-            },
-        ));
-        let inversa = TasaUsadaDTO {
-            moneda_origen: tasa.moneda_destino.clone(),
-            moneda_destino: tasa.moneda_origen.clone(),
-            valor: tasa.valor.clone(),
-            fecha: tasa.fecha.clone(),
-            fuente: tasa.fuente.clone(),
-            es_inversa: true,
-        };
-        aristas.push((
-            tasa.moneda_destino.clone(),
-            tasa.moneda_origen.clone(),
-            Decimal::ONE / valor,
-            inversa,
-        ));
-    }
-    aristas.sort_by(|a, b| (&a.0, &a.1).cmp(&(&b.0, &b.1)));
+    let tasa_directa = tasas
+        .iter()
+        .find(|tasa| tasa.moneda_origen == origen && tasa.moneda_destino == destino);
 
-    let mut visitados = HashSet::from([origen.to_string()]);
-    let mut pendientes = VecDeque::from([(
-        origen.to_string(),
-        Decimal::ONE,
-        Vec::<TasaUsadaDTO>::new(),
-    )]);
-    while let Some((moneda, factor, camino)) = pendientes.pop_front() {
-        for (_, hasta, valor, detalle) in aristas.iter().filter(|edge| edge.0 == moneda) {
-            if !visitados.insert(hasta.clone()) {
-                continue;
-            }
-            let mut nuevo_camino = camino.clone();
-            nuevo_camino.push(detalle.clone());
-            let nuevo_factor = factor * valor;
-            if hasta == destino {
-                return Ok(Some((nuevo_factor, nuevo_camino)));
-            }
-            pendientes.push_back((hasta.clone(), nuevo_factor, nuevo_camino));
-        }
+    if let Some(tasa) = tasa_directa {
+        let valor = valor_tasa(tasa)?;
+        return Ok(Some((
+            valor,
+            vec![detalle_tasa(tasa, false)],
+        )));
     }
+
+    let tasa_inversa = tasas
+        .iter()
+        .find(|tasa| tasa.moneda_origen == destino && tasa.moneda_destino == origen);
+
+    if let Some(tasa) = tasa_inversa {
+        let valor = valor_tasa(tasa)?;
+        return Ok(Some((
+            Decimal::ONE / valor,
+            vec![detalle_tasa(tasa, true)],
+        )));
+    }
+
     Ok(None)
+}
+
+fn valor_tasa(tasa: &contrato::tasa::TasaDTO) -> Result<Decimal, ErrorValidacionDTO> {
+    let valor = Decimal::from_str(&tasa.valor)
+        .map_err(|_| error_general(format!("La tasa {} tiene un valor inválido.", tasa.id)))?;
+    if valor <= Decimal::ZERO {
+        return Err(error_general(format!(
+            "La tasa {} debe ser mayor que cero.",
+            tasa.id
+        )));
+    }
+    Ok(valor)
+}
+
+fn detalle_tasa(
+    tasa: &contrato::tasa::TasaDTO,
+    es_inversa: bool,
+) -> TasaUsadaDTO {
+    TasaUsadaDTO {
+        moneda_origen: tasa.moneda_origen.clone(),
+        moneda_destino: tasa.moneda_destino.clone(),
+        valor: tasa.valor.clone(),
+        fecha: tasa.fecha.clone(),
+        fuente: tasa.fuente.clone(),
+        es_inversa,
+    }
 }
 
 fn error(campo: &str, mensaje: &str) -> ErrorValidacionDTO {
@@ -213,24 +199,19 @@ mod tests {
     }
 
     #[test]
-    fn convierte_por_un_camino_de_tasas_y_retorna_sus_detalles() {
-        let tasas = vec![
-            tasa("EUR", "VES", "1000"),
-            tasa("VES", "USD", "0.001"),
-        ];
-        let (factor, camino) = encontrar_conversion("EUR", "USD", &tasas)
-            .unwrap()
-            .unwrap();
-        assert_eq!(factor, Decimal::ONE);
-        assert_eq!(camino.len(), 2);
+    fn no_calcula_tasas_cruzadas() {
+        let tasas = vec![tasa("EUR", "VES", "1000"), tasa("VES", "USD", "0.001")];
+        assert!(
+            encontrar_conversion("EUR", "USD", &tasas)
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[test]
     fn usa_la_inversa_si_no_hay_tasa_en_la_direccion_requerida() {
         let tasas = vec![tasa("USD", "VES", "1000")];
-        let (factor, camino) = encontrar_conversion("VES", "USD", &tasas)
-            .unwrap()
-            .unwrap();
+        let (factor, camino) = encontrar_conversion("VES", "USD", &tasas).unwrap().unwrap();
         assert_eq!(factor, Decimal::new(1, 3));
         assert!(camino[0].es_inversa);
     }

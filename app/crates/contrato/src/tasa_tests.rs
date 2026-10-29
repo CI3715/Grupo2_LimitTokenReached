@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::{RegistrarTasaRequest, EliminarTasaRequest};
+    use crate::{EliminarTasaRequest, RegistrarTasaRequest};
 
     fn tasa_valida() -> RegistrarTasaRequest {
         RegistrarTasaRequest {
@@ -28,7 +28,10 @@ mod tests {
         assert_eq!(req.valor, "0.00", "El dominio debe rechazar valor cero");
 
         req.valor = "-10.00".to_string();
-        assert!(req.valor.starts_with('-'), "El dominio debe rechazar valor negativo");
+        assert!(
+            req.valor.starts_with('-'),
+            "El dominio debe rechazar valor negativo"
+        );
     }
 
     #[test]
@@ -49,7 +52,10 @@ mod tests {
     fn validacion_monedas_iguales_debe_ser_detectable() {
         let mut req = tasa_valida();
         req.moneda_destino = "USD".to_string(); // igual que origen
-        assert_eq!(req.moneda_origen, req.moneda_destino, "El dominio debe rechazar monedas iguales");
+        assert_eq!(
+            req.moneda_origen, req.moneda_destino,
+            "El dominio debe rechazar monedas iguales"
+        );
     }
 
     #[test]
