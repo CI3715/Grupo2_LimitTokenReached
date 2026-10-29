@@ -1,11 +1,7 @@
 use aplicacion::puertos::{RepositorioPatrimonio, RepositorioTasas};
 use chrono::NaiveDate;
 use contrato::tasa::RegistrarTasaRequest;
-use infraestructura::{
-    bd,
-    RepositorioPatrimonioSqlite,
-    RepositorioTasasSqlite,
-};
+use infraestructura::{RepositorioPatrimonioSqlite, RepositorioTasasSqlite, bd};
 use rusqlite::Connection;
 
 fn conexion_migrada() -> Connection {
@@ -31,9 +27,11 @@ fn registrar_tasa_preserva_precision_y_registra_evento() {
     let encontradas = repo
         .obtener_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 27).unwrap())
         .unwrap();
-    assert!(encontradas
-        .iter()
-        .any(|tasa| tasa.valor == "887.96000000123456789"));
+    assert!(
+        encontradas
+            .iter()
+            .any(|tasa| tasa.valor == "887.96000000123456789")
+    );
 }
 
 #[test]

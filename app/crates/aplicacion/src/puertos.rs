@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use contrato::crear_cuenta::CrearCuentaRequest;
 use contrato::cuenta::CuentaDTO;
 use contrato::moneda::MonedaDTO;
@@ -6,7 +7,6 @@ use contrato::patrimonio::SaldoCuentaDTO;
 use contrato::tasa::{RegistrarTasaRequest, TasaDTO};
 use dominio::categoria::Categoria;
 use dominio::movimiento::Movimiento;
-use chrono::NaiveDate;
 use uuid::Uuid;
 
 pub trait Reloj: Send + Sync {
@@ -34,10 +34,7 @@ pub trait RepositorioTasas: Send + Sync {
 }
 
 pub trait RepositorioPatrimonio: Send + Sync {
-    fn obtener_saldos_a_fecha(
-        &self,
-        fecha: NaiveDate,
-    ) -> Result<Vec<SaldoCuentaDTO>, String>;
+    fn obtener_saldos_a_fecha(&self, fecha: NaiveDate) -> Result<Vec<SaldoCuentaDTO>, String>;
 }
 
 pub trait RepositorioPreferencias: Send + Sync {

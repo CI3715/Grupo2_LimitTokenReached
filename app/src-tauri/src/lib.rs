@@ -1,13 +1,13 @@
 pub mod comandos;
 
 use aplicacion::puertos::{
-    Reloj, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,
-    RepositorioCategorias, RepositorioTasas, RepositorioPatrimonio, RepositorioPreferencias,
+    Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,
+    RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
 };
 use infraestructura::{
-    bd, RelojSistema, RepositorioCuentasSqlite, RepositorioMonedasSqlite,
-    RepositorioMovimientosSqlite, RepositorioCategoriasSqlite, RepositorioTasasSqlite,
-    RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite,
+    RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite, RepositorioMonedasSqlite,
+    RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite,
+    RepositorioTasasSqlite, bd,
 };
 use tauri::Manager;
 
@@ -46,8 +46,7 @@ pub fn run() {
             app.manage(state_movimientos);
 
             let repo_categorias_sqlite = RepositorioCategoriasSqlite::new(conn_categorias);
-            let state_categorias: Box<dyn RepositorioCategorias> =
-                Box::new(repo_categorias_sqlite);
+            let state_categorias: Box<dyn RepositorioCategorias> = Box::new(repo_categorias_sqlite);
 
             app.manage(state_categorias);
 

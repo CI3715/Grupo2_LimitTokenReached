@@ -29,16 +29,20 @@ pub async fn ejecutar(
         }
     }
 
-    let valor = Decimal::from_str(datos.valor.trim()).map_err(|_| {
-        error("valor", "El valor debe ser un número decimal válido.")
-    })?;
+    let valor = Decimal::from_str(datos.valor.trim())
+        .map_err(|_| error("valor", "El valor debe ser un número decimal válido."))?;
     if valor <= Decimal::ZERO {
-        return Err(error("valor", "El valor de la tasa debe ser mayor que cero."));
+        return Err(error(
+            "valor",
+            "El valor de la tasa debe ser mayor que cero.",
+        ));
     }
 
     let fecha = NaiveDate::parse_from_str(&datos.fecha, "%Y-%m-%d")
         .map_err(|_| error("fecha", "Formato inválido. Use AAAA-MM-DD."))?;
-    let hoy = reloj.ahora().get(..10)
+    let hoy = reloj
+        .ahora()
+        .get(..10)
         .and_then(|fecha| NaiveDate::parse_from_str(fecha, "%Y-%m-%d").ok())
         .ok_or_else(|| error("fecha", "No se pudo obtener la fecha actual."))?;
     if fecha > hoy {

@@ -2,13 +2,12 @@ use rusqlite::Connection;
 
 use aplicacion::puertos::RepositorioCategorias;
 use dominio::categoria::{Categoria, TipoCategoria};
-use infraestructura::bd;
 use infraestructura::RepositorioCategoriasSqlite;
+use infraestructura::bd;
 use uuid::Uuid;
 
 fn crear_repositorio() -> RepositorioCategoriasSqlite {
-    let mut conexion =
-        Connection::open_in_memory().expect("No se pudo crear SQLite en memoria");
+    let mut conexion = Connection::open_in_memory().expect("No se pudo crear SQLite en memoria");
 
     bd::migrar(&mut conexion).expect("No se pudieron ejecutar las migraciones");
 
@@ -36,9 +35,11 @@ fn guarda_categoria_nueva() {
         .obtener_categorias()
         .expect("Las categorías deberían recuperarse");
 
-    assert!(categorias.iter().any(|item| {
-        item.id == categoria.id && item.nombre == "Mascotas"
-    }));
+    assert!(
+        categorias
+            .iter()
+            .any(|item| { item.id == categoria.id && item.nombre == "Mascotas" })
+    );
 }
 
 #[test]

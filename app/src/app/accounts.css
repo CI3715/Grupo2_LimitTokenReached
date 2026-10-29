@@ -79,9 +79,12 @@
   background: #f6f8f7;
 }
 .accounts-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
   display: flex;
   flex-direction: column;
   width: 244px;
+  height: 100vh;
   flex-shrink: 0;
   padding: 28px 20px 20px;
   border-right: 1px solid #dde4e1;
@@ -167,6 +170,7 @@
 .accounts-workspace {
   flex: 1;
   min-width: 0;
+  margin-left: 244px;
   padding: 38px 48px;
 }
 .accounts-header {
@@ -392,13 +396,6 @@
   align-items: center;
   padding: 24px;
   border-bottom: 1px solid #edf1ed;
-  transition: background-color 0.15s, box-shadow 0.15s;
-}
-@media (hover: hover) {
-  .account-row:hover {
-    background: #e9f2ee;
-    box-shadow: inset 4px 0 0 #5c9987;
-  }
 }
 .account-row:last-child {
   border-bottom: 0;
@@ -496,6 +493,258 @@
   background: white;
   border: 1px solid #e0e7e1;
   border-radius: 16px;
+}
+.patrimonio-header {
+  align-items: flex-end;
+}
+.patrimonio-header > div:first-child {
+  align-self: flex-start;
+}
+.patrimonio-date {
+  display: grid;
+  gap: 8px;
+  color: #60766a;
+  font-size: 11px;
+  font-weight: 700;
+}
+.patrimonio-date input {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid #d5e1da;
+  border-radius: 10px;
+  background: white;
+  color: #1b2926;
+  font: inherit;
+}
+.patrimonio-date select {
+  min-height: 42px;
+  min-width: 180px;
+  padding: 9px 12px;
+  border: 1px solid #d5e1da;
+  border-radius: 10px;
+  background: white;
+  color: #1b2926;
+  font: inherit;
+}
+.patrimonio-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 26px 0 18px;
+  color: #647a6d;
+  font-size: 12px;
+}
+.patrimonio-summary strong {
+  color: #1b2926;
+}
+.patrimonio-warning {
+  margin: 0 0 20px;
+  padding: 14px 17px;
+  border: 1px solid #ead8a8;
+  border-radius: 12px;
+  background: #fff8df;
+  color: #795e1e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.patrimonio-error {
+  color: #8b3f3f;
+}
+.patrimonio-tables {
+  display: grid;
+  gap: 22px;
+}
+.patrimonio-page .accounts-workspace {
+  display: flex;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+.patrimonio-page .accounts-header,
+.patrimonio-page .patrimonio-summary,
+.patrimonio-page .patrimonio-total,
+.patrimonio-page .patrimonio-warning {
+  flex: 0 0 auto;
+}
+.patrimonio-tables-scroll {
+  max-height: max(160px, calc(100dvh - 200px));
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.patrimonio-tables-scroll::-webkit-scrollbar {
+  display: none;
+}
+.patrimonio-currency {
+  overflow: hidden;
+  border: 1px solid #e0e6e2;
+  border-radius: 20px;
+  background: white;
+}
+.patrimonio-currency-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8ede9;
+}
+.patrimonio-currency-heading h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.patrimonio-currency-heading p {
+  margin: 6px 0 0;
+  color: #6c8176;
+  font-size: 11px;
+}
+.patrimonio-currency-heading > strong {
+  color: #315e51;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.patrimonio-currency-subtotal {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  color: #6c8176;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.patrimonio-currency-subtotal strong {
+  color: #315e51;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.patrimonio-table-wrap {
+  overflow-x: auto;
+}
+.patrimonio-table {
+  width: 100%;
+  min-width: 860px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.patrimonio-table th:nth-child(1),
+.patrimonio-table td:nth-child(1) {
+  width: 27%;
+}
+.patrimonio-table th:nth-child(2),
+.patrimonio-table td:nth-child(2) {
+  width: 18%;
+}
+.patrimonio-table th:nth-child(3),
+.patrimonio-table td:nth-child(3) {
+  width: 35%;
+}
+.patrimonio-table th:nth-child(4),
+.patrimonio-table td:nth-child(4) {
+  width: 20%;
+}
+.patrimonio-table th,
+.patrimonio-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #edf1ed;
+  text-align: left;
+  vertical-align: middle;
+}
+.patrimonio-table td {
+  overflow-wrap: anywhere;
+}
+.patrimonio-table td:nth-child(2),
+.patrimonio-table td:nth-child(4) {
+  white-space: nowrap;
+}
+.patrimonio-table thead th {
+  background: #f7faf8;
+  color: #71847a;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.patrimonio-table tbody td:nth-child(2),
+.patrimonio-table tbody td:last-child,
+.patrimonio-table thead th:nth-child(2),
+.patrimonio-table thead th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.patrimonio-table td:nth-child(3) {
+  color: #455f53;
+}
+.patrimonio-rate-content {
+  display: flex;
+  min-height: 34px;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.35;
+}
+.patrimonio-table td:nth-child(3) small {
+  margin-top: 5px;
+  color: #788a80;
+  font-size: 10px;
+}
+.patrimonio-rate-muted {
+  color: #829188;
+}
+.patrimonio-rate-missing {
+  color: #9a5c35;
+}
+.patrimonio-subtotal th {
+  border-bottom: 0;
+  background: #f0f4f2;
+  color: #395c4e;
+}
+.patrimonio-subtotal th:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.patrimonio-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  padding: 21px 24px;
+  border: 1px solid #adbdb2;
+  border-radius: 16px;
+  background: #d6e7db;
+  color: #000000;
+  font-size: 14px;
+}
+.patrimonio-total strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 700px) {
+  .accounts-workspace {
+    padding: 74px 20px 32px;
+  }
+  .patrimonio-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .patrimonio-date {
+    width: 100%;
+  }
+  .patrimonio-date input {
+    width: 100%;
+  }
+}
+@media (max-height: 699px) {
+  .patrimonio-page .accounts-workspace {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
 }
 .new-account-dialog {
   width: min(520px, calc(100vw - 32px));
@@ -654,9 +903,15 @@
   .accounts-header > div:first-child {
     padding-left: 52px;
   }
+  .patrimonio-header > div:first-child {
+    padding-left: 52px;
+  }
   .accounts-sidebar {
     width: 215px;
     padding: 24px 14px;
+  }
+  .accounts-workspace {
+    margin-left: 0;
   }
   .summary-card {
     padding: 18px;

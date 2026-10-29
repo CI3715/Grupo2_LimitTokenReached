@@ -1,8 +1,5 @@
 use aplicacion::puertos::{RepositorioMonedas, RepositorioPreferencias};
-use contrato::{
-    error_validacion::ErrorValidacionDTO,
-    moneda::CambiarMonedaBaseRequest,
-};
+use contrato::{error_validacion::ErrorValidacionDTO, moneda::CambiarMonedaBaseRequest};
 use tauri::State;
 
 #[tauri::command]

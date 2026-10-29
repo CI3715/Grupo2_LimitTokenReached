@@ -10,6 +10,6 @@ create table if not exists tasas (
 );
 
 insert into tasas (tasa_id, moneda_entrada, moneda_salida, valor, fecha, fuente) values
-(1, "VES", "USD", 887.96, "27/10/2026", "DolarToday"), 
+(1, "USD", "VES", 887.96, "27/10/2026", "DolarToday"), 
 (2, "EUR", "VES", 980.56, "27/10/2026", "Banco Central de Venezuela"), 
-(3, "VES", "USDT", 1050.26, "27/10/2026", "Binance");
+(3, "USDT", "VES", 1050.26, "27/10/2026", "Binance");

@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        ConsultarPatrimonioRequest, ConsultarPatrimonioResponse,
-        TasaFaltanteDTO, SubtotalMonedaDTO,
+        ConsultarPatrimonioRequest, ConsultarPatrimonioResponse, SubtotalMonedaDTO, TasaFaltanteDTO,
     };
 
     // INV-02: Prohibido sumar monedas sin tasa
@@ -12,22 +11,28 @@ mod tests {
             moneda_base: "USD".to_string(),
             saldos_por_cuenta: vec![],
             subtotales_por_moneda: vec![
-                SubtotalMonedaDTO { moneda: "USD".to_string(), subtotal: "100.00".to_string() },
-                SubtotalMonedaDTO { moneda: "USDT".to_string(), subtotal: "50.00".to_string() },
+                SubtotalMonedaDTO {
+                    moneda: "USD".to_string(),
+                    subtotal: "100.00".to_string(),
+                },
+                SubtotalMonedaDTO {
+                    moneda: "USDT".to_string(),
+                    subtotal: "50.00".to_string(),
+                },
             ],
             total_consolidado: None, // INV-02: falta tasa USDT→USD
             tasas_usadas: vec![],
-            tasas_faltantes: vec![
-                TasaFaltanteDTO {
-                    moneda_origen: "USDT".to_string(),
-                    moneda_destino: "USD".to_string(),
-                    fecha_limite: "2026-10-23".to_string(),
-                },
-            ],
+            tasas_faltantes: vec![TasaFaltanteDTO {
+                moneda_origen: "USDT".to_string(),
+                moneda_destino: "USD".to_string(),
+                fecha_limite: "2026-10-23".to_string(),
+            }],
         };
 
-        assert!(response.total_consolidado.is_none(), 
-            "INV-02: sin tasa, el total consolidado debe ser None");
+        assert!(
+            response.total_consolidado.is_none(),
+            "INV-02: sin tasa, el total consolidado debe ser None"
+        );
         assert_eq!(response.tasas_faltantes.len(), 1);
     }
 
@@ -42,8 +47,10 @@ mod tests {
             tasas_faltantes: vec![],
         };
 
-        assert!(response.total_consolidado.is_some(),
-            "INV-02: con todas las tasas, el total debe estar presente");
+        assert!(
+            response.total_consolidado.is_some(),
+            "INV-02: con todas las tasas, el total debe estar presente"
+        );
     }
 
     // validaciones del request
@@ -52,7 +59,9 @@ mod tests {
         let req = ConsultarPatrimonioRequest {
             fecha_consulta: "2030-01-01".to_string(),
         };
-        assert!(req.fecha_consulta.as_str() > "2026-12-31",
-            "Fecha de consulta futura detectable");
+        assert!(
+            req.fecha_consulta.as_str() > "2026-12-31",
+            "Fecha de consulta futura detectable"
+        );
     }
 }
