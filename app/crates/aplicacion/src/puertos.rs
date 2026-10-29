@@ -31,6 +31,8 @@ pub trait RepositorioMonedas: Send + Sync {
         &self,
         request: &CrearMonedaRequest,
     ) -> Result<MonedaDTO, String>;
+
+    fn eliminar_moneda(&self, codigo: &str) -> Result<(), String>; 
 }
 
 pub trait RepositorioTasas: Send + Sync {

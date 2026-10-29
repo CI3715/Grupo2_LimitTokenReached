@@ -84,6 +84,7 @@ pub fn run() {
             comandos::preferencias::cambiar_moneda_base,
             comandos::categorias::crear_categoria,
             comandos::categorias::listar_categorias,
+            comandos::moneda::eliminar_moneda,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+// estas son mis monedas protegidas
+pub const CODIGOS_MONEDAS_CATALOGO: [&str; 4] = ["VES","USD","EUR","USDT"] ;
 /// DTO para mostrar una moneda (del catálogo o propia)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonedaDTO {
@@ -11,6 +13,11 @@ pub struct MonedaDTO {
 }
 
 /// Request para crear una moneda propia.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EliminarMonedaRequest {
+    pub codigo: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CrearMonedaRequest {
     pub codigo: String, // 3-5 letras mayúsculas, único

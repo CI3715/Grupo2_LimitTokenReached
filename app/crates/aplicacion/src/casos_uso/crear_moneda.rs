@@ -4,7 +4,7 @@ use contrato::{
     moneda::{CrearMonedaRequest, MonedaDTO},
 };
 
-const MONEDAS_DE_FABRICA: [&str; 4] = ["VES", "USD", "EUR", "USDT"];
+const CODIGOS_MONEDA_CATALOGO: [&str; 4] = ["VES", "USD", "EUR", "USDT"];
 
 pub async fn ejecutar(
     datos: CrearMonedaRequest,
@@ -25,7 +25,7 @@ pub async fn ejecutar(
         ));
     }
 
-    if MONEDAS_DE_FABRICA.contains(&codigo.as_str()) {
+    if CODIGOS_MONEDA_CATALOGO.contains(&codigo.as_str()) {
         return Err(error(
             "codigo",
             "Las monedas de fábrica no se pueden volver a crear.",

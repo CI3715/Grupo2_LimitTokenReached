@@ -2,7 +2,10 @@ use rusqlite::Connection;
 use std::sync::Mutex;
 
 use aplicacion::puertos::RepositorioMonedas;
-use contrato::moneda::{CrearMonedaRequest, MonedaDTO};
+
+use contrato::moneda::{
+    CrearMonedaRequest, MonedaDTO, CODIGOS_MONEDAS_CATALOGO,
+};
 
 pub struct RepositorioMonedasSqlite {
     pub conexion: Mutex<Connection>,
@@ -17,6 +20,74 @@ impl RepositorioMonedasSqlite {
 }
 
 impl RepositorioMonedas for RepositorioMonedasSqlite {
+
+    //FUNCION PARA ELIMINAR UNA MONEDA 
+    fn eliminar_moneda(&self, codigo: &str) -> Result<(), String> {
+    if CODIGOS_MONEDAS_CATALOGO.contains(&codigo) {
+        return Err("Las monedas de fábrica no se pueden eliminar.".to_string());
+    }
+
+    let mut conexion = self
+        .conexion
+        .lock()
+        .map_err(|error| format!("No se pudo acceder a la base de datos: {error}"))?;
+
+    let transaccion = conexion
+        .transaction()
+        .map_err(|error| format!("No se pudo iniciar la transacción: {error}"))?;
+
+    let existe: i64 = transaccion
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM moneda WHERE codigo = ?1)",
+            [codigo],
+            |fila| fila.get(0),
+        )
+        .map_err(|error| format!("No se pudo verificar la moneda: {error}"))?;
+
+    if existe == 0 {
+        return Err(format!("No existe la moneda '{codigo}'."));
+    }
+
+    let tiene_dependencias: i64 = transaccion
+        .query_row(
+            "
+            SELECT
+                EXISTS(SELECT 1 FROM cuenta WHERE moneda_codigo = ?1)
+                OR EXISTS(
+                    SELECT 1 FROM tasas
+                    WHERE moneda_entrada = ?1 OR moneda_salida = ?1
+                )
+                OR EXISTS(
+                    SELECT 1 FROM meta
+                    WHERE clave = 'moneda_base' AND valor = ?1
+                )
+            ",
+            [codigo],
+            |fila| fila.get(0),
+        )
+        .map_err(|error| format!("No se pudieron verificar los usos de la moneda: {error}"))?;
+
+    if tiene_dependencias != 0 {
+        return Err(format!(
+            "No se puede eliminar la moneda '{codigo}' porque una cuenta, una tasa o la moneda base la está utilizando."
+        ));
+    }
+
+    transaccion
+        .execute("DELETE FROM moneda WHERE codigo = ?1", [codigo])
+        .map_err(|error| format!("No se pudo eliminar la moneda '{codigo}': {error}"))?;
+
+    let datos_evento = serde_json::json!({ "codigo": codigo });
+    crate::bd::insertar_evento(&transaccion, "MonedaEliminada", &datos_evento)
+        .map_err(|error| format!("No se pudo registrar el evento de eliminación: {error}"))?;
+
+    transaccion
+        .commit()
+        .map_err(|error| format!("No se pudo confirmar la eliminación: {error}"))?;
+
+    Ok(())
+}
+
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String> {
         let conn = self.conexion.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
