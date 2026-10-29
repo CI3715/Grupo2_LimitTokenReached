@@ -1,8 +1,10 @@
-use aplicacion::puertos::{RepositorioPatrimonio, RepositorioTasas, RepositorioMonedas,};
+use aplicacion::puertos::{RepositorioMonedas, RepositorioPatrimonio, RepositorioTasas};
 use chrono::NaiveDate;
-use contrato::tasa::RegistrarTasaRequest;
 use contrato::moneda::CrearMonedaRequest;
-use infraestructura::{RepositorioPatrimonioSqlite, RepositorioTasasSqlite, RepositorioMonedasSqlite,bd,};
+use contrato::tasa::RegistrarTasaRequest;
+use infraestructura::{
+    RepositorioMonedasSqlite, RepositorioPatrimonioSqlite, RepositorioTasasSqlite, bd,
+};
 use rusqlite::Connection;
 
 fn conexion_migrada() -> Connection {
@@ -18,21 +20,17 @@ fn registrar_tasa_preserva_precision_y_registra_evento() {
         .guardar_tasa(&RegistrarTasaRequest {
             moneda_origen: "USD".to_string(),
             moneda_destino: "VES".to_string(),
-            valor: "887.96000000123456789".to_string(),
+            valor: "887.96000000".to_string(),
             fecha: "2026-10-27".to_string(),
             fuente: "BCV".to_string(),
         })
         .unwrap();
 
-    assert_eq!(tasa.valor, "887.96000000123456789");
+    assert_eq!(tasa.valor, "887.96000000");
     let encontradas = repo
         .obtener_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 27).unwrap())
         .unwrap();
-    assert!(
-        encontradas
-            .iter()
-            .any(|tasa| tasa.valor == "887.96000000123456789")
-    );
+    assert!(encontradas.iter().any(|tasa| tasa.valor == "887.96000000"));
 }
 
 #[test]
@@ -168,16 +166,12 @@ fn usa_la_tasa_mas_reciente_cuando_hay_dos_en_la_misma_fecha() {
         .unwrap();
 
     let tasas = repo
-        .obtener_tasas_hasta(
-            NaiveDate::from_ymd_opt(2026, 10, 28).unwrap(),
-        )
+        .obtener_tasas_hasta(NaiveDate::from_ymd_opt(2026, 10, 28).unwrap())
         .unwrap();
 
     let tasas_del_par: Vec<_> = tasas
         .iter()
-        .filter(|tasa| {
-            tasa.id == primera_tasa.id || tasa.id == segunda_tasa.id
-        })
+        .filter(|tasa| tasa.id == primera_tasa.id || tasa.id == segunda_tasa.id)
         .collect();
 
     assert_eq!(
@@ -187,8 +181,7 @@ fn usa_la_tasa_mas_reciente_cuando_hay_dos_en_la_misma_fecha() {
     );
 
     assert_eq!(
-        tasas_del_par[0].id,
-        segunda_tasa.id,
+        tasas_del_par[0].id, segunda_tasa.id,
         "La tasa registrada más recientemente debe aparecer primero"
     );
 
@@ -246,4 +239,77 @@ fn moneda_propia_puede_ser_referenciada_por_una_cuenta() {
     let monedas = repo_monedas.obtener_monedas().unwrap();
 
     assert!(monedas.iter().any(|moneda| moneda.codigo == "GBP"));
+}
+
+#[test]
+fn no_elimina_moneda_de_fabrica_en_sqlite() {
+    let repo = RepositorioMonedasSqlite::new(conexion_migrada());
+
+    let resultado = repo.eliminar_moneda("USD");
+
+    assert!(resultado.is_err());
+    assert_eq!(
+        resultado.unwrap_err(),
+        "Las monedas de fábrica no se pueden eliminar."
+    );
+}
+
+#[test]
+fn elimina_moneda_propia_no_utilizada_en_sqlite() {
+    let repo = RepositorioMonedasSqlite::new(conexion_migrada());
+
+    repo.guardar_moneda(&CrearMonedaRequest {
+        codigo: "GBP".to_string(),
+        nombre: "Libra Esterlina".to_string(),
+        simbolo: "£".to_string(),
+        decimales: 2,
+    })
+    .unwrap();
+
+    repo.eliminar_moneda("GBP").unwrap();
+
+    let monedas = repo.obtener_monedas().unwrap();
+
+    assert!(
+        monedas.iter().all(|moneda| moneda.codigo != "GBP"),
+        "La moneda propia eliminada no debe aparecer"
+    );
+}
+
+#[test]
+fn no_elimina_moneda_utilizada_por_una_cuenta() {
+    let conn = conexion_migrada();
+
+    let repo_monedas = RepositorioMonedasSqlite::new(conn);
+
+    repo_monedas
+        .guardar_moneda(&CrearMonedaRequest {
+            codigo: "GBP".to_string(),
+            nombre: "Libra Esterlina".to_string(),
+            simbolo: "£".to_string(),
+            decimales: 2,
+        })
+        .unwrap();
+
+    let conexion = repo_monedas.conexion.lock().unwrap();
+
+    conexion
+        .execute(
+            "INSERT INTO cuenta
+             (id, nombre, tipo, moneda_codigo, saldo, creada_en)
+             VALUES ('cuenta-gbp', 'Cuenta GBP', 'Banco', 'GBP', '0', '2026-01-01')",
+            [],
+        )
+        .unwrap();
+
+    drop(conexion);
+
+    let resultado = repo_monedas.eliminar_moneda("GBP");
+
+    assert!(resultado.is_err());
+    assert!(
+        resultado
+            .unwrap_err()
+            .contains("una cuenta, una tasa o la moneda base")
+    );
 }

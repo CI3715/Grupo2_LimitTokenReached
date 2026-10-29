@@ -27,12 +27,9 @@ pub trait RepositorioCuentas: Send + Sync {
 pub trait RepositorioMonedas: Send + Sync {
     fn obtener_monedas(&self) -> Result<Vec<MonedaDTO>, String>;
 
-    fn guardar_moneda(
-        &self,
-        request: &CrearMonedaRequest,
-    ) -> Result<MonedaDTO, String>;
+    fn guardar_moneda(&self, request: &CrearMonedaRequest) -> Result<MonedaDTO, String>;
 
-    fn eliminar_moneda(&self, codigo: &str) -> Result<(), String>; 
+    fn eliminar_moneda(&self, codigo: &str) -> Result<(), String>;
 }
 
 pub trait RepositorioTasas: Send + Sync {

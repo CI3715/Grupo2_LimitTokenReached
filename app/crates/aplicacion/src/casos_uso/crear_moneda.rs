@@ -32,9 +32,7 @@ pub async fn ejecutar(
         ));
     }
 
-    let monedas = repo_monedas
-        .obtener_monedas()
-        .map_err(error_general)?;
+    let monedas = repo_monedas.obtener_monedas().map_err(error_general)?;
 
     if monedas.iter().any(|moneda| moneda.codigo == codigo) {
         return Err(error(
@@ -50,9 +48,7 @@ pub async fn ejecutar(
         decimales: datos.decimales,
     };
 
-    repo_monedas
-        .guardar_moneda(&request)
-        .map_err(error_general)
+    repo_monedas.guardar_moneda(&request).map_err(error_general)
 }
 
 fn validar_codigo(codigo: &str) -> Result<(), ErrorValidacionDTO> {
@@ -63,10 +59,7 @@ fn validar_codigo(codigo: &str) -> Result<(), ErrorValidacionDTO> {
         ));
     }
 
-    if !codigo
-        .bytes()
-        .all(|caracter| caracter.is_ascii_uppercase())
-    {
+    if !codigo.bytes().all(|caracter| caracter.is_ascii_uppercase()) {
         return Err(error(
             "codigo",
             "El código solo puede contener letras mayúsculas.",
