@@ -27,20 +27,19 @@ El indicador «Conectado» de la interfaz no verifica todavía la disponibilidad
 
 ### Entrega 4: monedas, tasas y patrimonio
 
-Están integrados los DTOs de monedas, tasas y patrimonio y las pruebas de contrato de tasas y patrimonio. Estas pruebas construyen requests/responses; todavía no verifican rechazos reales del dominio, selección de tasas, inversas ni redondeo. En el código actual faltan los casos de uso, la persistencia de eventos y los comandos Tauri de la Entrega 4, junto con sus pantallas.
+La Entrega 4 integra registro, historial y eliminación lógica de tasas; selección de moneda base; consulta histórica de patrimonio; y creación de monedas propias. Los comandos Tauri conectan la interfaz con los casos de uso y la persistencia SQLite local. Los movimientos se conservan en su moneda y no se convierten al cambiar la base.
 
 Desde la raíz del repositorio:
 
 ```bash
 cd app
-# Suite de contratos y núcleo (incluye las pruebas de contrato de Entrega 4)
-cargo test -p contrato -p aplicacion -p dominio
-# Ejecutar únicamente cada grupo nuevo de contratos
-cargo test -p contrato tasa_tests::
-cargo test -p contrato patrimonio_tests::
+# Pruebas de dominio y casos de uso (incluyen tasas, patrimonio y monedas propias)
+cargo test -p contrato -p dominio -p aplicacion
+# Adaptadores SQLite, historial, eliminación y moneda propia
+cargo test -p infraestructura --test repositorio_finanzas_sqlite --test repositorio_preferencias_sqlite
 ```
 
-La [guía de QA de Entrega 4](docs/qa-entrega-4.md) detalla los pasos y resultados del ejemplo 2.3: **316.100,00 VES**, bloqueo por falta de **USDT→USD** y **350,00 USD** al registrar la tasa faltante. Incluye selección por fecha, validaciones, autonomía y pendientes para la evaluación. El flujo manual podrá ejecutarse cuando se integren backend y frontend; no está certificado por las pruebas de DTOs.
+La [guía de QA de Entrega 4](docs/qa-entrega-4.md) detalla el ejemplo de evaluación: **316.100,00 VES**, ausencia de total y aviso por falta de **USDT→USD** al cambiar a USD, y **350,00 USD** al registrar la tasa faltante. Incluye selección por fecha, validaciones, ejecución local y los pasos manuales para demostrar persistencia sin red. La comprobación de reinicio con servidores detenidos sigue siendo una validación manual.
 
 Decisiones propuestas para revisión del equipo: [ADR-012: eventos de tasas y monedas](docs/adr/012-eventos-tasas-monedas.md) y [ADR-013: patrimonio y precisión decimal](docs/adr/013-patrimonio-multimoneda.md).
 

@@ -8,7 +8,7 @@ import logo from "@/img/logo-rm-bg.png";
 export function AccountsSidebar({
   active = "accounts",
 }: {
-  active?: "accounts" | "connection";
+  active?: "accounts" | "connection" | "patrimonio" | "tasas" | "monedas";
 }) {
   const [open, setOpen] = useState(false);
 
@@ -58,6 +58,30 @@ export function AccountsSidebar({
             onClick={() => setOpen(false)}
           >
             <span aria-hidden="true">▦</span> Mis cuentas
+          </Link>
+          <Link
+            href="/patrimonio/"
+            aria-current={active === "patrimonio" ? "page" : undefined}
+            className={active === "patrimonio" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">🏛️</span> Patrimonio
+          </Link>
+          <Link
+            href="/tasas/"
+            aria-current={active === "tasas" ? "page" : undefined}
+            className={active === "tasas" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">↔</span> Tasas
+          </Link>
+          <Link
+            href="/monedas/"
+            aria-current={active === "monedas" ? "page" : undefined}
+            className={active === "monedas" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">¤</span> Monedas
           </Link>
           <button disabled>
             <span aria-hidden="true">◎</span> Grupos <small>Pronto</small>
