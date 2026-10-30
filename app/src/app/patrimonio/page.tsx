@@ -225,7 +225,14 @@ export default function PatrimonioPage() {
   const [error, setError] = useState("");
   const [changingBase, setChangingBase] = useState(false);
   const [rateFormOpen, setRateFormOpen] = useState(false);
+  const [rateNotice, setRateNotice] = useState("");
   const requestId = useRef(0);
+
+  useEffect(() => {
+    if (!rateNotice) return;
+    const timeout = window.setTimeout(() => setRateNotice(""), 10000);
+    return () => window.clearTimeout(timeout);
+  }, [rateNotice]);
 
   const load = useCallback(async (consultDate: string) => {
     const currentRequest = ++requestId.current;
@@ -281,6 +288,7 @@ export default function PatrimonioPage() {
   async function handleRegisterRate(request: RegistrarTasaRequest) {
     await registrarTasa(request);
     await load(date);
+    setRateNotice("Tasa registrada y agregada al historial.");
   }
 
   const groupedAccounts = useMemo(() => {
@@ -333,6 +341,11 @@ export default function PatrimonioPage() {
       <div className="accounts-shell">
         <AccountsSidebar active="patrimonio" />
         <main className="accounts-workspace">
+          {rateNotice && (
+            <p className="floating-notice" role="status">
+              {rateNotice}
+            </p>
+          )}
           <header className="accounts-header patrimonio-header">
             <div>
               <p className="breadcrumb">

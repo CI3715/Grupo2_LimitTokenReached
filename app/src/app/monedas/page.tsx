@@ -19,6 +19,12 @@ export default function MonedasPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 10000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+
+  useEffect(() => {
     void listCurrencies()
       .then(setCurrencies)
       .catch((cause: unknown) => {
@@ -92,7 +98,7 @@ export default function MonedasPage() {
               </p>
             )}
             {notice && (
-              <p className="accounts-feedback tasas-notice" role="status">
+              <p className="floating-notice" role="status">
                 {notice}
               </p>
             )}
@@ -174,7 +180,10 @@ export default function MonedasPage() {
             </form>
           </section>
 
-          <section className="currency-catalog" aria-labelledby="currency-catalog-title">
+          <section
+            className="currency-catalog"
+            aria-labelledby="currency-catalog-title"
+          >
             <h2 id="currency-catalog-title">Catálogo disponible</h2>
             {loading ? (
               <p className="accounts-feedback">Cargando monedas…</p>

@@ -31,7 +31,6 @@ export function RegistrarTasaForm({
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [error, setError] = useState<ErrorValidacionDTO | null>(null);
-  const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
 
   const selectedOrigin = currencies.some(
@@ -65,7 +64,6 @@ export function RegistrarTasaForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setNotice("");
 
     if (selectedOrigin === selectedDestination) {
       setError({
@@ -87,7 +85,6 @@ export function RegistrarTasaForm({
         fuente: String(form.get("fuente") ?? "").trim(),
       });
 
-      setNotice("Tasa registrada.");
     } catch (cause) {
       const validationError = parseErrorValidacion(cause);
       setError(validationError ?? {
@@ -123,8 +120,6 @@ export function RegistrarTasaForm({
         ].includes(error.campo) && (
           <p role="alert">{error.mensaje}</p>
         )}
-      {notice && <p role="status">{notice}</p>}
-
       <form onSubmit={submit}>
         <label>
           Moneda de origen
