@@ -1,21 +1,21 @@
 # QA de Entrega 4: monedas, tasas y patrimonio
 
-Referencia: Especificación Técnica Entrega 4, secciones 2.1–2.5 y criterios de aceptación. Esta guía describe el comportamiento esperado para evaluación y distingue las pruebas disponibles de las que faltan.
+Referencia: Especificación Técnica Entrega 4, secciones 2.1–2.5 y criterios de aceptación. La interfaz invoca los comandos Tauri y estos usan casos de uso y repositorios SQLite locales. El flujo completo de reinicio con red y servidores apagados todavía debe demostrarse manualmente.
 
 ## Estado de cobertura
 
-Revisión del 27/10/2026: están integrados los DTOs y nueve pruebas de contrato de tasas/patrimonio. No hay todavía casos de uso, repositorio de tasas, comandos Tauri ni pantallas de Entrega 4. El flujo manual queda pendiente de esa integración.
+La cobertura automatizada incluye validación de tasas, selección por fecha, inversión de tasas, falta de conversión y redondeo final en pruebas con repositorios fake en memoria. Las pruebas SQLite cubren persistencia y eliminación lógica, historial, selección de la última tasa del mismo día y creación de moneda propia.
 
-| Área                   | Evidencia disponible                                                                             | Pendiente                                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Contratos              | Seis tests de tasas y tres de patrimonio; montos como `String`, total opcional y pares faltantes | Serialización y errores reales de los casos de uso                                                   |
-| INV-02                 | Respuestas de ejemplo con `None` y `Some` construidas por el test                                | Probar que el cálculo impide consolidar si falta tasa y que no acepta tasas cruzadas                 |
-| INV-03                 | Tipo `String` del valor de la tasa                                                               | Inversa, precisión de conversiones y redondeo final del total                                        |
-| Validaciones           | Requests con valores inválidos que los tests pueden identificar                                  | Ejecutar dominio y comprobar rechazo con campo y mensaje; fecha ausente y precisión máxima incluidas |
-| Fecha/tasa vigente     | Sin prueba de comportamiento E4                                                                  | Corte histórico, desempate, tasas eliminadas y saldos a la fecha                                     |
-| Persistencia/autonomía | Regresión SQLite de movimientos, categorías y lectura del catálogo                               | Eventos E4, reinicio y prueba real sin red ni servidor                                               |
+| Área                   | Evidencia automatizada                                                                          | Pendiente                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| INV-02                 | Caso de uso impide total sin conversión; identifica moneda/par faltantes y no hace cruces       | Repetir y conservar evidencia visual durante la demostración                                        |
+| INV-03                 | `Decimal` en dominio; pruebas de inversa y redondeo final                                       | Demostración visual del cálculo                                                                       |
+| Validaciones           | Caso de uso valida fecha, fuente, monto, decimales, catálogo y monedas distintas               | Capturar errores de cada campo durante la demostración                                               |
+| Fecha/tasa vigente     | Corte por fecha, preferencia directa, inversa, empate y exclusión de tasas eliminadas           | Verificar selección de tasas con datos del perfil de evaluación                                      |
+| Persistencia/autonomía | Repositorios SQLite persisten tasas, moneda base e historial; pruebas locales                 | Cerrar y reabrir el ejecutable sin red ni servidores                                                 |
+| Moneda propia          | Caso de uso valida catálogo y unicidad; SQLite permite usarla en una cuenta                    | Demostrar creación desde `/monedas` y selección al crear una cuenta                                  |
 
-Una prueba que asigna `None` a una respuesta no demuestra que el dominio impida sumar monedas distintas. Las pruebas actuales de E4 no usan un repositorio fake. SQLite `:memory:` verifica adaptadores y tampoco sustituye el repositorio fake sin BD exigido para el núcleo E4.
+Los tests de selección y cálculo llaman los casos de uso productivos con repositorios fake; los tests SQLite comprueban los adaptadores de persistencia.
 
 ## Comandos automatizados
 
@@ -24,13 +24,12 @@ Desde la raíz del repositorio, con Rust/Cargo instalados:
 ```bash
 cd app
 cargo test -p contrato -p aplicacion -p dominio
-cargo test -p contrato tasa_tests::
-cargo test -p contrato patrimonio_tests::
-# Regresión de adaptadores locales; no requiere FastAPI
-cargo test -p infraestructura --test repositorio_movimientos_sqlite --test repositorio_categorias_sqlite --test repositorio_monedas_sqlite
+cargo test -p aplicacion --test registrar_tasa_test --test consultar_patrimonio_test --test crear_moneda_test
+cargo test -p infraestructura --test repositorio_finanzas_sqlite
+cargo test -p infraestructura --test repositorio_preferencias_sqlite
 ```
 
-Los dos comandos filtrados son una alternativa para revisar solo los grupos nuevos; ya están incluidos en el primero. Para regresión frontend, desde `app/`, con las dependencias instaladas:
+El comando de casos de uso filtrados es una alternativa para revisar solo los grupos nuevos; esos tests también se ejecutan en el primero. Para regresión frontend, desde `app/`, con las dependencias instaladas:
 
 ```bash
 pnpm run test:movements
@@ -42,7 +41,7 @@ No ejecutar `cargo test --workspace` como prueba aislada sin servidor: incluye `
 
 ## Ejemplo 2.3 para la evaluación
 
-**Precondición:** integrar backend y pantallas de Entrega 4. Usar un perfil de evaluación sin otras cuentas ni tasas que alteren los totales. Conservar intacto el libro personal; no borrar su BD. El día de evaluación `D` debe ser igual o posterior al 21/10/2026. Consultar inicialmente `D`, de modo que las cuentas recién creadas existan al corte.
+Usar un perfil de evaluación sin otras cuentas ni tasas que alteren los totales. Conservar intacto el libro personal; no borrar su BD. El día de evaluación `D` debe ser igual o posterior al 21/10/2026. Consultar inicialmente `D`, de modo que las cuentas recién creadas existan al corte.
 
 1. Iniciar la aplicación nativa con `cd app` y `pnpm run tauri dev`, teniendo instaladas las dependencias de frontend y las nativas de Tauri.
 2. Crear estas tres cuentas. Los valores de entrada usan punto decimal, sin separador de miles:
@@ -75,7 +74,7 @@ No ejecutar `cargo test --workspace` como prueba aislada sin servidor: incluye `
 
 Para mostrar literalmente el aviso del **23/10/2026**, se necesita un perfil de prueba con las tres cuentas existentes en esa fecha y consultar `2026-10-23`. No cambiar el reloj del sistema ni asumir que cuentas creadas después existían entonces. La preparación de ese perfil histórico queda pendiente del soporte de backend.
 
-## Casos de dominio que faltan automatizar
+## Casos de dominio cubiertos por pruebas automatizadas
 
 Cada test debe crear su propio repositorio fake en memoria y usar un reloj fijo (por ejemplo, 23/10/2026). Debe invocar el código productivo, no reimplementar el cálculo en el test.
 
@@ -107,15 +106,13 @@ Usar el mismo perfil del ejemplo y guardar capturas de historial, base, saldos y
 
 `tauri dev` depende de un servidor frontend local; no demuestra por sí solo el arranque autónomo con los servidores detenidos.
 
-## Evidencia automatizada local (27/10/2026)
+## Evidencia automatizada local
 
-- `cargo test -p contrato -p aplicacion -p dominio`: 43 pruebas aprobadas (20 de contrato, 23 de dominio; aplicación aún tiene cero tests).
-- Suites SQLite seleccionadas: nueve pruebas aprobadas (cinco de movimientos, tres de categorías y una de lectura de monedas).
-- Se corrigió el adaptador de monedas para completar `es_del_catalogo`, requerido por el DTO nuevo. La regresión comprueba las cuatro monedas de fábrica y una moneda propia insertada como fixture; no prueba el caso de uso de creación de monedas.
-- `npm run test:movements` y `npm run lint`: aprobados tras instalar las dependencias declaradas del frontend. La ejecución directa `node scripts/movements.test.mjs` confirma 14 pruebas aprobadas.
-- `node node_modules/typescript/bin/tsc --noEmit`: aprobado tras apartar la caché generada `.next/dev` con referencias a rutas antiguas.
-- Compilación frontend no validada: `npm run build` falló por permisos al abrir un puerto interno de Turbopack; el intento alternativo `npm run build -- --webpack` falló al interpretar la salida de TypeScript `--showConfig`. No se cambió el compilador del CI ni se considera aprobado el build.
-- YAML del workflow, enlaces locales de los documentos y `git diff --check`: correctos.
+- Registrar la tasa valida los campos desde el caso de uso; el dominio contiene el tipo validado y sus errores.
+- Patrimonio automatiza falta de tasa, selección por fecha, inversa y redondeo final con repositorios fake.
+- Persistencia SQLite cubre tasas, moneda base, historial, eliminación lógica, moneda propia y cuentas en monedas propias.
+- La interfaz dispone de `/tasas`, `/patrimonio` y `/monedas`; su verificación local requiere lint, tipos y build del frontend.
+- El modo sin red tras cerrar y reabrir la aplicación no se ha ejecutado manualmente.
 
 Estos resultados no incluyen la ejecución remota de GitHub Actions ni la evaluación manual de Entrega 4.
 
@@ -125,9 +122,8 @@ Completar tras integrar y ejecutar cada caso. No marcar como aprobado lo que est
 
 | Caso                            | Estado inicial                                        | Evidencia a completar                           |
 | ------------------------------- | ----------------------------------------------------- | ----------------------------------------------- |
-| Contratos tasas/patrimonio      | Disponible; ejecución automatizada separada del flujo | Comando, resultado y revisión evaluada          |
-| Dominio E4 con fake             | Pendiente de implementación                           | Tests de selección, inversa, redondeo y bloqueo |
-| Ejemplo 2.3                     | Bloqueado por integración E4                          | Capturas 316.100 VES, aviso y 350 USD           |
-| Historial, base y moneda propia | Bloqueado por integración E4                          | Capturas y comparación de saldos                |
+| Dominio E4 con fake             | Implementado; suites Rust locales                     | Guardar resultado de ejecución                  |
+| Ejemplo 2.3                     | Implementado; falta demostración con perfil limpio    | Capturas 316.100 VES, aviso y 350 USD           |
+| Historial, base y moneda propia | Implementado; falta demostración manual                | Capturas y comparación de saldos                |
 | Reinicio sin red/servidores     | Sin ejecutar                                          | SO, ejecutable usado, resultados antes/después  |
 | GitHub Actions                  | Pendiente de publicación y ejecución remota           | Enlace al run y resultado de cada job           |

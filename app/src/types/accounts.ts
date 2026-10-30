@@ -2,7 +2,7 @@ export type AccountType =
   | "efectivo"
   | "banco"
   | "billetera_digital";
-export type CurrencyCode = "VES" | "USD" | "EUR" | "USDT";
+export type CurrencyCode = string;
 
 // Decimal strings preserve the precision of amounts displayed in the UI.
 export type Account = {
@@ -18,6 +18,7 @@ export type Currency = {
   nombre: string;
   simbolo: string;
   decimales: number;
+  es_del_catalogo: boolean;
 };
 export type CreateAccountInput = {
   nombre: string;

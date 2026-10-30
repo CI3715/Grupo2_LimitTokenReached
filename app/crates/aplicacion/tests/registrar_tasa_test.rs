@@ -309,6 +309,22 @@ async fn rechaza_una_fecha_con_formato_invalido() {
 }
 
 #[tokio::test]
+async fn rechaza_una_fecha_vacia_indicando_el_campo() {
+    let repo_tasas = RepositorioTasasPrueba::nuevo();
+    let repo_monedas = RepositorioMonedasPrueba::nuevo();
+    let reloj = RelojFijo;
+    let mut request = request_con_valor("100");
+    request.fecha.clear();
+
+    let error = ejecutar(request, &repo_tasas, &repo_monedas, &reloj)
+        .await
+        .expect_err("La fecha vacía debe rechazarse");
+
+    assert_eq!(error.campo, "fecha");
+    assert_eq!(error.mensaje, "La fecha es requerida.");
+}
+
+#[tokio::test]
 async fn guarda_la_tasa_normalizada() {
     let repo_tasas = RepositorioTasasPrueba::nuevo();
     let repo_monedas = RepositorioMonedasPrueba::nuevo();
