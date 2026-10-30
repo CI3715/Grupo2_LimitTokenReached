@@ -61,6 +61,13 @@ export default function TasasPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<TasaDTO | null>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = window.setTimeout(() => setNotice(""), 10000);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
 
   const loadRates = useCallback(async (cutoff: string): Promise<boolean> => {
     setLoading(true);
@@ -100,12 +107,8 @@ export default function TasasPage() {
     setNotice("");
     try {
       await registrarTasa(request);
-      const historyUpdated = await loadRates(date);
-      setNotice(
-        historyUpdated
-          ? "Tasa registrada y agregada al historial."
-          : "Tasa registrada, pero no se pudo actualizar el historial.",
-      );
+      await loadRates(date);
+      setNotice("Tasa registrada y agregada al historial");
     } catch (registerError) {
       console.error("No se pudo registrar la tasa.", registerError);
       throw registerError;
@@ -115,15 +118,16 @@ export default function TasasPage() {
   }
 
   async function handleDelete(rate: TasaDTO) {
-    if (
-      rate.eliminada ||
-      !window.confirm(
-        `¿Eliminar la tasa ${rate.moneda_origen} → ${rate.moneda_destino} del ${rate.fecha}?`,
-      )
-    ) {
+    if (rate.eliminada) {
       return;
     }
+    setPendingDelete(rate);
+  }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const rate = pendingDelete;
+    setPendingDelete(null);
     setDeletingId(rate.id);
     setError("");
     setNotice("");
@@ -182,7 +186,7 @@ export default function TasasPage() {
             </p>
           )}
           {notice && (
-            <p className="accounts-feedback tasas-notice" role="status">
+            <p className="floating-notice" role="status">
               {notice}
             </p>
           )}
@@ -286,6 +290,38 @@ export default function TasasPage() {
           )}
         </main>
       </div>
+      {pendingDelete && (
+        <div className="rate-delete-overlay" role="presentation">
+          <section
+            className="rate-delete-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-rate-title"
+          >
+            <h2 id="delete-rate-title">Eliminar tasa</h2>
+            <p>
+              ¿Eliminar la tasa {pendingDelete.moneda_origen} →{" "}
+              {pendingDelete.moneda_destino} del {pendingDelete.fecha}?
+            </p>
+            <div className="rate-delete-actions">
+              <button
+                className="rate-delete-cancel"
+                type="button"
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="rate-delete-confirm"
+                type="button"
+                onClick={() => void confirmDelete()}
+              >
+                Eliminar tasa
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -83,6 +83,10 @@
   flex-direction: column;
   width: 244px;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
   padding: 28px 20px 20px;
   border-right: 1px solid #dde4e1;
   background: #f4f8f6;
@@ -350,18 +354,24 @@
   --account-columns: 44px minmax(0, 1fr) 80px minmax(150px, 0.5fr);
   --account-column-gap: 16px;
   margin-top: 28px;
+  max-height: calc(100vh - 250px);
   border: 1px solid #e0e6e2;
   border-radius: 20px;
   background: white;
-  overflow: hidden;
+  overflow: auto;
 }
 .accounts-list > .section-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: grid;
   grid-template-columns: var(--account-columns);
   gap: var(--account-column-gap);
   margin: 0;
   padding: 22px 24px;
   border-bottom: 1px solid #e8ede9;
+  background: white;
+  box-shadow: 0 1px 0 #e8ede9;
 }
 .accounts-list > .section-heading > div {
   grid-column: 1 / span 2;
@@ -500,6 +510,12 @@
 .patrimonio-page .accounts-workspace {
   min-width: 0;
 }
+.patrimonio-page {
+  scrollbar-width: none;
+}
+.patrimonio-page::-webkit-scrollbar {
+  display: none;
+}
 .patrimonio-header {
   align-items: flex-end;
 }
@@ -566,7 +582,9 @@
 }
 .patrimonio-tables-scroll {
   min-width: 0;
+  max-height: calc(100vh - 300px);
   overflow-x: auto;
+  overflow-y: auto;
 }
 .patrimonio-tables {
   display: grid;
@@ -692,6 +710,9 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+.patrimonio-subtotal th:first-child {
+  text-align: right;
+}
 .patrimonio-rate-form {
   margin: 0 0 22px;
   padding: 22px 24px;
@@ -805,6 +826,14 @@
   padding: 20px 24px;
   border-bottom: 1px solid #e8ede9;
 }
+.tasas-history {
+  max-height: calc(100vh - 270px);
+  display: grid;
+  gap: 20px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
 .tasas-pair h2 {
   margin: 0;
   color: #173f3b;
@@ -873,6 +902,77 @@
 .tasas-notice {
   color: #315e51;
 }
+.floating-notice {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  z-index: 100;
+  width: fit-content;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 15px 20px;
+  transform: translateX(-50%);
+  border: 1px solid #9fc5ae;
+  border-radius: 12px;
+  background: #e6f4ea;
+  box-shadow: 0 12px 30px rgba(23, 63, 59, 0.2);
+  color: #315e51;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.rate-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(23, 63, 59, 0.42);
+}
+.rate-delete-dialog {
+  width: min(100%, 460px);
+  padding: 24px;
+  border: 1px solid #dce7e0;
+  border-radius: 16px;
+  background: #f6f8f7;
+  box-shadow: 0 24px 80px rgba(23, 63, 59, 0.28);
+}
+.rate-delete-dialog h2 {
+  margin: 0;
+  color: #173f3b;
+  font-size: 18px;
+}
+.rate-delete-dialog p {
+  margin: 12px 0 0;
+  color: #52685d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rate-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+.rate-delete-actions button {
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rate-delete-cancel {
+  border: 1px solid #c7d8d3;
+  background: white;
+  color: #426258;
+}
+.rate-delete-confirm {
+  border: 1px solid #a95046;
+  background: #a95046;
+  color: white;
+}
 .currency-create-panel,
 .currency-catalog {
   margin-top: 24px;
@@ -924,6 +1024,9 @@
   margin: 14px 0 0;
   color: #6c8176;
   font-size: 12px;
+}
+.currency-catalog .patrimonio-table-wrap {
+  overflow: visible;
 }
 .new-account-dialog {
   width: min(520px, calc(100vw - 32px));
@@ -1092,7 +1195,8 @@
     padding: 18px;
   }
   .patrimonio-currency-subtotal {
-    justify-items: start;
+    justify-items: end;
+    text-align: right;
   }
   .patrimonio-table th,
   .patrimonio-table td {
@@ -1135,6 +1239,9 @@
     padding-left: 52px;
   }
   .accounts-sidebar {
+    position: fixed;
+    top: 0;
+    height: 100vh;
     width: 215px;
     padding: 24px 14px;
   }
