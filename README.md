@@ -302,6 +302,8 @@ cargo test -p contrato -p aplicacion -p dominio
 
 ## Contribuciones
 
+Los PR del mismo repositorio hacia `main` pueden integrarse automáticamente cuando los tres jobs del CI pasan. La [guía de auto-merge](docs/ci-auto-merge.md) explica la configuración requerida en GitHub y cómo comprobar el flujo.
+
 1. Crear una rama a partir de `main` para cada cambio.
 2. Mantener el alcance del cambio claro y actualizar la documentación cuando corresponda.
 3. Ejecutar las verificaciones relacionadas con los archivos modificados.
