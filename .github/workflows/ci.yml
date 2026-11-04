@@ -41,6 +41,8 @@ jobs:
         run: mypy src
       - name: Run Import Linter
         run: PYTHONPATH=src lint-imports
+      - name: Run server validation tests
+        run: python -m pytest tests -q
 
   # FRONTEND (Next.js - TypeScript)
   frontend-lint:
