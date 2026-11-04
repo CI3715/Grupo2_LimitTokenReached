@@ -1,3 +1,4 @@
+pub mod autenticacion;
 pub mod categoria;
 pub mod crear_cuenta;
 pub mod cuenta;
@@ -8,6 +9,7 @@ pub mod patrimonio;
 pub mod tasa;
 
 // Re-exportaciones para uso cómodo desde otros crates
+pub use autenticacion::{IniciarSesionRequest, RegistrarUsuarioRequest, SesionDTO, UsuarioDTO};
 pub use categoria::{CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO};
 pub use crear_cuenta::CrearCuentaRequest;
 pub use cuenta::{CuentaDTO, TipoCuentaDTO};
@@ -23,6 +25,9 @@ pub use patrimonio::{
 pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
 
 // Módulos de pruebas
+#[cfg(test)]
+mod autenticacion_tests;
+
 #[cfg(test)]
 mod crear_cuenta_tests;
 
