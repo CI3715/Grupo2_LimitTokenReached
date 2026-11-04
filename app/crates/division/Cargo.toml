@@ -1,0 +1,11 @@
+[package]
+name = "division"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rust_decimal = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+proptest = "1.4"

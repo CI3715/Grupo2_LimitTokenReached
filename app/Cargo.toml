@@ -5,6 +5,7 @@ members = [
     "crates/aplicacion",
     "crates/infraestructura",
     "crates/contrato",
+    "crates/division",  
     "src-tauri",
 ]
 
@@ -39,3 +40,4 @@ dominio = { path = "crates/dominio" }
 aplicacion = { path = "crates/aplicacion" }
 infraestructura = { path = "crates/infraestructura" }
 contrato = { path = "crates/contrato" }
+division = { path = "crates/division" }  
