@@ -1,6 +1,7 @@
 # Servidor de Cuentas Claras
 
-Servidor REST hecho con FastAPI. Por ahora solo tiene el esqueleto del proyecto; el endpoint GET /ping se agrega en la siguiente rama.
+API REST con FastAPI para conectividad y autenticación. El servidor almacena
+cuentas de autenticación, no información financiera personal.
 
 ## Requisitos
 
@@ -11,28 +12,42 @@ No hace falta Docker para desarrollar.
 
 ## Instalación
 
-Desde la carpeta servidor:
+Desde la carpeta `servidor`:
 
     python -m venv .venv
     .venv\Scripts\Activate.ps1
-    pip install -e .
-    pip install -r requirements-dev.txt
+    pip install -e ".[qa-auth]"
 
-En Linux o Mac, el segundo comando es: source .venv/bin/activate
+En Linux o Mac, activa el entorno con `source .venv/bin/activate`.
 
-Si PowerShell no deja activar el entorno, corre una vez este comando y vuelve a intentar:
+Si PowerShell bloquea la activación, puedes ejecutar los comandos con
+`.venv\Scripts\python.exe` sin activar el entorno.
 
-    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+## Variables de entorno
 
-Si el proyecto está dentro de una carpeta de OneDrive, la instalación puede tardar bastante porque sincroniza cada archivo que se crea. Pausar la sincronización ayuda.
+La configuración se lee desde el archivo `.env` de la raíz del repositorio.
+Cópialo desde `.env.example` y genera un secreto para `JWT_SECRET` con:
+
+    python -c "import secrets; print(secrets.token_hex(32))"
+
+Configura `DATABASE_PATH` con una ruta relativa a la raíz del repositorio para
+la SQLite **del servidor**. `JWT_SECRET` debe ser privado y nunca se sube a Git.
+`JWT_ISSUER` identifica al emisor del token. `SERVER_HOST_IP` configura la URL
+para el cliente Tauri y debe estar en el entorno al compilarlo o ejecutarlo;
+Tauri no lee automáticamente el `.env` del servidor.
+`JWT_TTL_MINUTES` vale 60 por defecto; se puede bajar temporalmente a `1` para
+demostrar el vencimiento y luego restaurarlo a `60`.
 
 ## Cómo correrlo
 
-Con el entorno activado (se ve (.venv) al inicio de la terminal):
+Desde `servidor`, con el entorno activado:
 
-    uvicorn cuentas_claras.app.main:app --reload
+    python -m uvicorn cuentas_claras.app.main:app --reload --app-dir src
 
-Después abre http://127.0.0.1:8000/docs para ver la documentación de Swagger. Para apagarlo, Ctrl+C.
+Abre http://127.0.0.1:8000/docs para la documentación interactiva. Para
+detenerlo, usa Ctrl+C.
+HTTP es apropiado para desarrollo local; en un despliegue, configura HTTPS en
+el proxy o servidor frontal.
 
 ## Pruebas y revisiones
 
@@ -47,6 +62,22 @@ Después abre http://127.0.0.1:8000/docs para ver la documentación de Swagger. 
 - mypy revisa los tipos en modo estricto.
 - lint-imports revisa que se respete la regla de dependencia entre capas.
 
+Para correr la suite de aceptación E5 contra la API y una SQLite de prueba,
+instala el extra y usa la fábrica incluida:
+
+    python -m pip install -e ".[qa-auth]"
+
+En Linux o Mac:
+
+    JWT_TTL_MINUTES=60 CUENTAS_CLARAS_QA_AUTH_FACTORY=qa.entrega5.escenario_real:crear_escenario PYTHONPATH=src python -m pytest qa/entrega5
+
+En PowerShell:
+
+    $env:JWT_TTL_MINUTES = "60"
+    $env:CUENTAS_CLARAS_QA_AUTH_FACTORY = "qa.entrega5.escenario_real:crear_escenario"
+    $env:PYTHONPATH = "src"
+    python -m pytest qa/entrega5
+
 ## Estructura
 
     servidor/
@@ -58,13 +89,19 @@ Después abre http://127.0.0.1:8000/docs para ver la documentación de Swagger. 
         contrato/         modelos de lo que viaja por la API
       tests/
       pyproject.toml
-      requirements-dev.txt
+      requirements.txt
 
 Las dependencias van hacia adentro: app usa a infraestructura, esta a aplicacion, y aplicacion a dominio. Nunca al revés. El contrato "layers" del pyproject.toml lo verifica con lint-imports.
 
-## Pendiente
+La base SQLite de esta API es independiente de `libro.db`, que permanece en el
+dispositivo. Ninguna ruta de autenticación recibe datos financieros.
 
-- Endpoint GET /ping
-- Exportar el openapi.yaml
-- CI en GitHub Actions
-- Configuración para desplegar en Render
+## OpenAPI
+
+Desde `servidor`, con el entorno activado:
+
+    PYTHONPATH=src python scripts/exportar_openapi.py
+
+Comprueba que el contrato versionado esté actualizado con:
+
+    PYTHONPATH=src python scripts/exportar_openapi.py --check

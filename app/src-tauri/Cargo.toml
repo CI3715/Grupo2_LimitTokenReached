@@ -45,3 +45,6 @@ contrato = { workspace = true }
 thiserror = { workspace = true }
 log = "0.4"
 tauri-plugin-log = "2"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+keyring = "3"

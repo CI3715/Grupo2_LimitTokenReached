@@ -16,6 +16,7 @@ __pycache__/
 .venv/
 venv/
 .env
+servidor/data/
 
 # IDEs y sistema
 .vscode/

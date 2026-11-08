@@ -19,11 +19,39 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Interfaz           | Pantalla de estado de conexión con modos claro y oscuro. Listado y creación de cuentas. Detalle de cuenta con saldo, composición y lista de movimientos. Formulario para registrar movimientos y flujo de corrección. |
 | Frontend           | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri.                                                                                                                                           |
-| Aplicación nativa  | Estructura y configuración inicial de Tauri. Gestión de almacenamiento local.                                                                                                                                         |
-| Backend            | Servidor FastAPI con endpoint `GET /ping`.                                                                                                                                                                            |
+| Aplicación nativa  | Tauri administra persistencia financiera local y comandos HTTP de autenticación; el token de sesión se conserva en el almacén seguro del sistema.                                                                      |
+| Backend            | FastAPI con `GET /ping`, registro `POST /usuarios`, login `POST /sesiones` y perfil protegido `GET /usuarios/yo`. SQLite del servidor guarda únicamente usuarios y hash de contraseña.                               |
 | Gestión financiera | **Entrega 3 completada:** Registro de gastos e ingresos, corrección de movimientos con ajustes inmutables, cálculo automático de saldo y funcionamiento 100% offline (Local-First).                                   |
 
 El indicador «Conectado» de la interfaz no verifica todavía la disponibilidad real del servidor en todas las rutas, pero el núcleo de la aplicación funciona de forma autónoma.
+
+### Entrega 5: registro e inicio de sesión
+
+La autenticación es opcional: solo identifica la cuenta ante el servidor. Las
+cuentas financieras, movimientos, saldos y tasas siguen en el SQLite local y no
+se envían con las peticiones de autenticación. La API guarda contraseñas con
+Argon2id y emite tokens JWT con 60 minutos de vigencia.
+
+Para desarrollo, copia `.env.example` como `.env` en la raíz y configura
+`JWT_SECRET` con un valor generado localmente. No subas `.env` ni compartas ese
+secreto. Consulta `servidor/README.md` para iniciar la API y generar el OpenAPI.
+La nota sobre almacenamiento de sesión Android está en
+[`docs/deuda-tecnica.md`](docs/deuda-tecnica.md).
+La vigencia normal es de 60 minutos; para demostrar vencimiento, configura
+temporalmente `JWT_TTL_MINUTES=1` y reinicia el servidor.
+
+Para probar la API desde `servidor`:
+
+```bash
+python -m pip install -e .
+python -m uvicorn cuentas_claras.app.main:app --reload --app-dir src
+```
+
+La aplicación de escritorio lee `SERVER_HOST_IP` durante la compilación de
+Rust; esa variable debe estar en el entorno de `pnpm run tauri dev` (no se carga
+automáticamente desde el `.env` del servidor). En Android Emulator, el host de
+la computadora suele ser `http://10.0.2.2:8000`; en escritorio local,
+`http://localhost:8000`.
 
 ### Entrega 4: monedas, tasas y patrimonio
 
@@ -109,31 +137,26 @@ La interfaz estará disponible en `http://localhost:3000`. Los archivos de la in
 
 ### Ejecutar el backend
 
-Los siguientes comandos se ejecutan desde la raíz del repositorio. No es necesario activar el entorno virtual.
+La configuración se lee desde `.env` en la raíz del repositorio. Los comandos
+se ejecutan desde `servidor`:
 
-#### Windows — PowerShell:
+#### Windows — PowerShell
 
 ```powershell
-python -m venv servidor/.venv
-./servidor/.venv/Scripts/python.exe -m pip install -e ./servidor
-./servidor/.venv/Scripts/python.exe -m pip install -r ./servidor/requirements.txt pydantic-settings
-cd servidor/src/cuentas_claras/app
-../../../.venv/Scripts/python.exe -m uvicorn main:app --reload
+cd servidor
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[qa-auth]"
+.\.venv\Scripts\python.exe -m uvicorn cuentas_claras.app.main:app --reload --app-dir src
 ```
 
-#### Linux / macOS:
+#### Linux / macOS
 
 ```bash
-python3 -m venv servidor/.venv
-./servidor/.venv/bin/python -m pip install -e ./servidor
-./servidor/.venv/bin/python -m pip install -r ./servidor/requirements.txt pydantic-settings
-cd servidor/src/cuentas_claras/app
-../../../.venv/bin/python -m uvicorn main:app --reload
+cd servidor
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[qa-auth]"
+.venv/bin/python -m uvicorn cuentas_claras.app.main:app --reload --app-dir src
 ```
-
-El arranque se realiza desde esa carpeta porque la implementación actual importa `config.config` como un módulo local. Se instala `pydantic-settings` explícitamente porque el código lo utiliza y todavía no está declarado en las dependencias.
-
-El endpoint actual no utiliza `SERVER_HOST_IP` para consultar otro servicio; no es necesario definir esa variable para iniciar el backend.
 
 Con el servidor en ejecución:
 
@@ -141,9 +164,18 @@ Con el servidor en ejecución:
 | ------------------------- | ------------------------------------ |
 | Documentación interactiva | `http://127.0.0.1:8000/docs`         |
 | Esquema OpenAPI           | `http://127.0.0.1:8000/openapi.json` |
-| Endpoint de conexión      | `http://127.0.0.1:8000/ping`         |
+| Conexión                  | `GET /ping`                          |
+| Registro                  | `POST /usuarios`                     |
+| Inicio de sesión          | `POST /sesiones`                     |
+| Perfil autenticado        | `GET /usuarios/yo`                   |
 
-`GET /ping` responde con HTTP 200 OK y un objeto JSON de estado, mensaje, versión y timestamp. En el flujo de esta entrega, quien realiza el GET es Rust desde la aplicación; `/ping` solo responde el contrato JSON. La latencia se mide en la aplicación cliente y no forma parte del contrato del endpoint.
+Para ejecutar los criterios de aceptación E5 desde `servidor`:
+
+```bash
+JWT_TTL_MINUTES=60 \
+CUENTAS_CLARAS_QA_AUTH_FACTORY=qa.entrega5.escenario_real:crear_escenario \
+PYTHONPATH=src python -m pytest qa/entrega5
+```
 
 ---
 

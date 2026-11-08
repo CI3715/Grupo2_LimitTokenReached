@@ -1,7 +1,9 @@
 ﻿import type { Metadata } from "next";
 
 import type { ReactNode } from "react";
+import { AuthSessionIndicator } from "@/features/auth/AuthSessionIndicator";
 
+import "./auth.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -18,7 +20,10 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        {children}
+        <AuthSessionIndicator />
+      </body>
     </html>
   );
 }
