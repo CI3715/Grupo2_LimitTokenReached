@@ -12,10 +12,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from cuentas_claras.app.config.config import settings
 from cuentas_claras.app.main import app
 from cuentas_claras.contrato.autenticacion import UsuarioDTO
 from cuentas_claras.infraestructura.base_datos import Base, obtener_db
-from cuentas_claras.infraestructura.configuracion import settings
 from cuentas_claras.infraestructura.modelos_usuario import UsuarioDB
 
 
@@ -74,6 +74,7 @@ def test_registro_persiste_hash_y_responde_solo_usuario_publico(
     assert respuesta.status_code == 201
     dto = UsuarioDTO.model_validate(respuesta.json())
     assert dto.nombre_usuario == registro["nombre_usuario"]
+    assert "id" not in respuesta.json()
     assert "hash_contrasena" not in respuesta.text
     assert registro["contrasena"] not in respuesta.text
     assert registro["contrasena"] not in caplog.text
@@ -198,6 +199,7 @@ def test_token_permite_perfil_y_perfil_rechaza_token_invalido(
     perfil = cliente.get("/usuarios/yo", headers={"Authorization": f"Bearer {token}"})
     assert perfil.status_code == 200
     assert perfil.json()["nombre_visible"] == registro["nombre_visible"]
+    assert "id" not in perfil.json()
     assert cliente.get("/usuarios/yo").status_code == 401
     assert (
         cliente.get(

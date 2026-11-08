@@ -46,5 +46,14 @@ thiserror = { workspace = true }
 log = "0.4"
 tauri-plugin-log = "2"
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", features = ["linux-native-sync-persistent", "crypto-rust"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3", features = ["windows-native"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+keyring = { version = "3", features = ["apple-native"] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "linux", target_os = "windows", target_os = "macos", target_os = "ios")))'.dependencies]
 keyring = "3"

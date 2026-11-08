@@ -170,7 +170,8 @@ def test_sesion_dura_60_minutos_y_perfil_exige_bearer_valido(
         "/usuarios/yo", headers={"Authorization": f"Bearer {sesion.token}"}
     )
     assert perfil.status_code == 200
-    assert UsuarioDTO.model_validate_json(perfil.text).id == usuario["id"]
+    assert UsuarioDTO.model_validate_json(perfil.text).correo == usuario["correo"]
+    assert "id" not in perfil.json()
     assert registro_auth["contrasena"] not in perfil.text
 
 

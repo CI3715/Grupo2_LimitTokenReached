@@ -10,7 +10,6 @@
     "contrasena": "Clave de prueba 123"
   },
   "usuario": {
-    "id": "usuario-de-prueba",
     "nombre_usuario": "usuario.qa",
     "nombre_visible": "Usuario de prueba",
     "correo": "usuario.qa@example.com",

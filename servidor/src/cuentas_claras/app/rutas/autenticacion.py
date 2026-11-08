@@ -62,7 +62,6 @@ def obtener_servicio_autenticacion(
 
 def _usuario_dto(usuario: Usuario) -> UsuarioDTO:
     return UsuarioDTO(
-        id=usuario.id,
         nombre_usuario=usuario.nombre_usuario,
         nombre_visible=usuario.nombre_visible,
         correo=usuario.correo,

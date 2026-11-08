@@ -90,7 +90,6 @@ class IniciarSesionRequest(_ContratoAuth):
 
 
 class UsuarioDTO(_ContratoAuth):
-    id: StrictStr = Field(min_length=1)
     nombre_usuario: StrictStr
     nombre_visible: StrictStr
     correo: StrictStr

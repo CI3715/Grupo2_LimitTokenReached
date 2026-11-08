@@ -14,7 +14,8 @@ export function AccountsSidebar({
     | "patrimonio"
     | "tasas"
     | "monedas"
-    | "auth";
+    | "auth"
+    | "profile";
 }) {
   const [open, setOpen] = useState(false);
 
@@ -111,6 +112,14 @@ export function AccountsSidebar({
             onClick={() => setOpen(false)}
           >
             <span aria-hidden="true">◎</span> Iniciar sesión
+          </Link>
+          <Link
+            href="/perfil/"
+            aria-current={active === "profile" ? "page" : undefined}
+            className={active === "profile" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">◉</span> Mi perfil
           </Link>
         </nav>
       </aside>

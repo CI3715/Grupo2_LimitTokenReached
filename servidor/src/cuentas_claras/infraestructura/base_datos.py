@@ -4,7 +4,7 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from cuentas_claras.infraestructura.configuracion import BASE_DIR, settings
+from cuentas_claras.app.config.config import BASE_DIR, settings
 
 
 class Base(DeclarativeBase):

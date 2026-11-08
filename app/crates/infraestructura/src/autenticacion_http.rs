@@ -17,7 +17,6 @@ pub struct InicioSesionHttp {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UsuarioHttp {
-    pub id: String,
     pub nombre_usuario: String,
     pub nombre_visible: String,
     pub correo: String,
