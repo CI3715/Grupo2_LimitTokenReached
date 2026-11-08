@@ -1,0 +1,118 @@
+.auth-card {
+  width: min(100%, 560px);
+  margin: 32px auto;
+  padding: 32px;
+  border: 1px solid #e1e6e3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(34, 65, 58, 0.07);
+}
+.auth-card h1 {
+  margin: 8px 0;
+  color: #1b2926;
+}
+.auth-card > p {
+  color: #61736b;
+  line-height: 1.5;
+}
+.auth-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+.auth-form label {
+  margin-top: 8px;
+  color: #344840;
+  font-weight: 600;
+}
+.auth-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #ccd8d2;
+  border-radius: 9px;
+  background: #fbfdfc;
+  color: #1b2926;
+  font: inherit;
+}
+.auth-form input[aria-invalid="true"] {
+  border-color: #b83b3b;
+}
+.auth-form .account-primary {
+  justify-self: start;
+  margin-top: 12px;
+}
+.auth-error,
+.auth-field-error {
+  margin: 4px 0;
+  color: #a52e2e !important;
+}
+.auth-footer {
+  margin-top: 22px;
+}
+.auth-footer a,
+.auth-link-button {
+  color: #2f6d5f;
+  font-weight: 700;
+}
+.auth-link-button {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 9px;
+  background: #e8f1ed;
+  text-decoration: none;
+}
+.auth-note {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e1e6e3;
+  font-size: 13px;
+}
+.auth-session-indicator {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(90vw, 460px);
+  padding: 10px 14px;
+  border: 1px solid #d5e2dc;
+  border-radius: 12px;
+  background: #fff;
+  color: #356b5e;
+  box-shadow: 0 8px 24px rgba(34, 65, 58, 0.1);
+  overflow-wrap: anywhere;
+}
+.auth-session-indicator button {
+  flex-shrink: 0;
+  padding: 0;
+  color: #356b5e;
+  font: inherit;
+  font-weight: 700;
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+}
+.auth-session-indicator span {
+  color: #8d3939;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .auth-session-indicator {
+    top: 12px;
+    right: 12px;
+    left: 70px;
+    max-width: none;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+@media (max-width: 700px) {
+  .auth-card {
+    margin: 24px 0;
+    padding: 24px;
+  }
+}

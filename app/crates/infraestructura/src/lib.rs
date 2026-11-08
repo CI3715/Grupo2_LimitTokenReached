@@ -6,6 +6,7 @@ pub mod repositorio_memoria;
 //
 
 pub mod bd;
+pub mod autenticacion_http;
 pub mod repositorio_categorias_sqlite;
 pub mod repositorio_cuentas_sqlite;
 pub mod repositorio_monedas_sqlite;
@@ -21,6 +22,10 @@ pub use repositorio_movimientos_sqlite::RepositorioMovimientosSqlite;
 pub use repositorio_patrimonio_sqlite::RepositorioPatrimonioSqlite;
 pub use repositorio_preferencias_sqlite::RepositorioPreferenciasSqlite;
 pub use repositorio_tasas_sqlite::RepositorioTasasSqlite;
+pub use autenticacion_http::{
+    ClienteAutenticacionHttp, ErrorApi, InicioSesionHttp, RegistroUsuarioHttp, SesionHttp,
+    UsuarioHttp,
+};
 
 // Adaptador Real del Reloj del Sistema
 pub struct RelojSistema;

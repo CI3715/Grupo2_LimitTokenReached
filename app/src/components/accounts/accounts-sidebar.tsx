@@ -8,7 +8,13 @@ import logo from "@/img/logo-rm-bg.png";
 export function AccountsSidebar({
   active = "accounts",
 }: {
-  active?: "accounts" | "connection" | "patrimonio" | "tasas" | "monedas";
+  active?:
+    | "accounts"
+    | "connection"
+    | "patrimonio"
+    | "tasas"
+    | "monedas"
+    | "auth";
 }) {
   const [open, setOpen] = useState(false);
 
@@ -97,6 +103,14 @@ export function AccountsSidebar({
             onClick={() => setOpen(false)}
           >
             <span aria-hidden="true">⌁</span> Conexión
+          </Link>
+          <Link
+            href="/login/"
+            aria-current={active === "auth" ? "page" : undefined}
+            className={active === "auth" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">◎</span> Iniciar sesión
           </Link>
         </nav>
       </aside>
