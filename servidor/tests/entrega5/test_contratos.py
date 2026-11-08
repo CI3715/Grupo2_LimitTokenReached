@@ -21,7 +21,8 @@ def test_los_dtos_python_aceptan_el_contrato_compartido(
     RegistrarUsuarioRequest.model_validate(contratos_auth["registro"])
     IniciarSesionRequest.model_validate(contratos_auth["inicio_sesion"])
     assert (
-        UsuarioDTO.model_validate(contratos_auth["usuario"]).id == "usuario-de-prueba"
+        UsuarioDTO.model_validate(contratos_auth["usuario"]).correo
+        == contratos_auth["usuario"]["correo"]
     )
     assert (
         SesionDTO.model_validate(contratos_auth["sesion"]).vence_en.tzinfo is not None
@@ -95,8 +96,10 @@ def test_contrato_de_auth_rechaza_datos_financieros(
     assert error_datos_invalidos(resultado.value.errors()).campo == "general"
 
 
-@pytest.mark.parametrize("campo", ["contrasena", "password", "hash_contrasena", "hash"])
-def test_usuario_publico_rechaza_campos_secretos(
+@pytest.mark.parametrize(
+    "campo", ["id", "contrasena", "password", "hash_contrasena", "hash"]
+)
+def test_usuario_publico_rechaza_id_y_campos_secretos(
     contratos_auth: dict[str, Any], campo: str
 ) -> None:
     with pytest.raises(ValidationError):

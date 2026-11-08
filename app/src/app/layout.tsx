@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { AuthSessionIndicator } from "@/features/auth/AuthSessionIndicator";
+import { AuthSessionProvider } from "@/features/auth/useAuthSession";
 
 import "./auth.css";
 import "./globals.css";
@@ -21,8 +22,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="es" suppressHydrationWarning>
       <body>
-        {children}
-        <AuthSessionIndicator />
+        <AuthSessionProvider>
+          {children}
+          <AuthSessionIndicator />
+        </AuthSessionProvider>
       </body>
     </html>
   );

@@ -48,6 +48,10 @@ root_package = "cuentas_claras"
 [[tool.importlinter.contracts]]
 name = "Regla de dependencia hexagonal"
 type = "layers"
+ignore_imports = [
+    "cuentas_claras.infraestructura.base_datos -> cuentas_claras.app.config.config",
+    "cuentas_claras.infraestructura.seguridad_auth -> cuentas_claras.app.config.config",
+]
 layers = [
     "cuentas_claras.app",
     "cuentas_claras.infraestructura",

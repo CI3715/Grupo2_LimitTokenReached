@@ -13,7 +13,6 @@ export interface IniciarSesionRequest {
 }
 
 export interface UsuarioDTO {
-  id: string;
   nombre_usuario: string;
   nombre_visible: string;
   correo: string;

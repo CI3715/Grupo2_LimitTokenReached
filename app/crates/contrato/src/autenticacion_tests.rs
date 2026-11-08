@@ -46,8 +46,8 @@ fn requests_de_auth_rechazan_datos_financieros_adicionales() {
 }
 
 #[test]
-fn perfil_no_admite_contrasena_ni_hash() {
-    for campo in ["contrasena", "password", "hash", "hash_contrasena"] {
+fn perfil_no_admite_id_ni_campos_secretos() {
+    for campo in ["id", "contrasena", "password", "hash", "hash_contrasena"] {
         let mut usuario = contratos()["usuario"].clone();
         usuario[campo] = json!("secreto");
         assert!(serde_json::from_value::<UsuarioDTO>(usuario).is_err());

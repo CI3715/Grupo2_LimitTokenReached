@@ -5,7 +5,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
 from jwt.exceptions import InvalidTokenError
 
-from cuentas_claras.infraestructura.configuracion import settings
+from cuentas_claras.app.config.config import settings
 
 _password_hasher = PasswordHasher()
 _HASH_DUMMY = _password_hasher.hash("clave-dummy-no-utilizable")

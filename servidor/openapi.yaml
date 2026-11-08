@@ -203,10 +203,6 @@ components:
       title: SesionDTO
     UsuarioDTO:
       properties:
-        id:
-          type: string
-          minLength: 1
-          title: Id
         nombre_usuario:
           type: string
           title: Nombre Usuario
@@ -223,7 +219,6 @@ components:
       additionalProperties: false
       type: object
       required:
-      - id
       - nombre_usuario
       - nombre_visible
       - correo
