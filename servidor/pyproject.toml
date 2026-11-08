@@ -12,6 +12,9 @@ dependencies = [
     "pydantic",
     "pydantic-settings",
     "email-validator>=2,<3",
+    "sqlalchemy",
+    "argon2-cffi",
+    "pyJWT",
 ]
 
 [project.optional-dependencies]
