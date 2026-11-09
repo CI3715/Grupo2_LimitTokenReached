@@ -28,6 +28,7 @@ export interface MovimientoDTO extends RegistrarMovimientoRequest {
   id: string;
   es_correccion: boolean;
   movimiento_original_id: string | null;
+  monto_resultante: string;
 }
 
 export interface MovementFormError {

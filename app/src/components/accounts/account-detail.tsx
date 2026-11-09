@@ -299,7 +299,7 @@ export function AccountDetail({
                           <div className="movement-description">
                             <strong>Corrección</strong>
                             <span className="movement-adjustment-amount">
-                              Nuevo monto: {amount(value.plus(minorUnits(correction.monto)), currency)}
+                              Nuevo monto: {amount(minorUnits(correction.monto_resultante), currency)}
                             </span>
                             <span className="movement-date">{correction.fecha}</span>
                           </div>
