@@ -17,7 +17,7 @@ const MIGRACIONES: &[&str] = &[
     include_str!("../migrations/008_decimales_moneda.sql"),
     include_str!("../migrations/009_correcion_decimales_USDT.sql"),
     include_str!("../migrations/010_corregir_direccion_tasas.sql"),
-    include_str!("../migrations/011_orden_ajustes.sql")
+    include_str!("../migrations/011_orden_ajustes.sql"),
 ];
 
 pub struct BaseDatos(pub Mutex<Connection>);

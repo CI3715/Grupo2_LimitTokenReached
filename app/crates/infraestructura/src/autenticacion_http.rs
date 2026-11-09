@@ -85,10 +85,7 @@ impl ClienteAutenticacionHttp {
         Self::deserializar(respuesta).await
     }
 
-    pub async fn iniciar_sesion(
-        &self,
-        datos: &InicioSesionHttp,
-    ) -> Result<SesionHttp, ErrorApi> {
+    pub async fn iniciar_sesion(&self, datos: &InicioSesionHttp) -> Result<SesionHttp, ErrorApi> {
         let respuesta = self
             .cliente
             .post(format!("{}/sesiones", self.base_url))

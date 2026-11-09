@@ -174,6 +174,7 @@ fn guardar_ajuste_actualiza_el_saldo_y_persiste_la_correccion() {
     assert_eq!(dto.id, ajuste_id.to_string());
     assert!(dto.es_correccion);
     assert_eq!(dto.movimiento_original_id, Some(movimiento_id.to_string()));
+    assert_eq!(dto.monto_resultante, "30");
 
     assert_eq!(consultar_saldo(&repo, &cuenta_id), Decimal::new(130, 0));
 
@@ -233,6 +234,8 @@ fn historial_ordena_las_correcciones_por_secuencia_y_no_por_uuid() {
     assert_eq!(correcciones.len(), 2);
     assert_eq!(correcciones[0].id, segunda.id.to_string());
     assert_eq!(correcciones[1].id, primera.id.to_string());
+    assert_eq!(correcciones[0].monto_resultante, "30");
+    assert_eq!(correcciones[1].monto_resultante, "40");
 }
 
 #[test]

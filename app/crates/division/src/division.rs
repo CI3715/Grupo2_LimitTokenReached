@@ -31,9 +31,7 @@ pub fn calcular_division(
         ReglaDivision::Porcentajes { porcentajes } => {
             dividir_por_porcentajes(monto_total, porcentajes)
         }
-        ReglaDivision::MontosFijos { montos } => {
-            dividir_por_montos_fijos(monto_total, montos)
-        }
+        ReglaDivision::MontosFijos { montos } => dividir_por_montos_fijos(monto_total, montos),
     }
 }
 
@@ -54,9 +52,7 @@ fn dividir_partes_iguales(
     let mut participantes_ordenados: Vec<String> = participantes.to_vec();
     participantes_ordenados.sort();
 
-    let residuo_centavos = (residuo * Decimal::new(100, 0))
-        .to_i32()
-        .unwrap_or(0);
+    let residuo_centavos = (residuo * Decimal::new(100, 0)).to_i32().unwrap_or(0);
 
     let mut partes = Vec::new();
     for (i, username) in participantes_ordenados.iter().enumerate() {
@@ -101,9 +97,7 @@ fn dividir_por_porcentajes(
     // Calcular residuo
     let suma_truncada: Decimal = partes_truncadas.iter().map(|(_, m)| *m).sum();
     let residuo = monto_total - suma_truncada;
-    let residuo_centavos = (residuo * Decimal::new(100, 0))
-        .to_i32()
-        .unwrap_or(0);
+    let residuo_centavos = (residuo * Decimal::new(100, 0)).to_i32().unwrap_or(0);
 
     // Ordenar alfabéticamente para repartir residuo
     partes_truncadas.sort_by(|a, b| a.0.cmp(&b.0));

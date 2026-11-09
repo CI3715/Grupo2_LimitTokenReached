@@ -320,13 +320,8 @@ async fn usa_la_tasa_mas_reciente_hasta_la_fecha_consultada() {
 #[tokio::test]
 async fn usa_la_inversa_cuando_no_hay_tasa_directa() {
     let repo_patrimonio = RepositorioPatrimonioPrueba::nuevo();
-    let repo_tasas = RepositorioTasasPrueba::con_tasas(vec![tasa(
-        "1",
-        "2",
-        "2026-10-27",
-        "USD",
-        "EUR",
-    )]);
+    let repo_tasas =
+        RepositorioTasasPrueba::con_tasas(vec![tasa("1", "2", "2026-10-27", "USD", "EUR")]);
 
     let respuesta = consultar_con_fecha("2026-10-28", &repo_patrimonio, &repo_tasas)
         .await
@@ -352,13 +347,8 @@ async fn suma_conversiones_antes_de_redondear_el_total() {
             saldo: "0.01".to_string(),
         },
     ]);
-    let repo_tasas = RepositorioTasasPrueba::con_tasas(vec![tasa(
-        "1",
-        "0.5",
-        "2026-10-27",
-        "EUR",
-        "USD",
-    )]);
+    let repo_tasas =
+        RepositorioTasasPrueba::con_tasas(vec![tasa("1", "0.5", "2026-10-27", "EUR", "USD")]);
 
     let respuesta = consultar_con_fecha("2026-10-28", &repo_patrimonio, &repo_tasas)
         .await

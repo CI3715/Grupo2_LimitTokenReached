@@ -4,6 +4,7 @@ use chrono::NaiveDate;
 use rusqlite::{Connection, params};
 use rust_decimal::Decimal;
 use serde_json::json;
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use aplicacion::puertos::RepositorioMovimientos;
@@ -60,6 +61,50 @@ fn cargar_movimiento_desde(conn: &Connection, id: &Uuid) -> Result<Movimiento, S
         categoria_id: Uuid::parse_str(&fila.5).map_err(|e| e.to_string())?,
         nota: fila.6,
     })
+}
+
+fn calcular_monto_resultante_ajuste(
+    conn: &Connection,
+    movimiento_original_id: &Uuid,
+    ajuste_id: &Uuid,
+) -> Result<Decimal, String> {
+    let monto_original: String = conn
+        .query_row(
+            "SELECT monto FROM movimiento WHERE id = ?1",
+            params![movimiento_original_id.to_string()],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("No se pudo obtener el monto original: {e}"))?;
+    let mut monto_resultante = Decimal::from_str_exact(&monto_original)
+        .map_err(|e| format!("Monto original inválido: {e}"))?;
+    let orden: i64 = conn
+        .query_row(
+            "SELECT orden FROM ajuste WHERE id = ?1",
+            params![ajuste_id.to_string()],
+            |row| row.get(0),
+        )
+        .map_err(|e| format!("No se pudo obtener el orden de la corrección: {e}"))?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT variacion_monto
+             FROM ajuste
+             WHERE movimiento_original_id = ?1 AND orden <= ?2
+             ORDER BY orden ASC",
+        )
+        .map_err(|e| format!("No se pudieron consultar las correcciones: {e}"))?;
+    let variaciones = stmt
+        .query_map(params![movimiento_original_id.to_string(), orden], |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(|e| format!("No se pudieron leer las correcciones: {e}"))?;
+
+    for variacion in variaciones {
+        let variacion = Decimal::from_str_exact(&variacion.map_err(|e| e.to_string())?)
+            .map_err(|e| format!("Variación inválida: {e}"))?;
+        monto_resultante += variacion;
+    }
+
+    Ok(monto_resultante)
 }
 
 pub struct RepositorioMovimientosSqlite {
@@ -146,6 +191,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 TipoMovimiento::Gasto => TipoMovimientoDTO::Gasto,
             },
             monto: movimiento.monto.to_string(),
+            monto_resultante: movimiento.monto.to_string(),
             fecha: movimiento.fecha.to_string(),
             categoria_id: Some(movimiento.categoria_id.to_string()),
             nota: movimiento.nota.clone(),
@@ -221,6 +267,8 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         .map_err(|e| format!("No se pudo actualizar el saldo: {e}"))?;
 
         let movimiento_original = cargar_movimiento_desde(&tx, &ajuste.movimiento_original_id)?;
+        let monto_resultante =
+            calcular_monto_resultante_ajuste(&tx, &ajuste.movimiento_original_id, &ajuste.id)?;
 
         tx.commit()
             .map_err(|e| format!("Error al confirmar el ajuste: {e}"))?;
@@ -233,6 +281,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 TipoMovimiento::Gasto => TipoMovimientoDTO::Gasto,
             },
             monto: ajuste.variacion_monto.to_string(),
+            monto_resultante: monto_resultante.to_string(),
             fecha: movimiento_original.fecha.to_string(),
             categoria_id: Some(movimiento_original.categoria_id.to_string()),
             nota: None,
@@ -346,7 +395,8 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 categoria_id,
                 nota,
                 es_correccion,
-                movimiento_original_id
+                movimiento_original_id,
+                orden_evento
             FROM (
                 SELECT
                     m.id AS id,
@@ -398,6 +448,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     row.get::<_, Option<String>>(6)?,
                     row.get::<_, i64>(7)? != 0,
                     row.get::<_, Option<String>>(8)?,
+                    row.get::<_, i64>(9)?,
                 ))
             })
             .map_err(|e| format!("No se pudo consultar el historial: {e}"))?;
@@ -405,6 +456,36 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         let filas = filas
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| format!("No se pudieron leer las filas del historial: {e}"))?;
+
+        let mut montos_originales = HashMap::new();
+        let mut correcciones_por_original: HashMap<String, Vec<(String, Decimal, i64)>> =
+            HashMap::new();
+        for fila in &filas {
+            if fila.7 {
+                if let (Some(original_id), Ok(variacion)) =
+                    (fila.8.clone(), Decimal::from_str_exact(&fila.3))
+                {
+                    correcciones_por_original
+                        .entry(original_id)
+                        .or_default()
+                        .push((fila.0.clone(), variacion, fila.9));
+                }
+            } else if let Ok(monto) = Decimal::from_str_exact(&fila.3) {
+                montos_originales.insert(fila.0.clone(), monto);
+            }
+        }
+
+        let mut montos_resultantes = HashMap::new();
+        for (original_id, mut correcciones) in correcciones_por_original {
+            let Some(mut monto_actual) = montos_originales.get(&original_id).copied() else {
+                continue;
+            };
+            correcciones.sort_by_key(|(_, _, orden)| *orden);
+            for (id, variacion, _) in correcciones {
+                monto_actual += variacion;
+                montos_resultantes.insert(id, monto_actual.to_string());
+            }
+        }
 
         filas
             .into_iter()
@@ -419,6 +500,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     nota,
                     es_correccion,
                     movimiento_original_id,
+                    _orden_evento,
                 )| {
                     let tipo = match tipo.as_str() {
                         "Ingreso" => TipoMovimientoDTO::Ingreso,
@@ -431,10 +513,18 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     };
 
                     Ok(MovimientoDTO {
-                        id,
+                        id: id.clone(),
                         cuenta_id,
                         tipo,
-                        monto,
+                        monto: monto.clone(),
+                        monto_resultante: if es_correccion {
+                            montos_resultantes
+                                .get(&id)
+                                .cloned()
+                                .unwrap_or_else(|| monto.clone())
+                        } else {
+                            monto.clone()
+                        },
                         fecha,
                         categoria_id: Some(categoria_id),
                         nota,
