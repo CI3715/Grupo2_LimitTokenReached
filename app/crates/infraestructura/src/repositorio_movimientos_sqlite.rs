@@ -168,8 +168,16 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         tx.execute(
             "
             INSERT INTO ajuste
-                (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto, fecha)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto, fecha, orden)
+            VALUES (
+                ?1, ?2, ?3, ?4, ?5, ?6,
+                COALESCE(
+                    (SELECT MAX(orden) + 1
+                     FROM ajuste
+                     WHERE movimiento_original_id = ?2),
+                    1
+                )
+            )
             ",
             params![
                 ajuste.id.to_string(),
@@ -248,7 +256,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                    tipo_original, variacion_monto
             FROM ajuste
             WHERE movimiento_original_id = ?1
-            ORDER BY rowid
+            ORDER BY orden ASC
             ",
             )
             .map_err(|e| e.to_string())?;
@@ -361,18 +369,19 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     a.cuenta_id AS cuenta_id,
                     a.tipo_original AS tipo,
                     a.variacion_monto AS monto,
-                    m.fecha AS fecha,
+                    a.fecha AS fecha,
                     m.categoria_id AS categoria_id,
                     NULL AS nota,
                     1 AS es_correccion,
                     a.movimiento_original_id AS movimiento_original_id,
-                    1 AS orden_evento
+                    a.orden AS orden_evento
                 FROM ajuste a
                 INNER JOIN movimiento m
                     ON m.id = a.movimiento_original_id
                 WHERE a.cuenta_id = ?1
             )
-            ORDER BY fecha DESC, orden_evento ASC, id ASC
+            ORDER BY fecha DESC, es_correccion ASC, movimiento_original_id ASC,
+                     orden_evento DESC
             ",
             )
             .map_err(|e| format!("No se pudo preparar el historial: {e}"))?;

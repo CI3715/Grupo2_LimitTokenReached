@@ -186,6 +186,56 @@ fn guardar_ajuste_actualiza_el_saldo_y_persiste_la_correccion() {
 }
 
 #[test]
+fn historial_ordena_las_correcciones_por_secuencia_y_no_por_uuid() {
+    let repo = crear_repositorio();
+    let cuenta_id = Uuid::from_u128(1000);
+    let movimiento_id = Uuid::from_u128(4100);
+
+    repo.guardar_movimiento(&Movimiento {
+        id: movimiento_id,
+        cuenta_id,
+        tipo: TipoMovimiento::Ingreso,
+        monto: Decimal::new(50, 0),
+        fecha: NaiveDate::from_ymd_opt(2026, 10, 22).expect("Fecha de prueba inválida"),
+        categoria_id: Uuid::from_u128(8),
+        nota: None,
+    })
+    .expect("No se pudo guardar el movimiento original");
+
+    let primera = Ajuste {
+        id: Uuid::from_u128(9000),
+        movimiento_original_id: movimiento_id,
+        cuenta_id,
+        tipo_original: TipoMovimiento::Ingreso,
+        variacion_monto: Decimal::new(-10, 0),
+    };
+    let segunda = Ajuste {
+        id: Uuid::from_u128(1),
+        movimiento_original_id: movimiento_id,
+        cuenta_id,
+        tipo_original: TipoMovimiento::Ingreso,
+        variacion_monto: Decimal::new(-10, 0),
+    };
+
+    repo.guardar_ajuste(&primera)
+        .expect("No se pudo guardar la primera corrección");
+    repo.guardar_ajuste(&segunda)
+        .expect("No se pudo guardar la segunda corrección");
+
+    let historial = repo
+        .obtener_historial_de_cuenta(&cuenta_id)
+        .expect("No se pudo consultar el historial");
+    let correcciones: Vec<_> = historial
+        .into_iter()
+        .filter(|movimiento| movimiento.es_correccion)
+        .collect();
+
+    assert_eq!(correcciones.len(), 2);
+    assert_eq!(correcciones[0].id, segunda.id.to_string());
+    assert_eq!(correcciones[1].id, primera.id.to_string());
+}
+
+#[test]
 fn obtener_categorias_devuelve_las_categorias_de_la_migracion() {
     let repo = crear_repositorio();
 
