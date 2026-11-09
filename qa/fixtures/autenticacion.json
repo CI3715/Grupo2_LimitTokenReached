@@ -1,0 +1,26 @@
+{
+  "registro": {
+    "nombre_usuario": "usuario.qa",
+    "nombre_visible": "Usuario de prueba",
+    "correo": "usuario.qa@example.com",
+    "contrasena": "Clave de prueba 123"
+  },
+  "inicio_sesion": {
+    "correo": "usuario.qa@example.com",
+    "contrasena": "Clave de prueba 123"
+  },
+  "usuario": {
+    "nombre_usuario": "usuario.qa",
+    "nombre_visible": "Usuario de prueba",
+    "correo": "usuario.qa@example.com",
+    "fecha_alta": "2026-11-04T12:00:00Z"
+  },
+  "sesion": {
+    "token": "token-ficticio-solo-para-probar-el-contrato",
+    "vence_en": "2026-11-04T13:00:00Z"
+  },
+  "credenciales_invalidas": {
+    "campo": "credenciales",
+    "mensaje": "Correo o contraseña incorrectos."
+  }
+}

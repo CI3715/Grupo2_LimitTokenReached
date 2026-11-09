@@ -8,3 +8,6 @@ rust_decimal = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 chrono = { workspace = true }
 uuid = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

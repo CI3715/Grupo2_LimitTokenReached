@@ -1,4 +1,5 @@
 pub mod categorias;
+pub mod autenticacion;
 pub mod cuentas;
 pub mod moneda;
 pub mod movimientos;

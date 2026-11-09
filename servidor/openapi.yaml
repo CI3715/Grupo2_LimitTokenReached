@@ -3,6 +3,91 @@ info:
   title: Cuentas Claras - Servidor
   version: 0.1.0
 paths:
+  /usuarios:
+    post:
+      summary: Registrar Usuario
+      operationId: registrar_usuario_usuarios_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarUsuarioRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioDTO'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorAutenticacionDTO'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorAutenticacionDTO'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /sesiones:
+    post:
+      summary: Iniciar Sesion
+      operationId: iniciar_sesion_sesiones_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IniciarSesionRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionDTO'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorAutenticacionDTO'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorAutenticacionDTO'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /usuarios/yo:
+    get:
+      summary: Perfil Propio
+      operationId: perfil_propio_usuarios_yo_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioDTO'
+        '401':
+          description: Token ausente, inválido o vencido.
+      security:
+      - HTTPBearer: []
   /ping:
     get:
       summary: Ping
@@ -16,6 +101,45 @@ paths:
                 $ref: '#/components/schemas/PingRespuesta'
 components:
   schemas:
+    ErrorAutenticacionDTO:
+      properties:
+        campo:
+          type: string
+          title: Campo
+        mensaje:
+          type: string
+          title: Mensaje
+      additionalProperties: false
+      type: object
+      required:
+      - campo
+      - mensaje
+      title: ErrorAutenticacionDTO
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    IniciarSesionRequest:
+      properties:
+        correo:
+          type: string
+          title: Correo
+        contrasena:
+          type: string
+          format: password
+          title: Contrasena
+          writeOnly: true
+      additionalProperties: false
+      type: object
+      required:
+      - correo
+      - contrasena
+      title: IniciarSesionRequest
     PingRespuesta:
       properties:
         estado:
@@ -37,3 +161,96 @@ components:
       - version
       - timestamp
       title: PingRespuesta
+    RegistrarUsuarioRequest:
+      properties:
+        nombre_usuario:
+          type: string
+          title: Nombre Usuario
+        nombre_visible:
+          type: string
+          title: Nombre Visible
+        correo:
+          type: string
+          title: Correo
+        contrasena:
+          type: string
+          format: password
+          title: Contrasena
+          writeOnly: true
+      additionalProperties: false
+      type: object
+      required:
+      - nombre_usuario
+      - nombre_visible
+      - correo
+      - contrasena
+      title: RegistrarUsuarioRequest
+    SesionDTO:
+      properties:
+        token:
+          type: string
+          minLength: 1
+          title: Token
+        vence_en:
+          type: string
+          format: date-time
+          title: Vence En
+      additionalProperties: false
+      type: object
+      required:
+      - token
+      - vence_en
+      title: SesionDTO
+    UsuarioDTO:
+      properties:
+        nombre_usuario:
+          type: string
+          title: Nombre Usuario
+        nombre_visible:
+          type: string
+          title: Nombre Visible
+        correo:
+          type: string
+          title: Correo
+        fecha_alta:
+          type: string
+          format: date-time
+          title: Fecha Alta
+      additionalProperties: false
+      type: object
+      required:
+      - nombre_usuario
+      - nombre_visible
+      - correo
+      - fecha_alta
+      title: UsuarioDTO
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
