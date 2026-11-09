@@ -1,8 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { CorregirMovimientoRequest, MovimientoDTO } from "@/types/movements";
+import type { MovimientoDTO } from "@/types/movements";
+import type { CorrectMovementFormValues } from "@/types/schemas";
 
 export async function correctMovement(
-  request: CorregirMovimientoRequest,
+  request: CorrectMovementFormValues,
 ): Promise<MovimientoDTO> {
   const result = await invoke<MovimientoDTO>("corregir_movimiento", {
     datos: request,

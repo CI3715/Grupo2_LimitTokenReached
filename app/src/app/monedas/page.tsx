@@ -1,22 +1,21 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { createCurrency } from "@/services/createCurrency";
 import { listCurrencies } from "@/services/listCurrencies";
 import type { Currency } from "@/types/accounts";
-import {
-  parseErrorValidacion,
-  type ErrorValidacionDTO,
-} from "@/types/error_validacion";
+import { GlobalForm, FormField } from "@/components/forms";
+import { createCurrencySchema, type CreateCurrencyFormValues } from "@/types/schemas";
+import { applyBackendValidationError } from "@/types/validation";
+import type { UseFormReturn } from "react-hook-form";
 import "../accounts.css";
 
 export default function MonedasPage() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
-  const [error, setError] = useState<ErrorValidacionDTO | null>(null);
+  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!notice) return;
@@ -29,47 +28,25 @@ export default function MonedasPage() {
       .then(setCurrencies)
       .catch((cause: unknown) => {
         console.error("No se pudo cargar el catálogo de monedas.", cause);
-        setError({
-          campo: "general",
-          mensaje: "No se pudo cargar el catálogo de monedas.",
-        });
+        setError("No se pudo cargar el catálogo de monedas.");
       })
       .finally(() => setLoading(false));
   }, []);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  async function submit(values: CreateCurrencyFormValues, form: UseFormReturn<CreateCurrencyFormValues>) {
+    setError("");
     setNotice("");
-    setSaving(true);
-    const formElement = event.currentTarget;
-    const form = new FormData(formElement);
-
     try {
-      const currency = await createCurrency({
-        codigo: String(form.get("codigo") ?? "").trim().toUpperCase(),
-        nombre: String(form.get("nombre") ?? "").trim(),
-        simbolo: String(form.get("simbolo") ?? "").trim(),
-        decimales: Number(form.get("decimales")),
-      });
+      const currency = await createCurrency(values);
       setCurrencies((current) => [...current, currency]);
       setNotice(`Moneda ${currency.codigo} creada correctamente.`);
-      formElement.reset();
+      form.reset();
     } catch (cause) {
       console.error("No se pudo crear la moneda.", cause);
-      setError(
-        parseErrorValidacion(cause) ?? {
-          campo: "general",
-          mensaje: "No se pudo crear la moneda.",
-        },
-      );
-    } finally {
-      setSaving(false);
+      if (!applyBackendValidationError(cause, form.setError)) {
+        setError("No se pudo crear la moneda.");
+      }
     }
-  }
-
-  function fieldError(field: string) {
-    return error?.campo === field ? error.mensaje : undefined;
   }
 
   return (
@@ -92,9 +69,9 @@ export default function MonedasPage() {
 
           <section className="currency-create-panel" aria-labelledby="create-currency-title">
             <h2 id="create-currency-title">Agregar moneda propia</h2>
-            {error?.campo === "general" && (
+            {error && (
               <p className="accounts-feedback tasas-error" role="alert">
-                {error.mensaje}
+                {error}
               </p>
             )}
             {notice && (
@@ -102,82 +79,31 @@ export default function MonedasPage() {
                 {notice}
               </p>
             )}
-            <form onSubmit={submit}>
-              <label>
-                Código
-                <input
-                  name="codigo"
-                  maxLength={5}
-                  autoCapitalize="characters"
-                  autoComplete="off"
-                  required
-                  aria-invalid={Boolean(fieldError("codigo"))}
-                  aria-describedby={fieldError("codigo") ? "codigo-error" : undefined}
-                  onChange={(event) => {
-                    event.currentTarget.value =
-                      event.currentTarget.value.toUpperCase();
-                  }}
-                />
-                <small>3 a 5 letras mayúsculas; debe ser único.</small>
-                {fieldError("codigo") && (
-                  <small id="codigo-error" className="account-error" role="alert">
-                    {fieldError("codigo")}
-                  </small>
-                )}
-              </label>
-              <label>
-                Nombre
-                <input
-                  name="nombre"
-                  required
-                  aria-invalid={Boolean(fieldError("nombre"))}
-                  aria-describedby={fieldError("nombre") ? "nombre-error" : undefined}
-                />
-                {fieldError("nombre") && (
-                  <small id="nombre-error" className="account-error" role="alert">
-                    {fieldError("nombre")}
-                  </small>
-                )}
-              </label>
-              <label>
-                Símbolo
-                <input
-                  name="simbolo"
-                  required
-                  aria-invalid={Boolean(fieldError("simbolo"))}
-                  aria-describedby={fieldError("simbolo") ? "simbolo-error" : undefined}
-                />
-                {fieldError("simbolo") && (
-                  <small id="simbolo-error" className="account-error" role="alert">
-                    {fieldError("simbolo")}
-                  </small>
-                )}
-              </label>
-              <label>
-                Decimales
-                <input
-                  name="decimales"
-                  type="number"
-                  min={0}
-                  max={8}
-                  step={1}
-                  defaultValue={2}
-                  required
-                  aria-invalid={Boolean(fieldError("decimales"))}
-                  aria-describedby={
-                    fieldError("decimales") ? "decimales-error" : undefined
-                  }
-                />
-                {fieldError("decimales") && (
-                  <small id="decimales-error" className="account-error" role="alert">
-                    {fieldError("decimales")}
-                  </small>
-                )}
-              </label>
-              <button className="account-primary" type="submit" disabled={saving}>
-                {saving ? "Guardando…" : "Crear moneda"}
-              </button>
-            </form>
+            <GlobalForm<CreateCurrencyFormValues>
+              schema={createCurrencySchema}
+              defaultValues={{ codigo: "", nombre: "", simbolo: "", decimales: 2 }}
+              onSubmit={submit}
+            >
+              {(form) => (
+                <>
+                  <FormField<CreateCurrencyFormValues> name="codigo" label="Código" help="3 a 5 letras mayúsculas; debe ser único.">
+                    {(props) => <input {...props} autoCapitalize="characters" autoComplete="off" {...form.register("codigo")} />}
+                  </FormField>
+                  <FormField<CreateCurrencyFormValues> name="nombre" label="Nombre">
+                    {(props) => <input {...props} {...form.register("nombre")} />}
+                  </FormField>
+                  <FormField<CreateCurrencyFormValues> name="simbolo" label="Símbolo">
+                    {(props) => <input {...props} {...form.register("simbolo")} />}
+                  </FormField>
+                  <FormField<CreateCurrencyFormValues> name="decimales" label="Decimales">
+                    {(props) => <input {...props} type="number" {...form.register("decimales")} />}
+                  </FormField>
+                  <button className="account-primary" type="submit" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting ? "Guardando…" : "Crear moneda"}
+                  </button>
+                </>
+              )}
+            </GlobalForm>
           </section>
 
           <section

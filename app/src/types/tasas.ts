@@ -1,10 +1,6 @@
-export type RegistrarTasaRequest = {
-  moneda_origen: string;
-  moneda_destino: string;
-  valor: string;
-  fecha: string;
-  fuente: string;
-};
+import type { RegisterRateFormValues } from "./schemas";
+
+export type RegistrarTasaRequest = RegisterRateFormValues;
 
 export type TasaDTO = RegistrarTasaRequest & {
   id: string;

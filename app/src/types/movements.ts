@@ -1,4 +1,8 @@
 // Espejo de crates/contrato/src/movimiento.rs. Los importes viajan como texto.
+import type {
+  CorrectMovementFormValues,
+  RegisterMovementFormValues,
+} from "./schemas";
 export type TipoMovimientoDTO = "Ingreso" | "Gasto" | "Ajuste";
 export type TipoRegistroMovimiento = Exclude<TipoMovimientoDTO, "Ajuste">;
 
@@ -8,21 +12,8 @@ export interface CategoriaDTO {
   tipo: TipoMovimientoDTO;
 }
 
-export interface RegistrarMovimientoRequest {
-  cuenta_id: string;
-  tipo: TipoMovimientoDTO;
-  monto: string;
-  fecha: string;
-  categoria_id: string;
-  nota: string | null;
-  confirmar_saldo_negativo?: boolean;
-}
-
-export interface CorregirMovimientoRequest {
-  movimiento_id: string;
-  monto_correcto: string;
-  confirmar_saldo_negativo?: boolean;
-}
+export type RegistrarMovimientoRequest = RegisterMovementFormValues;
+export type CorregirMovimientoRequest = CorrectMovementFormValues;
 
 export interface MovimientoDTO extends RegistrarMovimientoRequest {
   id: string;

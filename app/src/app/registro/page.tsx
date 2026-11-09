@@ -1,54 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { registrarUsuario } from "@/services/autenticacion";
-import type { RegistrarUsuarioRequest } from "@/types/autenticacion";
-import {
-  parseErrorValidacion,
-  type ErrorValidacionDTO,
-} from "@/types/error_validacion";
+import { GlobalForm, FormField } from "@/components/forms";
+import { registerSchema, type RegisterFormValues } from "@/types/schemas";
+import { applyBackendValidationError } from "@/types/validation";
+import type { UseFormReturn } from "react-hook-form";
 
 export default function RegistroPage() {
-  const [datos, setDatos] = useState<RegistrarUsuarioRequest>({
-    nombre_usuario: "",
-    nombre_visible: "",
-    correo: "",
-    contrasena: "",
-  });
-  const [error, setError] = useState<ErrorValidacionDTO | null>(null);
   const [mensaje, setMensaje] = useState("");
   const [registrado, setRegistrado] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-
-  function actualizar(campo: keyof RegistrarUsuarioRequest, valor: string) {
-    setDatos((actuales) => ({ ...actuales, [campo]: valor }));
-  }
-
-  async function enviar(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  async function enviar(datos: RegisterFormValues, form: UseFormReturn<RegisterFormValues>) {
     setMensaje("");
-    setEnviando(true);
-
     try {
       await registrarUsuario(datos);
       setRegistrado(true);
     } catch (fallo: unknown) {
-      const validacion = parseErrorValidacion(fallo);
-      if (validacion) {
-        setError(validacion);
-      } else {
-        setMensaje(
-          typeof fallo === "string"
-            ? fallo
-            : "No se pudo completar el registro. Inténtalo de nuevo.",
-        );
+      const validacion = applyBackendValidationError(fallo, form.setError);
+      if (!validacion) {
+        setMensaje(typeof fallo === "string" ? fallo : "No se pudo completar el registro. Inténtalo de nuevo.");
       }
-    } finally {
-      setEnviando(false);
     }
   }
 
@@ -70,85 +44,31 @@ export default function RegistroPage() {
             ) : (
               <>
                 <p>El registro es opcional; tus finanzas permanecen en el dispositivo.</p>
-                <form className="auth-form" onSubmit={enviar}>
-                  <label htmlFor="nombre_usuario">Nombre de usuario</label>
-                  <input
-                    id="nombre_usuario"
-                    name="nombre_usuario"
-                    autoComplete="username"
-                    minLength={3}
-                    maxLength={30}
-                    required
-                    value={datos.nombre_usuario}
-                    onChange={(event) =>
-                      actualizar("nombre_usuario", event.target.value)
-                    }
-                    aria-invalid={error?.campo === "nombre_usuario"}
-                  />
-                  {error?.campo === "nombre_usuario" && (
-                    <p className="auth-field-error">{error.mensaje}</p>
-                  )}
-
-                  <label htmlFor="nombre_visible">Nombre visible</label>
-                  <input
-                    id="nombre_visible"
-                    name="nombre_visible"
-                    autoComplete="name"
-                    required
-                    value={datos.nombre_visible}
-                    onChange={(event) =>
-                      actualizar("nombre_visible", event.target.value)
-                    }
-                    aria-invalid={error?.campo === "nombre_visible"}
-                  />
-                  {error?.campo === "nombre_visible" && (
-                    <p className="auth-field-error">{error.mensaje}</p>
-                  )}
-
-                  <label htmlFor="correo">Correo</label>
-                  <input
-                    id="correo"
-                    name="correo"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={datos.correo}
-                    onChange={(event) => actualizar("correo", event.target.value)}
-                    aria-invalid={error?.campo === "correo"}
-                  />
-                  {error?.campo === "correo" && (
-                    <p className="auth-field-error">{error.mensaje}</p>
-                  )}
-
-                  <label htmlFor="contrasena">Contraseña (mínimo 10 caracteres)</label>
-                  <input
-                    id="contrasena"
-                    name="contrasena"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={10}
-                    required
-                    value={datos.contrasena}
-                    onChange={(event) =>
-                      actualizar("contrasena", event.target.value)
-                    }
-                    aria-invalid={error?.campo === "contrasena"}
-                  />
-                  {error?.campo === "contrasena" && (
-                    <p className="auth-field-error">{error.mensaje}</p>
-                  )}
-
-                  {error &&
-                    ![
-                      "nombre_usuario",
-                      "nombre_visible",
-                      "correo",
-                      "contrasena",
-                    ].includes(error.campo) && (
-                      <p className="auth-error" role="alert">
-                        {error.mensaje}
-                      </p>
-                    )}
+                <GlobalForm<RegisterFormValues>
+                  className="auth-form"
+                  schema={registerSchema}
+                  defaultValues={{
+                    nombre_usuario: "",
+                    nombre_visible: "",
+                    correo: "",
+                    contrasena: "",
+                  }}
+                  onSubmit={enviar}
+                >
+                  {(form) => (
+                    <>
+                      <FormField<RegisterFormValues> name="nombre_usuario" label="Nombre de usuario">
+                        {(props) => <input {...props} autoComplete="username" {...form.register("nombre_usuario")} />}
+                      </FormField>
+                      <FormField<RegisterFormValues> name="nombre_visible" label="Nombre visible">
+                        {(props) => <input {...props} autoComplete="name" {...form.register("nombre_visible")} />}
+                      </FormField>
+                      <FormField<RegisterFormValues> name="correo" label="Correo">
+                        {(props) => <input {...props} type="email" autoComplete="email" {...form.register("correo")} />}
+                      </FormField>
+                      <FormField<RegisterFormValues> name="contrasena" label="Contraseña (mínimo 10 caracteres)">
+                        {(props) => <input {...props} type="password" autoComplete="new-password" {...form.register("contrasena")} />}
+                      </FormField>
                   {mensaje && (
                     <p className="auth-error" role="alert">
                       {mensaje}
@@ -157,11 +77,13 @@ export default function RegistroPage() {
                   <button
                     className="account-primary"
                     type="submit"
-                    disabled={enviando}
+                    disabled={form.formState.isSubmitting}
                   >
-                    {enviando ? "Registrando…" : "Crear cuenta"}
+                    {form.formState.isSubmitting ? "Registrando…" : "Crear cuenta"}
                   </button>
-                </form>
+                    </>
+                  )}
+                </GlobalForm>
                 <p className="auth-footer">
                   ¿Ya tienes cuenta? <Link href="/login/">Inicia sesión</Link>
                 </p>

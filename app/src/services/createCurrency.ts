@@ -1,15 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Currency, CurrencyCode } from "@/types/accounts";
-
-export type CreateCurrencyInput = {
-  codigo: CurrencyCode;
-  nombre: string;
-  simbolo: string;
-  decimales: number;
-};
+import type { Currency } from "@/types/accounts";
+import type { CreateCurrencyFormValues } from "@/types/schemas";
 
 export async function createCurrency(
-  datos: CreateCurrencyInput,
+  datos: CreateCurrencyFormValues,
 ): Promise<Currency> {
   return invoke<Currency>("crear_moneda", { datos });
 }

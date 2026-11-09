@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useId, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import type { Account, Currency } from "@/types/accounts";
 import {
   expenseExceedsBalance,
@@ -12,6 +14,9 @@ import {
 } from "@/types/movements";
 import type { CrearCategoriaRequest } from "@/types/categories";
 import { clearAmountInput } from "@/types/account-money";
+import { registerMovementSchema, type RegisterMovementFormValues } from "@/types/schemas";
+import { applyBackendValidationError } from "@/types/validation";
+import { createCategorySchema, type CreateCategoryFormValues } from "@/types/schemas";
 import "./movement-form.css";
 
 const CREATE_CATEGORY_VALUE = "__crear_categoria__";
@@ -55,7 +60,6 @@ export function MovementForm({
   onCancel,
 }: MovementFormProps) {
   const prefix = useId();
-  const form = useRef<HTMLFormElement>(null);
   const inFlight = useRef(false);
   const [tipo, setTipo] = useState<TipoRegistroMovimiento>("Gasto");
   const [categoria, setCategoria] = useState("");
@@ -70,6 +74,22 @@ export function MovementForm({
   const [categoryCreationError, setCategoryCreationError] = useState<string | null>(null);
   const [confirmation, setConfirmation] =
     useState<RegistrarMovimientoRequest | null>(null);
+  const form = useForm<RegisterMovementFormValues>({
+    resolver: zodResolver(registerMovementSchema),
+    defaultValues: {
+      cuenta_id: account.id,
+      tipo: "Gasto",
+      monto: "",
+      fecha: today(),
+      categoria_id: "",
+      nota: "",
+      confirmar_saldo_negativo: false,
+    },
+  });
+  const categoryForm = useForm<CreateCategoryFormValues>({
+    resolver: zodResolver(createCategorySchema),
+    defaultValues: { nombre: "", tipo: "Gasto" },
+  });
 
   const available = categories.filter((category) => category.tipo === tipo);
   const hasCategory = available.some((category) => category.id === categoria);
@@ -79,26 +99,25 @@ export function MovementForm({
       ? "categoria_id"
       : error?.campo;
 
-  function fieldError(name: string) {
-    return errorField === name ? error?.mensaje : undefined;
+  function fieldError(name: keyof RegisterMovementFormValues | string) {
+    return form.formState.errors[name as keyof RegisterMovementFormValues]?.message
+      ? String(form.formState.errors[name as keyof RegisterMovementFormValues]?.message)
+      : errorField === name
+        ? error?.mensaje
+        : undefined;
   }
 
   async function handleCreateCategory() {
     if (creatingCategory || locked) return;
-
-    const nombre = newCategoryName.trim();
-    if (!nombre) {
-      setCategoryCreationError("Escribe un nombre para la categoría.");
-      return;
-    }
-
     setCreatingCategory(true);
     setCategoryCreationError(null);
     try {
-      const category = await onCreateCategory({ nombre, tipo: newCategoryType });
+      const category = await onCreateCategory(await categoryForm.getValues());
       setCategoria(category.id);
       setTipo(category.tipo as TipoRegistroMovimiento);
-      setNewCategoryName("");
+      form.setValue("tipo", category.tipo as TipoRegistroMovimiento);
+      form.setValue("categoria_id", category.id);
+      categoryForm.reset({ nombre: "", tipo: category.tipo as "Ingreso" | "Gasto" });
     } catch (caught: unknown) {
       const failure = caught as { mensaje?: unknown };
       setCategoryCreationError(
@@ -134,6 +153,7 @@ export function MovementForm({
       };
 
       setError(nextError);
+      applyBackendValidationError(caught, form.setError);
       const name =
         nextError.campo === "categoria" || nextError.campo === "categoría"
           ? "categoria_id"
@@ -142,8 +162,7 @@ export function MovementForm({
       setPending(false);
       inFlight.current = false;
       requestAnimationFrame(() => {
-        const field = name ? form.current?.elements.namedItem(name) : null;
-        if (field instanceof HTMLElement) field.focus();
+        if (name) document.getElementById(`${prefix}-${name}`)?.focus();
       });
       return;
     }
@@ -160,8 +179,7 @@ export function MovementForm({
     }
   }
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const submit: SubmitHandler<RegisterMovementFormValues> = (values) => {
     if (
       locked ||
       confirmation
@@ -169,14 +187,13 @@ export function MovementForm({
       return;
     }
 
-    const data = new FormData(event.currentTarget);
     const request: RegistrarMovimientoRequest = {
+      ...values,
       cuenta_id: account.id,
       tipo,
-      monto: String(data.get("monto") ?? "").trim().replace(",", "."),
-      fecha: String(data.get("fecha") ?? ""),
+      monto: values.monto.trim().replace(",", "."),
       categoria_id: categoria,
-      nota: String(data.get("nota") ?? "").trim() || null,
+      nota: values.nota?.trim() || null,
     };
 
     setError(null);
@@ -186,7 +203,7 @@ export function MovementForm({
     }
 
     void persist(request);
-  }
+  };
 
   return (
     <section className="movement-form-panel" aria-labelledby={`${prefix}-title`}>
@@ -200,7 +217,9 @@ export function MovementForm({
         </p>
       </header>
 
-      <form ref={form} onSubmit={submit} aria-busy={pending}>
+      {/* React Hook Form creates the submit handler during render. */}
+      {/* eslint-disable-next-line react-hooks/refs */}
+      <form onSubmit={form.handleSubmit(submit)} aria-busy={pending}>
         {error && !errorField && (
           <p className="movement-error" role="alert">
             {error.mensaje}
@@ -223,17 +242,19 @@ export function MovementForm({
           <label htmlFor={`${prefix}-tipo`}>Tipo</label>
           <select
             id={`${prefix}-tipo`}
-            name="tipo"
             value={tipo}
             aria-invalid={!!fieldError("tipo")}
             aria-describedby={
               fieldError("tipo") ? `${prefix}-tipo-error` : undefined
             }
-            onChange={(event) => {
-              setTipo(event.target.value as TipoRegistroMovimiento);
-              setCategoria("");
-              setError(null);
-            }}
+            {...form.register("tipo", {
+              onChange: (event) => {
+                setTipo(event.target.value as TipoRegistroMovimiento);
+                setCategoria("");
+                form.setValue("categoria_id", "");
+                setError(null);
+              },
+            })}
           >
             <option value="Gasto">Gasto</option>
             <option value="Ingreso">Ingreso</option>
@@ -251,7 +272,6 @@ export function MovementForm({
               </label>
               <input
                 id={`${prefix}-monto`}
-                name="monto"
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
@@ -263,6 +283,7 @@ export function MovementForm({
                     event.currentTarget.value,
                   );
                 }}
+                {...form.register("monto")}
               />
               <small id={`${prefix}-monto-error`} className="movement-error">
                 {fieldError("monto")}
@@ -273,11 +294,11 @@ export function MovementForm({
               <label htmlFor={`${prefix}-fecha`}>Fecha</label>
               <input
                 id={`${prefix}-fecha`}
-                name="fecha"
                 type="date"
                 defaultValue={today()}
                 aria-invalid={!!fieldError("fecha")}
                 aria-describedby={`${prefix}-fecha-error`}
+                {...form.register("fecha")}
               />
               <small id={`${prefix}-fecha-error`} className="movement-error">
                 {fieldError("fecha")}
@@ -288,7 +309,6 @@ export function MovementForm({
           <label htmlFor={`${prefix}-categoria`}>Categoría</label>
           <select
             id={`${prefix}-categoria`}
-            name="categoria_id"
             value={
               categoria === CREATE_CATEGORY_VALUE || hasCategory ? categoria : ""
             }
@@ -299,7 +319,9 @@ export function MovementForm({
             }
             aria-invalid={!!fieldError("categoria_id")}
             aria-describedby={`${prefix}-categoria-help ${prefix}-categoria-error`}
-            onChange={(event) => setCategoria(event.target.value)}
+            {...form.register("categoria_id", {
+              onChange: (event) => setCategoria(event.target.value),
+            })}
           >
             <option value="">Selecciona una categoría</option>
             <option value={CREATE_CATEGORY_VALUE}>+ Crear nueva categoría</option>
@@ -335,18 +357,22 @@ export function MovementForm({
                 <input
                   id={`${prefix}-nueva-categoria`}
                   value={newCategoryName}
-                  onChange={(event) => setNewCategoryName(event.target.value)}
+                  onChange={(event) => {
+                    setNewCategoryName(event.target.value);
+                    categoryForm.setValue("nombre", event.target.value);
+                  }}
                   disabled={creatingCategory}
                   maxLength={80}
-                  required
                 />
                 <label htmlFor={`${prefix}-tipo-nueva-categoria`}>Tipo</label>
                 <select
                   id={`${prefix}-tipo-nueva-categoria`}
                   value={newCategoryType}
-                  onChange={(event) =>
-                    setNewCategoryType(event.target.value as TipoRegistroMovimiento)
-                  }
+                  onChange={(event) => {
+                    const value = event.target.value as TipoRegistroMovimiento;
+                    setNewCategoryType(value);
+                    categoryForm.setValue("tipo", value);
+                  }}
                   disabled={creatingCategory}
                 >
                   <option value="Gasto">Gasto</option>
@@ -361,7 +387,7 @@ export function MovementForm({
                   type="button"
                   className="account-secondary"
                   disabled={creatingCategory}
-                  onClick={() => void handleCreateCategory()}
+                  onClick={() => void categoryForm.handleSubmit(handleCreateCategory)()}
                 >
                   {creatingCategory ? "Guardando…" : "Guardar categoría"}
                 </button>
@@ -372,11 +398,11 @@ export function MovementForm({
           <label htmlFor={`${prefix}-nota`}>Nota (opcional)</label>
           <textarea
             id={`${prefix}-nota`}
-            name="nota"
             rows={3}
             placeholder="Ej. Mercado del sábado"
             aria-invalid={!!fieldError("nota")}
             aria-describedby={`${prefix}-nota-error`}
+            {...form.register("nota")}
           />
           <small id={`${prefix}-nota-error`} className="movement-error">
             {fieldError("nota")}

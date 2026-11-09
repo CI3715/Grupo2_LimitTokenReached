@@ -3,6 +3,7 @@ export type AccountType =
   | "banco"
   | "billetera_digital";
 export type CurrencyCode = string;
+import type { CreateAccountFormValues } from "./schemas";
 
 // Decimal strings preserve the precision of amounts displayed in the UI.
 export type Account = {
@@ -20,12 +21,7 @@ export type Currency = {
   decimales: number;
   es_del_catalogo: boolean;
 };
-export type CreateAccountInput = {
-  nombre: string;
-  tipo: AccountType;
-  moneda_codigo: CurrencyCode;
-  saldo_inicial: string;
-};
+export type CreateAccountInput = CreateAccountFormValues;
 
 export const accountTypeLabels: Record<AccountType, string> = {
   efectivo: "Efectivo",

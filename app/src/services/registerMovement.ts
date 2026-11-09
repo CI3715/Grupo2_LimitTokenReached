@@ -3,8 +3,8 @@ import { expenseExceedsBalance } from "@/types/movements";
 import type {
   MovimientoDTO,
   MovementFormError,
-  RegistrarMovimientoRequest,
 } from "@/types/movements";
+import type { RegisterMovementFormValues } from "@/types/schemas";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -30,7 +30,7 @@ export function movementError(error: unknown): MovementFormError {
 }
 
 export async function registerMovement(
-  request: RegistrarMovimientoRequest,
+  request: RegisterMovementFormValues,
 ): Promise<MovimientoDTO> {
   // Convención de los comandos actuales (crear_cuenta): argumento Rust `datos`.
   const result = await invoke<unknown>("registrar_movimiento", { datos: request });
