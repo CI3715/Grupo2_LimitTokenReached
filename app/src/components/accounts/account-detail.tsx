@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import Decimal from "decimal.js";
-import { minorUnits, clearAmountInput } from "@/types/account-money";
+import { minorUnits } from "@/types/account-money";
 import type { Account, Currency } from "@/types/accounts";
 import type { MovimientoDTO } from "@/types/movements";
 import { MovementForm } from "@/components/movements/movement-form";
+import { CorrectionMovementForm } from "@/components/movements/CorrectionMovementForm";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import type { CategoriaDTO } from "@/types/movements";
 import type { CrearCategoriaRequest } from "@/types/categories";
@@ -59,17 +60,6 @@ export function AccountDetail({
   onCreateCategory: (request: CrearCategoriaRequest) => Promise<CategoriaDTO>;
 }) {
   const [correctionMovement, setCorrectionMovement] = useState<MovimientoDTO | null>(null);
-  const [correctionAmount, setCorrectionAmount] = useState("");
-  const [correctionPending, setCorrectionPending] = useState(false);
-  const [correctionError, setCorrectionError] = useState<{
-    campo?: string;
-    mensaje: string;
-  } | null>(null);
-  const [correctionNeedsConfirmation, setCorrectionNeedsConfirmation] = useState(false);
-  const correctionFieldError =
-    correctionError?.campo === "monto_correcto" ? correctionError.mensaje : undefined;
-  const correctionGeneralError =
-    correctionError && !correctionError.campo ? correctionError.mensaje : undefined;
   const currentBalance = minorUnits(account.saldo);
   const income = movements
     .filter((movement) => movement.tipo === "Ingreso" && !movement.es_correccion)
@@ -87,37 +77,6 @@ export function AccountDetail({
     const corrections = correctionByOriginal.get(movement.movimiento_original_id) ?? [];
     corrections.push(movement);
     correctionByOriginal.set(movement.movimiento_original_id, corrections);
-  }
-
-  async function submitCorrection(confirmNegativeBalance = false) {
-    if (!correctionMovement || correctionPending) return;
-    const amount = correctionAmount.trim().replace(",", ".");
-    setCorrectionPending(true);
-    setCorrectionError(null);
-    try {
-      await onCorrect({
-        movimiento_id: correctionMovement.id,
-        monto_correcto: amount,
-        confirmar_saldo_negativo: confirmNegativeBalance,
-      });
-      await onMovementRegistered(correctionMovement);
-      setCorrectionMovement(null);
-      setCorrectionNeedsConfirmation(false);
-    } catch (error: unknown) {
-      const failure = error as { campo?: unknown; mensaje?: unknown };
-      const normalizedError = {
-        campo: typeof failure.campo === "string" ? failure.campo : undefined,
-        mensaje:
-          typeof failure.mensaje === "string"
-            ? failure.mensaje
-            : "No se pudo corregir el movimiento.",
-      };
-      const needsConfirmation = normalizedError.campo === "saldo";
-      setCorrectionNeedsConfirmation(needsConfirmation);
-      setCorrectionError(normalizedError);
-    } finally {
-      setCorrectionPending(false);
-    }
   }
 
   return (
@@ -160,62 +119,13 @@ export function AccountDetail({
           {correctionMovement && currency && (
             <div className="movement-form-overlay" role="dialog" aria-modal="true" aria-labelledby="correction-dialog-title">
               <div className="movement-form-dialog correction-dialog">
-                <div className="movement-dialog-heading">
-                  <div>
-                    <h2 id="correction-dialog-title">Corregir movimiento</h2>
-                    <p>Monto registrado: {amount(minorUnits(correctionMovement.monto), currency)}</p>
-                  </div>
-                </div>
-                <div className="correction-dialog-body">
-                  {correctionGeneralError && (
-                    <p className="account-error" role="alert">
-                      {correctionGeneralError}
-                    </p>
-                  )}
-                  <label htmlFor="corrected-amount">Monto correcto ({account.moneda_codigo})</label>
-                  <input
-                    id="corrected-amount"
-                    type="text"
-                    inputMode="decimal"
-                    aria-invalid={!!correctionFieldError}
-                    aria-describedby={
-                      correctionFieldError ? "corrected-amount-error" : undefined
-                    }
-                    value={correctionAmount}
-                    onChange={(event) => {
-                      setCorrectionAmount(
-                        clearAmountInput(
-                          event.target.value,
-                        ),
-                      );
-                      setCorrectionNeedsConfirmation(false);
-                      setCorrectionError(null);
-                    }}
-                    disabled={correctionPending}
-                    autoFocus
-                  />
-                  <small>
-                    Hasta {currency.decimales}{" "}
-                    {currency.decimales === 1 ? "decimal" : "decimales"}.
-                  </small>
-                  {correctionFieldError && (
-                    <small id="corrected-amount-error" className="account-error" role="alert">
-                      {correctionFieldError}
-                    </small>
-                  )}
-                </div>
-                <div className="correction-actions">
-                  <button type="button" className="account-secondary" onClick={() => setCorrectionMovement(null)} disabled={correctionPending}>
-                    Cancelar
-                  </button>
-                  <button type="button" className="account-primary" onClick={() => void submitCorrection(correctionNeedsConfirmation)} disabled={correctionPending}>
-                    {correctionPending
-                      ? "Corrigiendo..."
-                      : correctionNeedsConfirmation
-                        ? "Confirmar y guardar"
-                        : "Guardar corrección"}
-                  </button>
-                </div>
+                <CorrectionMovementForm
+                  movement={correctionMovement}
+                  currency={currency}
+                  onCorrect={onCorrect}
+                  onRegistered={onMovementRegistered}
+                  onClose={() => setCorrectionMovement(null)}
+                />
               </div>
             </div>
           )}
@@ -281,12 +191,6 @@ export function AccountDetail({
                             className="account-secondary movement-correct-button"
                             onClick={() => {
                               setCorrectionMovement(movement);
-                              setCorrectionAmount(
-                                clearAmountInput(
-                                  movement.monto,
-                                ),
-                              );
-                              setCorrectionError(null);
                             }}
                           >
                             {isCorrected ? "Corregir nuevamente" : "Corregir"}

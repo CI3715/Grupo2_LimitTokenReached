@@ -1,5 +1,4 @@
 ﻿"use client";
-import type { ErrorValidacionDTO } from "@/types/error_validacion";
 import { useState } from "react";
 import { AccountsHeader } from "@/components/accounts/accounts-header";
 import { AccountsList } from "@/components/accounts/accounts-list";
@@ -12,8 +11,6 @@ export default function HomePage() {
   const { accounts, currencies, create } = useAccounts();
   const [createOpen, setCreateOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
-  const [validationError, setValidationError] =
-  useState<ErrorValidacionDTO | null>(null);
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
@@ -39,21 +36,16 @@ export default function HomePage() {
       </div>
       {createOpen && (
         <NewAccountModal
-          validationError={validationError}
           currencies={currencies}
           onClose={() => {
             setCreateOpen(false);
-            setValidationError(null);
 }}
           onCreate={async (input) => {
             try{
-              setValidationError(null);
               await create(input);
 
               setAnnouncement(`Cuenta ${input.nombre} agregada a la vista previa`);
             } catch (error) {
-              const validationError = error as ErrorValidacionDTO;
-              setValidationError(validationError);
               throw error;
             }
             

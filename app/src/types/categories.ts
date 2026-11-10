@@ -1,6 +1,3 @@
-import type { TipoRegistroMovimiento } from "./movements";
+import type { CreateCategoryFormValues } from "./schemas";
 
-export interface CrearCategoriaRequest {
-  nombre: string;
-  tipo: TipoRegistroMovimiento;
-}
+export type CrearCategoriaRequest = CreateCategoryFormValues;
