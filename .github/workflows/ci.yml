@@ -63,6 +63,8 @@ jobs:
         run: npm run lint
       - name: Run movement frontend tests
         run: npm run test:movements
+      - name: Run authentication frontend contract tests
+        run: npm run test:auth
       - name: Build Next.js
         run: npm run build
 
@@ -102,6 +104,8 @@ jobs:
       # SQLite en memoria prueba adaptadores, no sustituye el fake exigido en E4.
       - name: Run local SQLite regression tests
         run: cargo test -p infraestructura --test repositorio_movimientos_sqlite --test repositorio_categorias_sqlite --test repositorio_monedas_sqlite
+      - name: Run authentication HTTP adapter tests
+        run: cargo test -p infraestructura --test autenticacion_http
 
   auto-merge:
     name: Auto-merge after CI

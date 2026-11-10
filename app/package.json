@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:movements": "node --test scripts/movements.test.mjs",
+    "test:auth": "node --test scripts/autenticacion.test.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
