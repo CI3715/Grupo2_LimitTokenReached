@@ -40,6 +40,7 @@ pub struct MovimientoDTO {
     pub cuenta_id: String,
     pub tipo: TipoMovimientoDTO,
     pub monto: String,
+    pub monto_resultante: String,
     pub fecha: String,
     pub categoria_id: Option<String>,
     pub nota: Option<String>,
