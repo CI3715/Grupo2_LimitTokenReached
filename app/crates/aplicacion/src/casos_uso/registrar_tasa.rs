@@ -1,9 +1,9 @@
 use crate::puertos::{Reloj, RepositorioMonedas, RepositorioTasas};
+use chrono::NaiveDate;
 use contrato::{
     error_validacion::ErrorValidacionDTO,
     tasa::{RegistrarTasaRequest, TasaDTO},
 };
-use chrono::NaiveDate;
 use dominio::tasas::TasaValidada;
 
 pub async fn ejecutar(
@@ -31,9 +31,7 @@ pub async fn ejecutar(
         &codigos_catalogo,
         hoy,
     )
-    .map_err(|validation_error| {
-        error(validation_error.campo(), &validation_error.to_string())
-    })?;
+    .map_err(|validation_error| error(validation_error.campo(), &validation_error.to_string()))?;
 
     let datos = RegistrarTasaRequest {
         moneda_origen: tasa.moneda_origen,

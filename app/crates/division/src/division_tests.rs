@@ -7,17 +7,16 @@ mod tests {
     #[test]
     fn inv07_partes_iguales_suman_exactamente_el_total() {
         let monto = Decimal::new(10000, 2); // 100.00
-        let participantes = vec![
-            "ana".to_string(),
-            "beto".to_string(),
-            "carla".to_string(),
-        ];
+        let participantes = vec!["ana".to_string(), "beto".to_string(), "carla".to_string()];
         let regla = ReglaDivision::PartesIguales { participantes };
 
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: las partes deben sumar exactamente el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: las partes deben sumar exactamente el total"
+        );
     }
 
     #[test]
@@ -33,7 +32,10 @@ mod tests {
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: las partes deben sumar exactamente el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: las partes deben sumar exactamente el total"
+        );
     }
 
     #[test]
@@ -49,7 +51,10 @@ mod tests {
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: las partes deben sumar exactamente el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: las partes deben sumar exactamente el total"
+        );
     }
 
     // Ejemplo exacto de la sección 2.4 de la especificación
@@ -57,11 +62,7 @@ mod tests {
     #[test]
     fn ejemplo_spec_2_4_partes_iguales_100_entre_3() {
         let monto = Decimal::new(10000, 2); // 100.00
-        let participantes = vec![
-            "carla".to_string(),
-            "ana".to_string(),
-            "beto".to_string(),
-        ];
+        let participantes = vec!["carla".to_string(), "ana".to_string(), "beto".to_string()];
         let regla = ReglaDivision::PartesIguales { participantes };
 
         let partes = calcular_division(monto, &regla).unwrap();
@@ -95,7 +96,7 @@ mod tests {
         let beto = partes.iter().find(|p| p.username == "beto").unwrap();
         let carla = partes.iter().find(|p| p.username == "carla").unwrap();
 
-        assert_eq!(ana.monto, Decimal::new(334, 2));  // 3.34
+        assert_eq!(ana.monto, Decimal::new(334, 2)); // 3.34
         assert!(ana.tiene_redondeo);
         assert_eq!(beto.monto, Decimal::new(333, 2)); // 3.33
         assert_eq!(carla.monto, Decimal::new(333, 2)); // 3.33
@@ -111,18 +112,42 @@ mod tests {
                 "ana".to_string(),
                 Decimal::new(10000, 2),
                 vec![
-                    ParteCalculada { username: "ana".to_string(), monto: Decimal::new(3334, 2), tiene_redondeo: true },
-                    ParteCalculada { username: "beto".to_string(), monto: Decimal::new(3333, 2), tiene_redondeo: false },
-                    ParteCalculada { username: "carla".to_string(), monto: Decimal::new(3333, 2), tiene_redondeo: false },
+                    ParteCalculada {
+                        username: "ana".to_string(),
+                        monto: Decimal::new(3334, 2),
+                        tiene_redondeo: true,
+                    },
+                    ParteCalculada {
+                        username: "beto".to_string(),
+                        monto: Decimal::new(3333, 2),
+                        tiene_redondeo: false,
+                    },
+                    ParteCalculada {
+                        username: "carla".to_string(),
+                        monto: Decimal::new(3333, 2),
+                        tiene_redondeo: false,
+                    },
                 ],
             ),
             (
                 "beto".to_string(),
                 Decimal::new(6000, 2),
                 vec![
-                    ParteCalculada { username: "ana".to_string(), monto: Decimal::new(3000, 2), tiene_redondeo: false },
-                    ParteCalculada { username: "beto".to_string(), monto: Decimal::new(1500, 2), tiene_redondeo: false },
-                    ParteCalculada { username: "carla".to_string(), monto: Decimal::new(1500, 2), tiene_redondeo: false },
+                    ParteCalculada {
+                        username: "ana".to_string(),
+                        monto: Decimal::new(3000, 2),
+                        tiene_redondeo: false,
+                    },
+                    ParteCalculada {
+                        username: "beto".to_string(),
+                        monto: Decimal::new(1500, 2),
+                        tiene_redondeo: false,
+                    },
+                    ParteCalculada {
+                        username: "carla".to_string(),
+                        monto: Decimal::new(1500, 2),
+                        tiene_redondeo: false,
+                    },
                 ],
             ),
         ];
@@ -161,7 +186,10 @@ mod tests {
         let regla = ReglaDivision::Porcentajes { porcentajes };
 
         let resultado = calcular_division(monto, &regla);
-        assert!(resultado.is_err(), "Porcentajes que suman 90 deben rechazarse");
+        assert!(
+            resultado.is_err(),
+            "Porcentajes que suman 90 deben rechazarse"
+        );
     }
 
     #[test]
@@ -175,13 +203,18 @@ mod tests {
         let regla = ReglaDivision::MontosFijos { montos };
 
         let resultado = calcular_division(monto, &regla);
-        assert!(resultado.is_err(), "Montos que no suman el total deben rechazarse");
+        assert!(
+            resultado.is_err(),
+            "Montos que no suman el total deben rechazarse"
+        );
     }
 
     #[test]
     fn sin_participantes_se_rechaza() {
         let monto = Decimal::new(10000, 2);
-        let regla = ReglaDivision::PartesIguales { participantes: vec![] };
+        let regla = ReglaDivision::PartesIguales {
+            participantes: vec![],
+        };
 
         let resultado = calcular_division(monto, &regla);
         assert!(resultado.is_err(), "Sin participantes debe rechazarse");
@@ -203,16 +236,15 @@ mod tests {
     #[test]
     fn monto_grande_se_divide_con_precision() {
         let monto = Decimal::new(99999999, 2); // 999,999.99
-        let participantes = vec![
-            "ana".to_string(),
-            "beto".to_string(),
-            "carla".to_string(),
-        ];
+        let participantes = vec!["ana".to_string(), "beto".to_string(), "carla".to_string()];
         let regla = ReglaDivision::PartesIguales { participantes };
 
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: incluso con montos grandes, las partes suman el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: incluso con montos grandes, las partes suman el total"
+        );
     }
 }

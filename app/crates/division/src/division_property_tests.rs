@@ -35,11 +35,11 @@ mod tests {
             num_participantes in 1usize..10usize,
         ) {
             let monto = Decimal::new(monto_centavos, 2);
-            
+
             // Generar porcentajes que sumen exactamente 100
             let mut porcentajes = Vec::new();
             let mut restante = 10000i64; // 100.00% en centésimas de porcentaje
-            
+
             for i in 0..num_participantes {
                 if i == num_participantes - 1 {
                     // El último recibe todo lo que queda
@@ -106,7 +106,7 @@ mod tests {
                 let monto_centavos = proptest::test_runner::Config::default().clone_rng().gen_range(100..10000);
                 let monto = Decimal::new(monto_centavos, 2);
                 let num_participantes = proptest::test_runner::Config::default().clone_rng().gen_range(1usize..5usize);
-                
+
                 let participantes: Vec<String> = (0..num_participantes)
                     .map(|i| {
                         let username = format!("user_{}", i);
@@ -150,7 +150,10 @@ mod tests {
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: incluso con 0.01, las partes suman el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: incluso con 0.01, las partes suman el total"
+        );
     }
 
     #[test]
@@ -168,7 +171,10 @@ mod tests {
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: con montos grandes, las partes suman el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: con montos grandes, las partes suman el total"
+        );
     }
 
     #[test]
@@ -180,6 +186,9 @@ mod tests {
         let partes = calcular_division(monto, &regla).unwrap();
         let suma: Decimal = partes.iter().map(|p| p.monto).sum();
 
-        assert_eq!(suma, monto, "INV-07: con 50 participantes, las partes suman el total");
+        assert_eq!(
+            suma, monto,
+            "INV-07: con 50 participantes, las partes suman el total"
+        );
     }
 }

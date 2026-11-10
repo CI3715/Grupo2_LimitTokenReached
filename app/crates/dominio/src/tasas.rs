@@ -65,7 +65,10 @@ impl TasaValidada {
         }
 
         for codigo in [&moneda_origen, &moneda_destino] {
-            if !codigos_catalogo.iter().any(|disponible| disponible == codigo) {
+            if !codigos_catalogo
+                .iter()
+                .any(|disponible| disponible == codigo)
+            {
                 return Err(ErrorValidacionTasa::MonedaNoCatalogada(codigo.clone()));
             }
         }

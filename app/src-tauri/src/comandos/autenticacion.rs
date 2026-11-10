@@ -32,8 +32,7 @@ fn guardar_token(app: &AppHandle, token: &str) -> Result<(), String> {
         .ok_or_else(|| "No se pudo determinar la carpeta de sesión.".to_string())?;
     std::fs::create_dir_all(directorio)
         .map_err(|_| "No se pudo crear el almacén local de sesión.".to_string())?;
-    std::fs::write(&ruta, token)
-        .map_err(|_| "No se pudo guardar la sesión local.".to_string())?;
+    std::fs::write(&ruta, token).map_err(|_| "No se pudo guardar la sesión local.".to_string())?;
     std::fs::set_permissions(&ruta, std::fs::Permissions::from_mode(0o600))
         .map_err(|_| "No se pudieron proteger los permisos de la sesión.".to_string())
 }
