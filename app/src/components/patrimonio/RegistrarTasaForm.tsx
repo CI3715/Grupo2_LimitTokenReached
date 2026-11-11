@@ -104,14 +104,51 @@ export function RegistrarTasaForm({
           <>
             <FormField<RegisterRateFormValues> name="moneda_origen" label="Moneda de origen">
               {(props) => (
-                <select {...props} value={selectedOrigin} onChange={(event) => setOrigin(event.currentTarget.value)} disabled={saving || currencies.length === 0}>
+                <select
+                  {...props}
+                  {...form.register("moneda_origen")}
+                  value={selectedOrigin}
+                  onChange={(event) => {
+                    const nextOrigin = event.currentTarget.value;
+                    const nextDestination =
+                      currencies.some(
+                        (currency) =>
+                          currency.codigo === destination &&
+                          currency.codigo !== nextOrigin,
+                      )
+                        ? destination
+                        : currencies.find(
+                            (currency) => currency.codigo !== nextOrigin,
+                          )?.codigo ?? "";
+                    setOrigin(nextOrigin);
+                    setDestination(nextDestination);
+                    void form.setValue(
+                      "moneda_origen",
+                      nextOrigin,
+                    );
+                    void form.setValue("moneda_destino", nextDestination);
+                  }}
+                  disabled={saving || currencies.length === 0}
+                >
                   {currencies.map((currency) => <option key={currency.codigo} value={currency.codigo}>{currency.codigo} · {currency.nombre}</option>)}
                 </select>
               )}
             </FormField>
             <FormField<RegisterRateFormValues> name="moneda_destino" label="Moneda de destino">
               {(props) => (
-                <select {...props} value={selectedDestination} onChange={(event) => setDestination(event.currentTarget.value)} disabled={saving || currencies.length < 2}>
+                <select
+                  {...props}
+                  {...form.register("moneda_destino")}
+                  value={selectedDestination}
+                  onChange={(event) => {
+                    setDestination(event.currentTarget.value);
+                    void form.setValue(
+                      "moneda_destino",
+                      event.currentTarget.value,
+                    );
+                  }}
+                  disabled={saving || currencies.length < 2}
+                >
                   {currencies.map((currency) => <option key={currency.codigo} value={currency.codigo} disabled={currency.codigo === selectedOrigin}>{currency.codigo} · {currency.nombre}</option>)}
                 </select>
               )}

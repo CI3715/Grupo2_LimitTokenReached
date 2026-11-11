@@ -1552,12 +1552,16 @@
   padding: 26px;
   background: #fff;
 }
+
+.correction-dialog > section:first-child{
+  padding: 0;
+}
 .correction-dialog .movement-dialog-heading {
   padding: 0;
   align-items: flex-start;
 }
 .correction-dialog .movement-dialog-heading p {
-  margin: 7px 0 0;
+  margin: 7px 0 7px;
   color: #667c71;
   font-size: 13px;
 }
@@ -1574,6 +1578,7 @@
 .correction-dialog input {
   box-sizing: border-box;
   width: 100%;
+  margin: 9px 0 9px;
   padding: 12px;
   border: 1px solid #c7d8d3;
   border-radius: 8px;
@@ -1582,16 +1587,13 @@
   background: #fbfdfc;
 }
 .correction-dialog input:focus {
-  outline: 3px solid rgba(35, 189, 211, 0.22);
-  border-color: #23a9b8;
+  border-color: #80b79a;
 }
 .correction-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 22px;
-  padding-top: 18px;
-  border-top: 1px solid #e5ecea;
 }
 .empty-movements,
 .account-detail-loading {

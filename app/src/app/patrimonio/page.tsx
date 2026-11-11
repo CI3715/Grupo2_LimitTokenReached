@@ -433,7 +433,7 @@ export default function PatrimonioPage() {
                   </button>
                   {rateFormOpen && (
                     <RegistrarTasaForm
-                      key={date}
+                      key={`${date}-${currencies.map((currency) => currency.codigo).join(",")}`}
                       currencies={currencies}
                       initialOrigin={missingRates[0]?.moneda_origen}
                       initialDestination={missingRates[0]?.moneda_destino}
