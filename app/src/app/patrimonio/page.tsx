@@ -414,7 +414,7 @@ export default function PatrimonioPage() {
                   {missingRates
                     .map(
                       (rate) =>
-                        `${rate.moneda_origen} → ${rate.moneda_destino} al ${rate.fecha_limite}`,
+                        `${rate.moneda_origen} ➜ ${rate.moneda_destino} al ${rate.fecha_limite}`,
                     )
                     .join(", ")}.
                 </div>

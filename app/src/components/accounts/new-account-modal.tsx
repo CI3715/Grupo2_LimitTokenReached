@@ -89,13 +89,6 @@ export function NewAccountModal({
           <h2 id="new-account-title">Agrega una cuenta</h2>
           <p>Completa los datos de tu cuenta para organizar tus saldos.</p>
         </div>
-        <button
-          className="close-account-dialog"
-          aria-label="Cerrar formulario"
-          onClick={onClose}
-        >
-          ×
-        </button>
       </header>
       <GlobalForm<CreateAccountFormValues>
         schema={createAccountSchema}

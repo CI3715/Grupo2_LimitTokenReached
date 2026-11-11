@@ -6,10 +6,29 @@
   background: white;
   color: #294d3c;
 }
-.movement-form-panel h2 { margin: 0; font-size: 20px; }
-.movement-form-panel header p { font-size: 14px; }
-.movement-form-panel fieldset { margin: 20px 0; padding: 0; border: 0; min-width: 0; }
-.movement-form-panel label { display: block; margin: 16px 0 8px; font-size: 14px; font-weight: 600; }
+.movement-form-panel h2 { 
+  margin-bottom: 10px; 
+  font-size: 20px;
+}
+.movement-form-panel header p { 
+  font-size: 14px; 
+}
+.movement-form-panel header .eyebrow{ 
+  font-size: 10px;
+  margin-bottom: 10px;
+}
+.movement-form-panel fieldset { 
+  margin-bottom: 20px; 
+  padding: 0; 
+  border: 0; 
+  min-width: 0; 
+}
+.movement-form-panel label { 
+  display: block; 
+  margin: 16px 0 8px; 
+  font-size: 14px; 
+  font-weight: 600; 
+}
 .movement-form-panel input,
 .movement-form-panel select,
 .movement-form-panel textarea {
@@ -23,9 +42,18 @@
   color: #294d3c;
   font: inherit;
 }
-.movement-form-panel textarea { resize: vertical; }
-.movement-form-panel small { display: block; margin-top: 6px; line-height: 1.5; }
-.movement-form-panel :focus-visible { outline: 3px solid #407b66; outline-offset: 3px; }
+.movement-form-panel textarea { 
+  resize: vertical; 
+}
+.movement-form-panel small { 
+  display: block; 
+  margin-top: 6px; 
+  line-height: 1.5; 
+}
+.movement-form-panel :focus-visible { 
+  outline: 3px solid #407b66; 
+  outline-offset: 3px; 
+}
 .movement-form-panel [aria-invalid="true"] { border-color: #9e352d; }
 .movement-form-panel button { min-height: 44px; cursor: pointer; }
 .movement-form-panel .account-primary,
