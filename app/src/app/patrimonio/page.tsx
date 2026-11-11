@@ -97,7 +97,7 @@ function RateCell({
   if (!rate) {
     return (
       <span className="patrimonio-rate-content patrimonio-rate-missing">
-        Falta tasa {accountCurrency} → {baseCurrency} al {date}
+        Falta tasa {accountCurrency} ➜ {baseCurrency} al {date}
       </span>
     );
   }
