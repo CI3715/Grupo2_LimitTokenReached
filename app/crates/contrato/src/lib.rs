@@ -6,6 +6,7 @@ pub mod error_validacion;
 pub mod moneda;
 pub mod movimiento;
 pub mod patrimonio;
+pub mod social;
 pub mod tasa;
 
 // Re-exportaciones para uso cómodo desde otros crates
@@ -21,6 +22,13 @@ pub use movimiento::{
 pub use patrimonio::{
     ConsultarPatrimonioRequest, ConsultarPatrimonioResponse, SaldoCuentaDTO, SubtotalMonedaDTO,
     TasaFaltanteDTO, TasaUsadaDTO,
+};
+pub use social::{
+    AmistadCreadaDTO, CrearAmistadRequestDTO, CrearGrupoRequestDTO, DetalleGrupoDTO,
+    GastoCreadoDTO, GastoDTO, GrupoDTO, InvitacionAmistadDTO, InvitacionGrupoCreadaDTO,
+    InvitarMiembroGrupoRequestDTO, ListaAmistadesDTO, ListaGruposDTO, MiembroGrupoDTO,
+    ParteGastoDTO, RegistrarGastoRequestDTO, ResponderInvitacionRequestDTO, RespuestaInvitacionDTO,
+    RespuestaInvitacionGrupoDTO, UsuarioResumenDTO,
 };
 pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
 
