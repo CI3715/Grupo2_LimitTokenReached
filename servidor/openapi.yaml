@@ -8,11 +8,11 @@ paths:
       summary: Registrar Usuario
       operationId: registrar_usuario_usuarios_post
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RegistrarUsuarioRequest'
-        required: true
       responses:
         '201':
           description: Successful Response
@@ -21,17 +21,45 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsuarioDTO'
         '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorAutenticacionDTO'
           description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorAutenticacionDTO'
         '409':
-          description: Conflict
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorAutenticacionDTO'
+          description: Conflict
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      summary: Buscar Usuario
+      operationId: buscar_usuario_usuarios_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: usuario
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Usuario
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Buscar Usuario Usuarios Get
         '422':
           description: Validation Error
           content:
@@ -88,6 +116,294 @@ paths:
           description: Token ausente, inválido o vencido.
       security:
       - HTTPBearer: []
+  /amistades:
+    get:
+      summary: Listar Amistades
+      operationId: listar_amistades_amistades_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  type: array
+                type: object
+                title: Response Listar Amistades Amistades Get
+      security:
+      - HTTPBearer: []
+    post:
+      summary: Invitar Amigo
+      operationId: invitar_amigo_amistades_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearAmistadRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Invitar Amigo Amistades Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /amistades/{id}/respuesta:
+    post:
+      summary: Responder Amistad
+      operationId: responder_amistad_amistades__id__respuesta_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespuestaRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Responder Amistad Amistades  Id  Respuesta Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /amistades/{id}:
+    delete:
+      summary: Eliminar Amistad
+      operationId: eliminar_amistad_amistades__id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /grupos:
+    get:
+      summary: Listar Grupos
+      operationId: listar_grupos_grupos_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  items:
+                    additionalProperties:
+                      anyOf:
+                      - type: string
+                      - type: 'null'
+                    type: object
+                  type: array
+                type: object
+                title: Response Listar Grupos Grupos Get
+      security:
+      - HTTPBearer: []
+    post:
+      summary: Crear Grupo
+      operationId: crear_grupo_grupos_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearGrupoRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  anyOf:
+                  - type: string
+                  - type: 'null'
+                type: object
+                title: Response Crear Grupo Grupos Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /grupos/{id}/miembros:
+    post:
+      summary: Invitar Miembro
+      operationId: invitar_miembro_grupos__id__miembros_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvitarMiembroRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Invitar Miembro Grupos  Id  Miembros Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /grupos/{id}/miembros/yo/respuesta:
+    post:
+      summary: Responder Invitacion Grupo
+      operationId: responder_invitacion_grupo_grupos__id__miembros_yo_respuesta_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespuestaRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Responder Invitacion Grupo Grupos  Id  Miembros Yo
+                  Respuesta Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /grupos/{id}/gastos:
+    post:
+      summary: Registrar Gasto
+      operationId: registrar_gasto_grupos__id__gastos_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarGastoRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Registrar Gasto Grupos  Id  Gastos Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /grupos/{id}:
+    get:
+      summary: Ver Grupo
+      operationId: ver_grupo_grupos__id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Ver Grupo Grupos  Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /ping:
     get:
       summary: Ping
@@ -101,6 +417,45 @@ paths:
                 $ref: '#/components/schemas/PingRespuesta'
 components:
   schemas:
+    CrearAmistadRequest:
+      properties:
+        usuario:
+          type: string
+          title: Usuario
+      additionalProperties: false
+      type: object
+      required:
+      - usuario
+      title: CrearAmistadRequest
+    CrearGrupoRequest:
+      properties:
+        nombre:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Nombre
+        descripcion:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Descripcion
+        moneda:
+          type: string
+          pattern: ^[A-Z]{3}$
+          title: Moneda
+        actividad:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Actividad
+      additionalProperties: false
+      type: object
+      required:
+      - nombre
+      - moneda
+      title: CrearGrupoRequest
     ErrorAutenticacionDTO:
       properties:
         campo:
@@ -140,6 +495,16 @@ components:
       - correo
       - contrasena
       title: IniciarSesionRequest
+    InvitarMiembroRequest:
+      properties:
+        usuario:
+          type: string
+          title: Usuario
+      additionalProperties: false
+      type: object
+      required:
+      - usuario
+      title: InvitarMiembroRequest
     PingRespuesta:
       properties:
         estado:
@@ -161,6 +526,51 @@ components:
       - version
       - timestamp
       title: PingRespuesta
+    RegistrarGastoRequest:
+      properties:
+        concepto:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Concepto
+        monto:
+          type: string
+          title: Monto
+        fecha:
+          type: string
+          format: date
+          title: Fecha
+        pagador:
+          type: string
+          title: Pagador
+        regla:
+          type: string
+          enum:
+          - iguales
+          - porcentajes
+          - fijos
+          title: Regla
+        participantes:
+          items:
+            type: string
+          type: array
+          minItems: 1
+          title: Participantes
+        valores:
+          additionalProperties:
+            type: string
+          type: object
+          title: Valores
+      additionalProperties: false
+      type: object
+      required:
+      - concepto
+      - monto
+      - fecha
+      - pagador
+      - regla
+      - participantes
+      title: RegistrarGastoRequest
     RegistrarUsuarioRequest:
       properties:
         nombre_usuario:
@@ -185,6 +595,16 @@ components:
       - correo
       - contrasena
       title: RegistrarUsuarioRequest
+    RespuestaRequest:
+      properties:
+        aceptar:
+          type: boolean
+          title: Aceptar
+      additionalProperties: false
+      type: object
+      required:
+      - aceptar
+      title: RespuestaRequest
     SesionDTO:
       properties:
         token:
