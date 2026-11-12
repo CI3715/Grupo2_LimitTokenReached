@@ -1,50 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { GlobalForm, FormField } from "@/components/forms";
-import { iniciarSesion } from "@/services/autenticacion";
 import { loginSchema, type LoginFormValues } from "@/types/schemas";
-import { applyBackendValidationError } from "@/types/validation";
+import "./auth.css";
 
-export function LoginForm() {
-  const router = useRouter();
-  const [mensaje, setMensaje] = useState("");
-
-  async function enviar(
+type LoginFormProps = {
+  mensaje: string;
+  onSubmit: (
     datos: LoginFormValues,
     form: UseFormReturn<LoginFormValues>,
-  ) {
-    setMensaje("");
-    try {
-      await iniciarSesion(datos);
-      window.dispatchEvent(new Event("auth-session-changed"));
-      router.replace("/");
-    } catch (fallo: unknown) {
-      const validacion = applyBackendValidationError(fallo, form.setError);
-      if (!validacion) {
-        setMensaje(
-          typeof fallo === "string"
-            ? fallo
-            : "No se pudo iniciar sesión. Inténtalo de nuevo.",
-        );
-      }
-    }
-  }
+  ) => void | Promise<void>;
+};
 
+export function LoginForm({ mensaje, onSubmit }: LoginFormProps) {
   return (
     <section className="auth-card" aria-labelledby="login-title">
       <p className="breadcrumb">Cuenta</p>
       <h1 id="login-title">Iniciar sesión</h1>
       <p>Identifícate ante el servidor para usar las funciones compartidas.</p>
       <GlobalForm<LoginFormValues>
-        className="auth-form"
+        className="form-stack"
         schema={loginSchema}
         defaultValues={{ correo: "", contrasena: "" }}
-        onSubmit={enviar}
+        onSubmit={onSubmit}
       >
         {(form) => (
           <>

@@ -8,6 +8,7 @@ import {
 } from "@/types/accounts";
 import { clearAmountInput } from "@/types/account-money";
 import { GlobalForm, FormField } from "@/components/forms";
+import "./new-account-modal.css";
 import { createAccountSchema, type CreateAccountFormValues } from "@/types/schemas";
 import { applyBackendValidationError } from "@/types/validation";
 import type { UseFormReturn } from "react-hook-form";

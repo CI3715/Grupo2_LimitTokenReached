@@ -7,7 +7,7 @@ import { AccountsSummary } from "@/components/accounts/accounts-summary";
 import { NewAccountModal } from "@/components/accounts/new-account-modal";
 import { useAccounts } from "@/features/accounts/useAccounts";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import "./accounts.css";
+import "./home/home.css";
 export default function HomePage() {
   const { accounts, currencies, create } = useAccounts();
   const { usuario } = useAuthSession();

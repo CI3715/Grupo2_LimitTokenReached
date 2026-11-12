@@ -12,7 +12,7 @@ import { registrarTasa } from "@/services/registrarTasa";
 import type { Currency } from "@/types/accounts";
 import { parseErrorValidacion } from "@/types/error_validacion";
 import type { RegistrarTasaRequest, TasaDTO } from "@/types/tasas";
-import "../accounts.css";
+import "./tasas.css";
 
 function today() {
   const date = new Date();

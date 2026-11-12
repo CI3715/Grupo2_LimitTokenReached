@@ -30,7 +30,7 @@ export function FormField<TValues extends FieldValues>({
   const describedBy = [helpId, error ? errorId : undefined].filter(Boolean).join(" ") || undefined;
 
   return (
-    <label className={className} htmlFor={id}>
+    <label className={`form-field${className ? ` ${className}` : ""}`} htmlFor={id}>
       {label}
       {children({
         id,

@@ -4,7 +4,7 @@ import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { usePing } from "@/features/ping/usePing";
 import { useAuthSession } from "@/features/auth/useAuthSession";
 import type { ConnectionState } from "@/types/ping";
-import "../accounts.css";
+import "./conexion.css";
 
 const statusCopy: Record<ConnectionState["status"], string> = {
   idle: "Sin comprobar",

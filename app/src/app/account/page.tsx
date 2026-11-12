@@ -10,7 +10,7 @@ import { AccountDetail } from "@/components/accounts/account-detail";
 import { registerMovementFromForm } from "@/features/movements/register-movement";
 import { correctMovementFromForm } from "@/features/movements/correct-movement";
 import { createCategory } from "@/services/createCategory";
-import "../accounts.css";
+import "./account.css";
 
 function AccountDetailContent() {
   const searchParams = useSearchParams();

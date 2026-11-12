@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
+import { CurrencyForm } from "@/components/currencies/CurrencyForm";
+import { crearMonedaDesdeFormulario } from "@/features/currencies/create-currency";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import { createCurrency } from "@/services/createCurrency";
 import { listCurrencies } from "@/services/listCurrencies";
 import type { Currency } from "@/types/accounts";
-import { GlobalForm, FormField } from "@/components/forms";
-import { createCurrencySchema, type CreateCurrencyFormValues } from "@/types/schemas";
-import { applyBackendValidationError } from "@/types/validation";
+import type { CreateCurrencyFormValues } from "@/types/schemas";
 import type { UseFormReturn } from "react-hook-form";
-import "../accounts.css";
+import "./monedas.css";
 
 export default function MonedasPage() {
   const { usuario } = useAuthSession();
@@ -35,20 +34,21 @@ export default function MonedasPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function submit(values: CreateCurrencyFormValues, form: UseFormReturn<CreateCurrencyFormValues>) {
+  function submit(
+    values: CreateCurrencyFormValues,
+    form: UseFormReturn<CreateCurrencyFormValues>,
+  ) {
     setError("");
     setNotice("");
-    try {
-      const currency = await createCurrency(values);
-      setCurrencies((current) => [...current, currency]);
-      setNotice(`Moneda ${currency.codigo} creada correctamente.`);
-      form.reset();
-    } catch (cause) {
-      console.error("No se pudo crear la moneda.", cause);
-      if (!applyBackendValidationError(cause, form.setError)) {
-        setError("No se pudo crear la moneda.");
-      }
-    }
+    return crearMonedaDesdeFormulario(
+      values,
+      form,
+      setError,
+      (currency) => {
+        setCurrencies((current) => [...current, currency]);
+        setNotice(`Moneda ${currency.codigo} creada correctamente.`);
+      },
+    );
   }
 
   return (
@@ -81,31 +81,7 @@ export default function MonedasPage() {
                 {notice}
               </p>
             )}
-            <GlobalForm<CreateCurrencyFormValues>
-              schema={createCurrencySchema}
-              defaultValues={{ codigo: "", nombre: "", simbolo: "", decimales: 2 }}
-              onSubmit={submit}
-            >
-              {(form) => (
-                <>
-                  <FormField<CreateCurrencyFormValues> name="codigo" label="Código" help="3 a 5 letras mayúsculas; debe ser único.">
-                    {(props) => <input {...props} autoCapitalize="characters" autoComplete="off" {...form.register("codigo")} />}
-                  </FormField>
-                  <FormField<CreateCurrencyFormValues> name="nombre" label="Nombre">
-                    {(props) => <input {...props} {...form.register("nombre")} />}
-                  </FormField>
-                  <FormField<CreateCurrencyFormValues> name="simbolo" label="Símbolo">
-                    {(props) => <input {...props} {...form.register("simbolo")} />}
-                  </FormField>
-                  <FormField<CreateCurrencyFormValues> name="decimales" label="Decimales">
-                    {(props) => <input {...props} type="number" {...form.register("decimales")} />}
-                  </FormField>
-                  <button className="account-primary" type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? "Guardando…" : "Crear moneda"}
-                  </button>
-                </>
-              )}
-            </GlobalForm>
+            <CurrencyForm onSubmit={submit} />
           </section>
 
           <section

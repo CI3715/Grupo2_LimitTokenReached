@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { AuthSessionProvider } from "@/features/auth/useAuthSession";
 
-import "./auth.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

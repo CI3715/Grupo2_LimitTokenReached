@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { UseFormReturn } from "react-hook-form";
 
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
-import { LoginForm } from "@/features/auth/LoginForm";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { iniciarSesionDesdeFormulario } from "@/features/auth/login";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import "../accounts.css";
+import type { LoginFormValues } from "@/types/schemas";
+import "./perfil.css";
 
 type FriendPanel = "add" | "search" | null;
 
 export default function PerfilPage() {
-  const { usuario, cargando, cargarPerfil, salir } = useAuthSession();
+  const { usuario, cargando, salir } = useAuthSession();
+  const router = useRouter();
   const [friendPanel, setFriendPanel] = useState<FriendPanel>(null);
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
   const [nombreUsuarioAmigo, setNombreUsuarioAmigo] = useState("");
   const [busquedaAmigo, setBusquedaAmigo] = useState("");
+  const [mensajeLogin, setMensajeLogin] = useState("");
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +37,22 @@ export default function PerfilPage() {
     return () => document.removeEventListener("mousedown", cerrarNotificaciones);
   }, []);
 
+  function enviarLogin(
+    datos: LoginFormValues,
+    form: UseFormReturn<LoginFormValues>,
+  ) {
+    setMensajeLogin("");
+    return iniciarSesionDesdeFormulario(
+      datos,
+      form,
+      setMensajeLogin,
+      () => {
+        window.dispatchEvent(new Event("auth-session-changed"));
+        router.push("/");
+      },
+    );
+  }
+
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
@@ -40,7 +62,7 @@ export default function PerfilPage() {
         />
         <main className="accounts-workspace">
           {!usuario ? (
-            <LoginForm />
+            <LoginForm mensaje={mensajeLogin} onSubmit={enviarLogin} />
           ) : (
             <>
               <header className="accounts-header tasas-header">
