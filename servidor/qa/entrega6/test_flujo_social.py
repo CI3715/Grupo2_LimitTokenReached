@@ -143,6 +143,10 @@ def test_ajeno_recibe_mismo_404_en_todas_las_rutas_del_grupo(
 @pytest.mark.parametrize("quien_elimina", ["ana", "beto"])
 def test_eliminar_amistad_no_borra_grupos_ni_gastos(social, quien_elimina):
     amistad = social.amistad()
+    respuesta_id = social.enviar(
+        quien_elimina, "GET", "/amistades/beto/id", 200
+    )
+    assert respuesta_id.json()["id"] == amistad
     grupo = social.grupo()
     social.invitar_grupo(grupo, "beto")
     social.responder_grupo(grupo, "beto")

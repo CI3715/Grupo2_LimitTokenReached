@@ -57,6 +57,11 @@ pub trait ClienteSocial: Send + Sync {
         amistad_id: String,
         token: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), ErrorOperacion>> + Send + '_>>;
+    fn eliminar_amistad_por_usuario(
+        &self,
+        nombre_usuario: String,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ErrorOperacion>> + Send + '_>>;
     fn crear_grupo(
         &self,
         datos: contrato::CrearGrupoRequestDTO,
