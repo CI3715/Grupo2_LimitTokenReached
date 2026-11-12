@@ -12,4 +12,5 @@ pub mod listar_monedas;
 pub mod obtener_historial_movimientos;
 pub mod registrar_movimiento;
 pub mod registrar_tasa;
+pub mod social;
 pub mod verificar_conexion;

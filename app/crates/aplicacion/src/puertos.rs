@@ -7,15 +7,96 @@ use contrato::patrimonio::SaldoCuentaDTO;
 use contrato::tasa::{RegistrarTasaRequest, TasaDTO};
 use dominio::categoria::Categoria;
 use dominio::movimiento::Movimiento;
+use std::future::Future;
+use std::pin::Pin;
 use uuid::Uuid;
 
 pub trait Reloj: Send + Sync {
     fn ahora(&self) -> String;
 }
 
-// Puerto para abstracción de solicitudes HTTP salientes hacia el Servidor FastAPI
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorOperacion {
+    pub status: Option<u16>,
+    pub mensaje: String,
+}
+
 pub trait ClienteSocial: Send + Sync {
-    fn hacer_ping(&self) -> impl std::future::Future<Output = Result<String, String>> + Send;
+    fn buscar_usuario(
+        &self,
+        usuario: String,
+        token: String,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<contrato::UsuarioResumenDTO, ErrorOperacion>> + Send + '_>,
+    >;
+    fn invitar_amistad(
+        &self,
+        datos: contrato::CrearAmistadRequestDTO,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::AmistadCreadaDTO, ErrorOperacion>> + Send + '_>>;
+    fn responder_invitacion_amistad(
+        &self,
+        invitacion_id: String,
+        aceptar: bool,
+        token: String,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<contrato::RespuestaInvitacionDTO, ErrorOperacion>>
+                + Send
+                + '_,
+        >,
+    >;
+    fn listar_amistades(
+        &self,
+        token: String,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<contrato::ListaAmistadesDTO, ErrorOperacion>> + Send + '_>,
+    >;
+    fn eliminar_amistad(
+        &self,
+        amistad_id: String,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ErrorOperacion>> + Send + '_>>;
+    fn crear_grupo(
+        &self,
+        datos: contrato::CrearGrupoRequestDTO,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::GrupoDTO, ErrorOperacion>> + Send + '_>>;
+    fn invitar_miembro_grupo(
+        &self,
+        grupo_id: String,
+        datos: contrato::InvitarMiembroGrupoRequestDTO,
+        token: String,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<contrato::InvitacionGrupoCreadaDTO, ErrorOperacion>>
+                + Send
+                + '_,
+        >,
+    >;
+    fn responder_invitacion_grupo(
+        &self,
+        grupo_id: String,
+        aceptar: bool,
+        token: String,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<contrato::RespuestaInvitacionGrupoDTO, ErrorOperacion>>
+                + Send
+                + '_,
+        >,
+    >;
+    fn registrar_gasto(
+        &self,
+        grupo_id: String,
+        datos: contrato::RegistrarGastoRequestDTO,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>> + Send + '_>>;
+    fn obtener_detalle_grupo(
+        &self,
+        grupo_id: String,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::DetalleGrupoDTO, ErrorOperacion>> + Send + '_>>;
 }
 
 pub trait RepositorioCuentas: Send + Sync {
