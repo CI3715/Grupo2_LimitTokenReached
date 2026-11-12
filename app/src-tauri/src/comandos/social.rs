@@ -77,13 +77,17 @@ pub async fn listar_amistades(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn eliminar_amistad(
     app: AppHandle,
-    amistad_id: String,
+    nombre_usuario: String,
     cliente: State<'_, Box<dyn ClienteSocial>>,
 ) -> Result<(), String> {
     let token = obtener_token(&app)?;
-    aplicacion::casos_uso::social::eliminar_amistad(cliente.inner().as_ref(), amistad_id, token)
-        .await
-        .map_err(|error| mensaje_error(&app, error))
+    aplicacion::casos_uso::social::eliminar_amistad_por_usuario(
+        cliente.inner().as_ref(),
+        nombre_usuario,
+        token,
+    )
+    .await
+    .map_err(|error| mensaje_error(&app, error))
 }
 
 #[tauri::command(rename_all = "snake_case")]
