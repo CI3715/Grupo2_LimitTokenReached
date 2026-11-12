@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
+import { useAuthSession } from "@/features/auth/useAuthSession";
 import { createCurrency } from "@/services/createCurrency";
 import { listCurrencies } from "@/services/listCurrencies";
 import type { Currency } from "@/types/accounts";
@@ -12,6 +13,7 @@ import type { UseFormReturn } from "react-hook-form";
 import "../accounts.css";
 
 export default function MonedasPage() {
+  const { usuario } = useAuthSession();
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -52,7 +54,7 @@ export default function MonedasPage() {
   return (
     <div className="accounts-page patrimonio-page">
       <div className="accounts-shell">
-        <AccountsSidebar active="monedas" />
+        <AccountsSidebar active="monedas" sesionActiva={Boolean(usuario)} />
         <main className="accounts-workspace">
           <header className="accounts-header tasas-header">
             <div>

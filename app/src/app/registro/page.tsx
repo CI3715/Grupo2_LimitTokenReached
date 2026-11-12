@@ -9,10 +9,12 @@ import { GlobalForm, FormField } from "@/components/forms";
 import { registerSchema, type RegisterFormValues } from "@/types/schemas";
 import { applyBackendValidationError } from "@/types/validation";
 import type { UseFormReturn } from "react-hook-form";
+import { useAuthSession } from "@/features/auth/useAuthSession";
 
 export default function RegistroPage() {
   const [mensaje, setMensaje] = useState("");
   const [registrado, setRegistrado] = useState(false);
+  const { usuario } = useAuthSession();
   async function enviar(datos: RegisterFormValues, form: UseFormReturn<RegisterFormValues>) {
     setMensaje("");
     try {
@@ -29,7 +31,7 @@ export default function RegistroPage() {
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
-        <AccountsSidebar active="auth" />
+        <AccountsSidebar active="auth" sesionActiva={Boolean(usuario)} />
         <main className="accounts-workspace">
           <section className="auth-card" aria-labelledby="register-title">
             <p className="breadcrumb">Cuenta</p>

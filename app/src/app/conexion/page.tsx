@@ -2,6 +2,7 @@
 
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { usePing } from "@/features/ping/usePing";
+import { useAuthSession } from "@/features/auth/useAuthSession";
 import type { ConnectionState } from "@/types/ping";
 import "../accounts.css";
 
@@ -14,6 +15,7 @@ const statusCopy: Record<ConnectionState["status"], string> = {
 
 export default function ConnectionPage() {
   const { state, checkConnection } = usePing();
+  const { usuario } = useAuthSession();
   const response = state.status === "success" ? state.data : null;
   const checkedAt = response
     ? new Intl.DateTimeFormat("es-VE", {
@@ -25,7 +27,7 @@ export default function ConnectionPage() {
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
-        <AccountsSidebar active="connection" />
+        <AccountsSidebar active="connection" sesionActiva={Boolean(usuario)} />
         <main className="accounts-workspace">
           <header className="accounts-header">
             <div>
