@@ -96,6 +96,24 @@ Las dependencias van hacia adentro: app usa a infraestructura, esta a aplicacion
 La base SQLite de esta API es independiente de `libro.db`, que permanece en el
 dispositivo. Ninguna ruta de autenticación recibe datos financieros.
 
+## Esquema SQLite y migraciones
+
+Al iniciar, la aplicación crea las tablas que falten con SQLAlchemy. La
+migración `migrations/002_entrega6_social.sql` documenta y permite aplicar
+explícitamente las tablas de amistades, grupos y gastos compartidos de E6. La
+tabla `usuarios` debe existir previamente (la crea el esquema de autenticación
+de E5).
+
+Para aplicarla con la biblioteca SQLite de Python, desde la raíz del
+repositorio usa la ruta configurada en `DATABASE_PATH` (por defecto,
+`servidor/data/usuarios_auth.db`):
+
+    python -c "import sqlite3; from pathlib import Path; db=sqlite3.connect('servidor/data/usuarios_auth.db'); db.executescript(Path('servidor/migrations/002_entrega6_social.sql').read_text()); db.close()"
+
+Si `DATABASE_PATH` apunta a otro archivo, reemplaza la ruta de la base de datos
+en el comando. La migración no copia usuarios ni gastos entre equipos; crea
+solo el esquema y sus índices.
+
 ## OpenAPI
 
 Desde `servidor`, con el entorno activado:
