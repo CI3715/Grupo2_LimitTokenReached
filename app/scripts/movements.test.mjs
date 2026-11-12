@@ -21,7 +21,20 @@ function load(relative, mocks = {}) {
     (name) => {
       if (Object.hasOwn(mocks, name)) return mocks[name];
       if (name.endsWith('.css')) return {};
-      if (name.startsWith('@/')) return load(`src/${name.slice(2)}.ts`, mocks);
+      if (name.startsWith('@/')) {
+        const aliasPath = `src/${name.slice(2)}`;
+        const candidates = [
+          `${aliasPath}.ts`,
+          `${aliasPath}.tsx`,
+          `${aliasPath}/index.ts`,
+          `${aliasPath}/index.tsx`,
+        ];
+        const resolved = candidates.find((candidate) =>
+          fs.existsSync(path.resolve(import.meta.dirname, '..', candidate)),
+        );
+        if (!resolved) throw new Error(`No se pudo resolver el alias ${name}`);
+        return load(resolved, mocks);
+      }
       return resolveDependency(name);
     }, compiledModule, compiledModule.exports,
   );
