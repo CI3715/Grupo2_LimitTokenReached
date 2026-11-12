@@ -1,13 +1,13 @@
 pub mod comandos;
 
 use aplicacion::puertos::{
-    Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,
-    RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
+    ClienteSocial, Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas,
+    RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
 };
 use infraestructura::{
-    RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite, RepositorioMonedasSqlite,
-    RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite,
-    RepositorioTasasSqlite, bd,
+    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite,
+    RepositorioMonedasSqlite, RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite,
+    RepositorioPreferenciasSqlite, RepositorioTasasSqlite, bd,
 };
 use tauri::Manager;
 
@@ -65,6 +65,11 @@ pub fn run() {
             let reloj: Box<dyn Reloj> = Box::new(RelojSistema);
             app.manage(reloj);
 
+            let url_servidor = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
+            let cliente_social: Box<dyn ClienteSocial> =
+                Box::new(ClienteSocialHttp::new(url_servidor));
+            app.manage(cliente_social);
+
             Ok(())
         })
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -74,6 +79,16 @@ pub fn run() {
             comandos::autenticacion::iniciar_sesion,
             comandos::autenticacion::obtener_perfil,
             comandos::autenticacion::cerrar_sesion,
+            comandos::social::buscar_usuario,
+            comandos::social::invitar_amistad,
+            comandos::social::responder_invitacion_amistad,
+            comandos::social::listar_amistades,
+            comandos::social::eliminar_amistad,
+            comandos::social::crear_grupo,
+            comandos::social::invitar_miembro_grupo,
+            comandos::social::responder_invitacion_grupo,
+            comandos::social::registrar_gasto,
+            comandos::social::obtener_detalle_grupo,
             comandos::cuentas::crear_cuenta,
             comandos::cuentas::listar_cuentas,
             comandos::moneda::listar_monedas,
