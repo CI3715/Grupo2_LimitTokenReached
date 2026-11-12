@@ -1,3 +1,4 @@
+use aplicacion::puertos::{ClienteSocial, ErrorOperacion};
 use contrato::{
     AmistadCreadaDTO, CrearAmistadRequestDTO, CrearGrupoRequestDTO, DetalleGrupoDTO,
     GastoCreadoDTO, GrupoDTO, InvitacionGrupoCreadaDTO, InvitarMiembroGrupoRequestDTO,
@@ -34,7 +35,7 @@ impl SocialError {
 
     pub fn mensaje_ui(&self) -> &str {
         match self {
-            Self::Servidor { mensaje, .. } => mensaje,
+            Self::Servidor { mensaje, .. } => mensaje.as_str(),
         }
     }
 
@@ -49,6 +50,15 @@ impl SocialError {
         Self::Servidor {
             status: Some(status),
             mensaje: mensaje.into(),
+        }
+    }
+}
+
+impl From<SocialError> for ErrorOperacion {
+    fn from(error: SocialError) -> Self {
+        Self {
+            status: error.status().map(|status| status.as_u16()),
+            mensaje: error.mensaje_ui().to_string(),
         }
     }
 }
@@ -282,4 +292,164 @@ fn error_http(status: StatusCode, cuerpo: &str) -> SocialError {
     }
 
     SocialError::respuesta(status, "El servidor no pudo completar la solicitud.")
+}
+
+impl ClienteSocial for ClienteSocialHttp {
+    fn buscar_usuario(
+        &self,
+        usuario: String,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<UsuarioResumenDTO, ErrorOperacion>> + Send + '_,
+        >,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::buscar_usuario(self, &usuario, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn invitar_amistad(
+        &self,
+        datos: CrearAmistadRequestDTO,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<AmistadCreadaDTO, ErrorOperacion>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::invitar_amistad(self, &datos, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn responder_invitacion_amistad(
+        &self,
+        invitacion_id: String,
+        aceptar: bool,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<RespuestaInvitacionDTO, ErrorOperacion>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::responder_invitacion_amistad(self, &invitacion_id, aceptar, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn listar_amistades(
+        &self,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<ListaAmistadesDTO, ErrorOperacion>> + Send + '_,
+        >,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::listar_amistades(self, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn eliminar_amistad(
+        &self,
+        amistad_id: String,
+        token: String,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), ErrorOperacion>> + Send + '_>>
+    {
+        Box::pin(async move {
+            ClienteSocialHttp::eliminar_amistad(self, &amistad_id, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn crear_grupo(
+        &self,
+        datos: CrearGrupoRequestDTO,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<GrupoDTO, ErrorOperacion>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::crear_grupo(self, &datos, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn invitar_miembro_grupo(
+        &self,
+        grupo_id: String,
+        datos: InvitarMiembroGrupoRequestDTO,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<InvitacionGrupoCreadaDTO, ErrorOperacion>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::invitar_miembro_grupo(self, &grupo_id, &datos, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn responder_invitacion_grupo(
+        &self,
+        grupo_id: String,
+        aceptar: bool,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<RespuestaInvitacionGrupoDTO, ErrorOperacion>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::responder_invitacion_grupo(self, &grupo_id, aceptar, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn registrar_gasto(
+        &self,
+        grupo_id: String,
+        datos: RegistrarGastoRequestDTO,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<GastoCreadoDTO, ErrorOperacion>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::registrar_gasto(self, &grupo_id, &datos, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn obtener_detalle_grupo(
+        &self,
+        grupo_id: String,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<DetalleGrupoDTO, ErrorOperacion>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::obtener_detalle_grupo(self, &grupo_id, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
 }

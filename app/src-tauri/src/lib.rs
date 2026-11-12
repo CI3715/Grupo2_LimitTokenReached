@@ -1,13 +1,13 @@
 pub mod comandos;
 
 use aplicacion::puertos::{
-    Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas, RepositorioMovimientos,
-    RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
+    ClienteSocial, Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas,
+    RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
 };
 use infraestructura::{
-    RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite, RepositorioMonedasSqlite,
-    RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite,
-    RepositorioTasasSqlite, bd,
+    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite,
+    RepositorioMonedasSqlite, RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite,
+    RepositorioPreferenciasSqlite, RepositorioTasasSqlite, bd,
 };
 use tauri::Manager;
 
@@ -64,6 +64,11 @@ pub fn run() {
 
             let reloj: Box<dyn Reloj> = Box::new(RelojSistema);
             app.manage(reloj);
+
+            let url_servidor = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
+            let cliente_social: Box<dyn ClienteSocial> =
+                Box::new(ClienteSocialHttp::new(url_servidor));
+            app.manage(cliente_social);
 
             Ok(())
         })
