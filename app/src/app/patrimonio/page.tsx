@@ -97,7 +97,7 @@ function RateCell({
   if (!rate) {
     return (
       <span className="patrimonio-rate-content patrimonio-rate-missing">
-        Falta tasa {accountCurrency} → {baseCurrency} al {date}
+        Falta tasa {accountCurrency} ➜ {baseCurrency} al {date}
       </span>
     );
   }
@@ -414,7 +414,7 @@ export default function PatrimonioPage() {
                   {missingRates
                     .map(
                       (rate) =>
-                        `${rate.moneda_origen} → ${rate.moneda_destino} al ${rate.fecha_limite}`,
+                        `${rate.moneda_origen} ➜ ${rate.moneda_destino} al ${rate.fecha_limite}`,
                     )
                     .join(", ")}.
                 </div>

@@ -208,6 +208,7 @@ export function MovementForm({
   return (
     <section className="movement-form-panel" aria-labelledby={`${prefix}-title`}>
       <header>
+        <p className="eyebrow">Nuevo movimiento</p>
         <h2 id={`${prefix}-title`}>Registrar movimiento</h2>
         <p>
           {account.nombre} · {account.moneda_codigo}
