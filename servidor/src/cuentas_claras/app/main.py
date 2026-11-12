@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from cuentas_claras.aplicacion.reloj import Reloj
 from cuentas_claras.app.rutas.autenticacion import router as auth_router
+from cuentas_claras.app.rutas.social import router as social_router
 from cuentas_claras.contrato.autenticacion import error_datos_invalidos
 from cuentas_claras.contrato.ping import PingRespuesta
 from cuentas_claras.infraestructura.base_datos import Base, engine
@@ -26,6 +27,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(auth_router)
+app.include_router(social_router)
 
 
 @app.exception_handler(RequestValidationError)
