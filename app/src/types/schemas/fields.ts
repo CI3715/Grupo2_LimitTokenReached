@@ -10,7 +10,7 @@ export const formFields = {
   decimales: z.coerce.number().int(),
   fecha: z.string().date(),
   fuente: z.string().trim(),
-  valor: z.string().regex(/^\d+(?:[.,]\d{1,8})?$/),
+  valor: z.string(),
   monto: z.string(),
   nombre: z.string().trim(),
   moneda_codigo: z.string().trim(),

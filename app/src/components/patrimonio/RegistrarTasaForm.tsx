@@ -6,6 +6,7 @@ import { GlobalForm, FormField } from "@/components/forms";
 import { registerRateSchema, type RegisterRateFormValues } from "@/types/schemas";
 import { applyBackendValidationError } from "@/types/validation";
 import type { UseFormReturn } from "react-hook-form";
+import "./RegistrarTasaForm.css";
 
 type Props = {
   currencies: Currency[];
@@ -90,6 +91,7 @@ export function RegistrarTasaForm({
       <h2 id="registrar-tasa-title">Registrar tasa de cambio</h2>
 
       <GlobalForm<RegisterRateFormValues>
+        className="rate-form-grid"
         schema={registerRateSchema}
         defaultValues={{
           moneda_origen: selectedOrigin,
@@ -162,7 +164,11 @@ export function RegistrarTasaForm({
             <FormField<RegisterRateFormValues> name="fuente" label="Fuente">
               {(props) => <input {...props} type="text" placeholder="Ej. BCV" disabled={saving} {...form.register("fuente")} />}
             </FormField>
-            <button type="submit" disabled={saving || currencies.length < 2}>
+            <button
+              className="account-primary"
+              type="submit"
+              disabled={saving || currencies.length < 2}
+            >
               {saving ? "Registrando…" : "Registrar tasa"}
             </button>
           </>

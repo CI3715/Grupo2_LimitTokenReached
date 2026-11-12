@@ -236,14 +236,6 @@
   text-align: right;
 }
 
-.patrimonio-rate-form {
-  margin: 24px 0 22px;
-  padding: 22px 24px;
-  border: 1px solid #dce7e0;
-  border-radius: 16px;
-  background: white;
-}
-
 .patrimonio-rate-actions {
   margin: 0 0 22px;
 }
@@ -262,48 +254,6 @@
 
 .patrimonio-register-rate-button:hover {
   background: #2f6156;
-}
-
-.patrimonio-rate-form h2 {
-  margin: 0 0 18px;
-  color: #173f3b;
-  font-size: 17px;
-}
-
-.patrimonio-rate-form form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.patrimonio-rate-form label {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  color: #4e6255;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.patrimonio-rate-form input,
-.patrimonio-rate-form select {
-  margin-top: 0;
-}
-
-.patrimonio-rate-form input::placeholder {
-  color: #83958a;
-}
-
-.patrimonio-rate-form button {
-  align-self: end;
-}
-
-.patrimonio-rate-form [role="alert"] {
-  color: #9e352d;
-}
-
-.patrimonio-rate-form [role="status"] {
-  color: #315e51;
 }
 
 @media (max-width: 700px) {
@@ -334,11 +284,5 @@
       align-items: flex-start;
       flex-direction: column;
       padding: 18px;
-    }
-  .patrimonio-rate-form {
-      padding: 18px;
-    }
-  .patrimonio-rate-form form {
-      grid-template-columns: minmax(0, 1fr);
     }
 }

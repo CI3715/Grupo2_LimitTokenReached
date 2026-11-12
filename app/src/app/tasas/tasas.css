@@ -6,6 +6,19 @@
   margin-right: auto;
 }
 
+.patrimonio-date {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  color: #60766a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.patrimonio-date input {
+  margin-top: 0;
+}
+
 .tasas-empty,
 .tasas-pair {
   overflow: hidden;
