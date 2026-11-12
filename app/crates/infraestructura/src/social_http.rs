@@ -9,6 +9,11 @@ use reqwest::{Client, Response, StatusCode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use thiserror::Error;
 
+#[derive(Debug, Deserialize)]
+struct AmistadIdRespuesta {
+    id: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PingRespuesta {
     pub estado: String,
@@ -169,6 +174,21 @@ impl ClienteSocialHttp {
             .await
             .map_err(|_| SocialError::red())?;
         verificar_sin_contenido(respuesta).await
+    }
+
+    async fn obtener_id_amistad(
+        &self,
+        nombre_usuario: &str,
+        token: &str,
+    ) -> Result<String, SocialError> {
+        let respuesta = self
+            .cliente
+            .get(format!("{}/amistades/{}/id", self.base_url, nombre_usuario))
+            .bearer_auth(token)
+            .send()
+            .await
+            .map_err(|_| SocialError::red())?;
+        Ok(deserializar::<AmistadIdRespuesta>(respuesta).await?.id)
     }
 
     pub async fn crear_grupo(
@@ -366,6 +386,23 @@ impl ClienteSocial for ClienteSocialHttp {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), ErrorOperacion>> + Send + '_>>
     {
         Box::pin(async move {
+            ClienteSocialHttp::eliminar_amistad(self, &amistad_id, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn eliminar_amistad_por_usuario(
+        &self,
+        nombre_usuario: String,
+        token: String,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), ErrorOperacion>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let amistad_id = self
+                .obtener_id_amistad(&nombre_usuario, &token)
+                .await
+                .map_err(ErrorOperacion::from)?;
             ClienteSocialHttp::eliminar_amistad(self, &amistad_id, &token)
                 .await
                 .map_err(Into::into)

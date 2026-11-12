@@ -198,6 +198,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /amistades/{nombre_usuario}/id:
+    get:
+      summary: Obtener Id Amistad
+      operationId: obtener_id_amistad_amistades__nombre_usuario__id_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: nombre_usuario
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Nombre Usuario
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Obtener Id Amistad Amistades  Nombre Usuario  Id Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /amistades/{id}:
     delete:
       summary: Eliminar Amistad

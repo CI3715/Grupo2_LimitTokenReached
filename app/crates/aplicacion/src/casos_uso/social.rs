@@ -48,6 +48,16 @@ pub async fn eliminar_amistad(
     cliente.eliminar_amistad(amistad_id, token).await
 }
 
+pub async fn eliminar_amistad_por_usuario(
+    cliente: &dyn ClienteSocial,
+    nombre_usuario: String,
+    token: String,
+) -> Result<(), crate::puertos::ErrorOperacion> {
+    cliente
+        .eliminar_amistad_por_usuario(nombre_usuario, token)
+        .await
+}
+
 pub async fn crear_grupo(
     cliente: &dyn ClienteSocial,
     datos: CrearGrupoRequestDTO,

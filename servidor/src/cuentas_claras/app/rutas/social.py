@@ -249,6 +249,33 @@ def responder_amistad(
     return {"estado": invitacion.estado}
 
 
+@router.get("/amistades/{nombre_usuario}/id")
+def obtener_id_amistad(
+    nombre_usuario: str,
+    actor: Annotated[Usuario, Depends(obtener_usuario_actual)],
+    db: Annotated[Session, Depends(obtener_db)],
+) -> dict[str, str]:
+    destino = _usuario_por_nombre(db, nombre_usuario)
+    amistad = db.scalar(
+        select(AmistadDB).where(
+            AmistadDB.estado == "aceptada",
+            or_(
+                and_(
+                    AmistadDB.emisor_id == actor.id,
+                    AmistadDB.destinatario_id == destino.id,
+                ),
+                and_(
+                    AmistadDB.emisor_id == destino.id,
+                    AmistadDB.destinatario_id == actor.id,
+                ),
+            ),
+        )
+    )
+    if amistad is None:
+        raise _error(status.HTTP_404_NOT_FOUND, "Amistad no encontrada.")
+    return {"id": amistad.id}
+
+
 @router.get("/amistades")
 def listar_amistades(
     actor: Annotated[Usuario, Depends(obtener_usuario_actual)],
