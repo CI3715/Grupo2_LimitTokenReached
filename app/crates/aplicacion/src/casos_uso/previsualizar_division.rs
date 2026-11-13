@@ -95,6 +95,13 @@ mod tests {
         }
     }
 
+    fn valores(datos: &mut RegistrarGastoRequestDTO, valores: &[(&str, &str)]) {
+        datos.valores = valores
+            .iter()
+            .map(|(usuario, valor)| (usuario.to_string(), valor.to_string()))
+            .collect();
+    }
+
     #[test]
     fn vista_previa_iguales_devuelve_residuo_y_orden_alfabetico() {
         let resultado = ejecutar(datos("iguales")).unwrap();
@@ -111,6 +118,58 @@ mod tests {
     fn vista_previa_rechaza_valor_de_participante_ausente() {
         let mut solicitud = datos("iguales");
         solicitud.valores.insert("carla".to_string(), "50".to_string());
+
+        assert!(ejecutar(solicitud).is_err());
+    }
+
+    #[test]
+    fn vista_previa_porcentajes_convierte_valores_y_conserva_el_total() {
+        let mut solicitud = datos("porcentajes");
+        valores(&mut solicitud, &[("ana", "50"), ("beto", "50")]);
+
+        let resultado = ejecutar(solicitud).unwrap();
+
+        assert_eq!(resultado.len(), 2);
+        assert_eq!(resultado[0].monto, "0.03");
+        assert_eq!(resultado[1].monto, "0.02");
+        assert_eq!(
+            resultado.iter().map(|parte| parte.monto.parse::<Decimal>().unwrap()).sum::<Decimal>(),
+            Decimal::new(5, 2)
+        );
+    }
+
+    #[test]
+    fn vista_previa_montos_fijos_devuelve_los_montos_indicados() {
+        let mut solicitud = datos("fijos");
+        valores(&mut solicitud, &[("ana", "0.03"), ("beto", "0.02")]);
+
+        let resultado = ejecutar(solicitud).unwrap();
+        let ana = resultado.iter().find(|parte| parte.usuario == "ana").unwrap();
+        let beto = resultado.iter().find(|parte| parte.usuario == "beto").unwrap();
+
+        assert_eq!(ana.monto, "0.03");
+        assert_eq!(beto.monto, "0.02");
+        assert!(!ana.residuo);
+        assert!(!beto.residuo);
+    }
+
+    #[test]
+    fn vista_previa_rechaza_monto_invalido() {
+        let mut solicitud = datos("iguales");
+        solicitud.monto = "no-es-un-decimal".to_string();
+
+        assert!(ejecutar(solicitud).is_err());
+    }
+
+    #[test]
+    fn vista_previa_rechaza_regla_desconocida() {
+        assert!(ejecutar(datos("desconocida")).is_err());
+    }
+
+    #[test]
+    fn vista_previa_rechaza_valor_faltante() {
+        let mut solicitud = datos("porcentajes");
+        valores(&mut solicitud, &[("ana", "50")]);
 
         assert!(ejecutar(solicitud).is_err());
     }

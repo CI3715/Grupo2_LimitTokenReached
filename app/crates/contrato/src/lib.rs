@@ -47,3 +47,6 @@ mod tasa_tests;
 
 #[cfg(test)]
 mod patrimonio_tests;
+
+#[cfg(test)]
+mod social_tests;
