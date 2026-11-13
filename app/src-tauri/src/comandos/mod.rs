@@ -6,6 +6,7 @@ pub mod movimientos;
 pub mod patrimonio;
 pub mod ping;
 pub mod preferencias;
+pub mod previsualizacion;
 pub mod sesion;
 pub mod social;
 pub mod tasas;
