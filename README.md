@@ -18,7 +18,7 @@ Estos principios describen el diseño previsto del producto; las funcionalidades
 | Área | Implementación disponible |
 | --- | --- |
 | Interfaz | Pantalla de estado de conexión, listado y creación de cuentas, detalle de cuenta con saldo, formulario para registrar/corregir movimientos, gestión de amistades, grupos y gastos compartidos. |
-| Frontend | Next.js, React, TypeScript y Tailwind CSS; exportación estática para Tauri. |
+| Frontend | Next.js, React, TypeScript; exportación estática para Tauri. |
 | Aplicación nativa | Tauri administra persistencia financiera local y comandos HTTP de autenticación; el token de sesión se conserva en el almacén seguro del sistema (`keyring`). |
 | Backend | FastAPI con PostgreSQL. Endpoints de autenticación (`/usuarios`, `/sesiones`), amistades, grupos y gastos compartidos. |
 | Gestión financiera | **Entregas 3, 4, 5 y 6 completadas:** Registro de movimientos con ajustes inmutables, manejo de tasas de cambio y patrimonio consolidado, autenticación segura con JWT, y división exacta de gastos en grupos con pruebas basadas en propiedades. |
@@ -124,7 +124,7 @@ cargo test -p infraestructura --test repositorio_finanzas_sqlite --test reposito
 
 | Componente | Tecnologías | Responsabilidad |
 | --- | --- | --- |
-| Interfaz | Next.js · React · TypeScript · Tailwind CSS | Presentación e interacción con el usuario. |
+| Interfaz | Next.js · React · TypeScript | Presentación e interacción con el usuario. |
 | Contenedor nativo | Tauri · Rust | Ejecución de la interfaz como aplicación nativa. |
 | Servidor | FastAPI · Python · Uvicorn · PostgreSQL | API y coordinación de información compartida. |
 
