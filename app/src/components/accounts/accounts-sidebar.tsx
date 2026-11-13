@@ -16,7 +16,8 @@ export function AccountsSidebar({
     | "tasas"
     | "monedas"
     | "auth"
-    | "profile";
+    | "profile"
+    | "groups";
   sesionActiva?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -92,9 +93,14 @@ export function AccountsSidebar({
           >
             <span aria-hidden="true">¤</span> Monedas
           </Link>
-          <button disabled>
-            <span aria-hidden="true">◎</span> Grupos <small>Pronto</small>
-          </button>
+          <Link
+            href="/grupos/"
+            aria-current={active === "groups" ? "page" : undefined}
+            className={active === "groups" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">◎</span> Grupos
+          </Link>
         </nav>
         <div className="sidebar-divider" />
         <p className="eyebrow">Sistema</p>

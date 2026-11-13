@@ -60,6 +60,13 @@ pub async fn eliminar_amistad_por_usuario(
         .await
 }
 
+pub async fn listar_grupos(
+    cliente: &dyn ClienteSocial,
+    token: String,
+) -> Result<contrato::ListaGruposDTO, crate::puertos::ErrorOperacion> {
+    cliente.listar_grupos(token).await
+}
+
 pub async fn crear_grupo(
     cliente: &dyn ClienteSocial,
     datos: CrearGrupoRequestDTO,

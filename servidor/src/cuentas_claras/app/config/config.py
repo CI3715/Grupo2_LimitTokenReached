@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     DATABASE_PATH: str = "servidor/data/usuarios_auth.db"
     JWT_SECRET: SecretStr = SecretStr("")
     JWT_ISSUER: str = "cuentas-claras"
-    JWT_TTL_MINUTES: int = 1
+    JWT_TTL_MINUTES: int = 60
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
