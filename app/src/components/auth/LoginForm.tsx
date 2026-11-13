@@ -50,7 +50,7 @@ export function LoginForm({ mensaje, onSubmit }: LoginFormProps) {
               )}
             </FormField>
             {mensaje && (
-              <p className="auth-error" role="alert">
+              <p className="form-error" role="alert">
                 {mensaje}
               </p>
             )}

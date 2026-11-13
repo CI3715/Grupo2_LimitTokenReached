@@ -2,23 +2,32 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { iniciarSesionDesdeFormulario } from "@/features/auth/login";
+import { useSocial } from "@/features/social/useSocial";
 import { useAuthSession } from "@/features/auth/useAuthSession";
 import type { LoginFormValues } from "@/types/schemas";
+import type { InvitacionAmistadDTO } from "@/types/social";
 import "./perfil.css";
-
-type FriendPanel = "add" | "search" | null;
 
 export default function PerfilPage() {
   const { usuario, cargando, salir } = useAuthSession();
+  const {
+    amistades,
+    usuarioEncontrado,
+    cargando: cargandoAmistades,
+    error: errorSocial,
+    buscar,
+    invitar,
+    responder,
+    eliminar,
+  } = useSocial(Boolean(usuario));
   const router = useRouter();
-  const [friendPanel, setFriendPanel] = useState<FriendPanel>(null);
   const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
-  const [nombreUsuarioAmigo, setNombreUsuarioAmigo] = useState("");
   const [busquedaAmigo, setBusquedaAmigo] = useState("");
   const [mensajeLogin, setMensajeLogin] = useState("");
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -51,6 +60,19 @@ export default function PerfilPage() {
         router.push("/");
       },
     );
+  }
+
+  async function buscarAmigo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!busquedaAmigo.trim()) return;
+    await buscar(busquedaAmigo);
+  }
+
+  async function responderInvitacion(
+    invitacion: InvitacionAmistadDTO,
+    aceptar: boolean,
+  ) {
+    await responder(invitacion, aceptar);
   }
 
   return (
@@ -91,55 +113,10 @@ export default function PerfilPage() {
               ) : (
                 <>
                   <div className="profile-floating-actions">
-                    <div className="friend-action-group">
-                      <button
-                        className="account-secondary friends-action"
-                        type="button"
-                        aria-expanded={friendPanel === "add"}
-                        onClick={() =>
-                          setFriendPanel((current) =>
-                            current === "add" ? null : "add",
-                          )
-                        }
-                      >
-                        <span aria-hidden="true">＋</span> Agregar amigo
-                      </button>
+                    <div className="friend-search-area">
                       <form
-                        className={`friend-search-bar ${
-                          friendPanel === "add" ? "is-open" : ""
-                        }`}
-                        onSubmit={(event) => event.preventDefault()}
-                      >
-                        <input
-                          id="add-friend-username"
-                          value={nombreUsuarioAmigo}
-                          onChange={(event) =>
-                            setNombreUsuarioAmigo(event.target.value)
-                          }
-                          placeholder="Escribe un nombre de usuario"
-                        />
-                        <button className="account-primary" type="submit">
-                          Agregar
-                        </button>
-                      </form>
-                    </div>
-                    <div className="friend-action-group">
-                      <button
-                        className="account-secondary friends-action"
-                        type="button"
-                        aria-expanded={friendPanel === "search"}
-                        onClick={() =>
-                          setFriendPanel((current) =>
-                            current === "search" ? null : "search",
-                          )
-                        }
-                      >
-                        <span aria-hidden="true">🔍</span> Buscar amigo
-                      </button>
-                      <div
-                        className={`friend-search-bar ${
-                          friendPanel === "search" ? "is-open" : ""
-                        }`}
+                        className="friend-search-bar"
+                        onSubmit={(event) => void buscarAmigo(event)}
                       >
                         <input
                           id="search-friend-username"
@@ -147,11 +124,43 @@ export default function PerfilPage() {
                           onChange={(event) =>
                             setBusquedaAmigo(event.target.value)
                           }
-                          placeholder="Escribe un nombre de usuario"
+                          placeholder="Nombre de usuario"
                         />
-                      </div>
+                        <button
+                          className="account-primary"
+                          type="submit"
+                          disabled={cargandoAmistades}
+                        >
+                          Buscar
+                        </button>
+                      </form>
+                      {usuarioEncontrado && (
+                        <div className="friend-search-result">
+                          <div>
+                            <strong>{usuarioEncontrado.nombre_visible}</strong>
+                            <span>{usuarioEncontrado.nombre_usuario}</span>
+                          </div>
+                          <button
+                            className="account-primary"
+                            type="button"
+                            onClick={async () => {
+                              const enviada = await invitar(
+                                usuarioEncontrado.nombre_usuario,
+                              );
+                              if (enviada) {
+                                setBusquedaAmigo("");
+                              }
+                            }}
+                          >
+                            Agregar
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className="notifications-wrapper" ref={notificationsRef}>
+                    <div
+                      className="notifications-wrapper"
+                      ref={notificationsRef}
+                    >
                       <button
                         className="account-secondary notification-action"
                         type="button"
@@ -165,7 +174,50 @@ export default function PerfilPage() {
                       </button>
                       {mostrarNotificaciones && (
                         <div className="notifications-menu" role="status">
-                          No tienes invitaciones pendientes.
+                          {amistades.recibidas.length === 0 ? (
+                            "No tienes invitaciones pendientes."
+                          ) : (
+                            <div className="notification-list">
+                              {amistades.recibidas.map((invitacion) => (
+                                <div
+                                  className="notification-item"
+                                  key={invitacion.id}
+                                >
+                                  <span>
+                                    {invitacion.nombre_visible} (
+                                    {invitacion.nombre_usuario}) te invitó a
+                                    ser su amigo.
+                                  </span>
+                                  <div>
+                                    <button
+                                      className="account-primary"
+                                      type="button"
+                                      onClick={() =>
+                                        void responderInvitacion(
+                                          invitacion,
+                                          true,
+                                        )
+                                      }
+                                    >
+                                      Aceptar
+                                    </button>
+                                    <button
+                                      className="account-secondary"
+                                      type="button"
+                                      onClick={() =>
+                                        void responderInvitacion(
+                                          invitacion,
+                                          false,
+                                        )
+                                      }
+                                    >
+                                      Rechazar
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -174,10 +226,42 @@ export default function PerfilPage() {
                     <div className="section-heading">
                       <h2 id="friends-title">Amigos</h2>
                     </div>
-                    <div className="friends-empty">
-                      <p>Aún no tienes amigos.</p>
-                      <span>Cuando agregues amigos, aparecerán aquí.</span>
-                    </div>
+                    {errorSocial && (
+                      <p className="profile-social-error" role="alert">
+                        {errorSocial}
+                      </p>
+                    )}
+                    {cargandoAmistades ? (
+                      <p className="profile-loading" role="status">
+                        Cargando amistades…
+                      </p>
+                    ) : amistades.amigos.length === 0 ? (
+                      <div className="friends-empty">
+                        <p>Aún no tienes amigos.</p>
+                        <span>Cuando agregues amigos, aparecerán aquí.</span>
+                      </div>
+                    ) : (
+                      <div className="friends-list">
+                        {amistades.amigos.map((amigo) => (
+                          <article
+                            className="friend-card"
+                            key={amigo.nombre_usuario}
+                          >
+                            <div>
+                              <strong>{amigo.nombre_visible}</strong>
+                              <span>{amigo.nombre_usuario}</span>
+                            </div>
+                            <button
+                              className="account-secondary"
+                              type="button"
+                              onClick={() => void eliminar(amigo.nombre_usuario)}
+                            >
+                              Eliminar
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    )}
                   </section>
                 </>
               )}
