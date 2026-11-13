@@ -1,16 +1,16 @@
-# ADR-015: Base de Datos del Servidor (PostgreSQL)
+# ADR-015: Base de Datos del Servidor (SQLite)
 
-**Fecha:** 2026-11-10  
+**Fecha:** 2026-11-10
 **Estado:** Aceptado  
 **Decisores:** Grupo 2, Secc. 1 – LimitTokenReached  
-**Etiquetas:** infraestructura, servidor, base-datos, PostgreSQL, Entrega-5
+**Etiquetas:** infraestructura, servidor, base-datos, SQLite, Entrega-5
 
 ## Contexto
-La especificación técnica de la Entrega 5 establece explícitamente que:
+La especificación técnica de la Entrega 5 establece explícitamente:
 > *"Base de datos elegida por el equipo y justificada en una ADR (Guía Técnica, secciones 1.3 y 4.3)."*
 
 Además, la sección 2.5 requiere:
-> *"Por cada usuario se guarda: identificador, nombre de usuario, nombre visible, correo, hash de la contraseña y fecha de alta."*
+> *"Por cada usuario se guarda: identificador, nombre de usuario, nombre visible, correo, hash de contraseñas y fecha de alta."*
 
 Y la sección 2.5 también establece:
 > *"El servidor no tiene tablas ni colecciones de cuentas, saldos, movimientos ni tasas (INV-16)."*
@@ -18,72 +18,65 @@ Y la sección 2.5 también establece:
 Esto busca garantizar que el servidor almacene únicamente los datos compartidos (usuarios, sesiones, y en entregas futuras: amistades, grupos, gastos compartidos), mientras que los datos financieros personales permanecen exclusivamente en el dispositivo del usuario.
 
 ## Decisión
-Se adopta **PostgreSQL** como base de datos del servidor FastAPI.
+Se adopta **SQLite** como base de datos del servidor FastAPI, gestionada a través del ORM **SQLAlchemy**.
 
 **Justificación técnica:**
-- **Confiabilidad y madurez:** PostgreSQL es un sistema de gestión de bases de datos relacional de código abierto con más de 30 años de desarrollo, ampliamente utilizado en producción.
-- **Soporte para JSONB:** permite almacenar datos semiestructurados si es necesario en el futuro (ej. metadatos de grupos).
-- **Transacciones ACID:** garantiza la integridad de los datos en operaciones críticas como el registro de usuarios y la gestión de sesiones.
-- **Índices avanzados:** soporta índices únicos para garantizar la unicidad de `username` y `email` (RF-SOC-01).
-- **Escalabilidad:** puede manejar miles de usuarios concurrentes, necesario para las funciones sociales de las entregas futuras.
-- **Compatibilidad con FastAPI:** existen drivers maduros como `asyncpg` y `SQLAlchemy` que se integran perfectamente con FastAPI.
+1. **Simplicidad y Cero Configuración:** No requiere instalar, configurar ni mantener un servidor de base de datos externo (como PostgreSQL o MySQL). Es un archivo local, lo que simplifica enormemente el entorno de desarrollo y el despliegue.
+2. **Soporte Nativo en Python/SQLAlchemy:** SQLite está integrado en la biblioteca estándar de Python y es soportado de forma transparente por SQLAlchemy sin necesidad de instalar drivers adicionales (como `psycopg2` o `asyncpg`).
+3. **Cumplimiento ACID:** SQLite garantiza transacciones ACID (especialmente habilitando el modo WAL - Write-Ahead Logging), lo cual es suficiente para asegurar la integridad de los registros de usuarios, hashes de contraseñas y sesiones.
+4. **Escala Adecuada al Alcance:** Para un proyecto académico con un número limitado de usuarios concurrentes (el equipo de desarrollo y los evaluadores), el rendimiento de lectura/escritura de SQLite es más que suficiente.
+5. **Alineación con la Arquitectura:** Dado que el servidor solo almacena metadatos de autenticación y relaciones sociales (no datos financieros pesados), la carga sobre la base de datos es mínima.
 
-**Esquema inicial (Entrega 5):**
+**Esquema inicial (Entrega 5, gestionado por SQLAlchemy):**
 ```sql
 CREATE TABLE usuarios (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY, -- UUID generado por la aplicación o SQLAlchemy
     username VARCHAR(30) UNIQUE NOT NULL,
     nombre_visible VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    fecha_alta TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    fecha_alta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_usuarios_username ON usuarios(username);
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 ```
 
-### Variables de entorno requeridas
+**Variables de entorno requeridas:**
+- `DATABASE_URL`: URL de conexión a SQLite (ej. `sqlite:///./servidor.db` o `sqlite+aiosqlite:///./servidor.db` para asíncrono).
+- `JWT_SECRET`: Secreto para firmar tokens JWT (nunca va en el código ni en el repositorio).
 
-- `DATABASE_URL`: URL de conexión a PostgreSQL (ej. `postgresql://user:password@localhost:5432/cuentas_claras`)
-- `JWT_SECRET`: Secreto para firmar tokens JWT (nunca va en el código ni en el repositorio)
-
-### Alternativas consideradas
+## Alternativas consideradas
 
 | Alternativa | Motivo de descarte |
 |-------------|-------------------|
-| **SQLite en el servidor** | No soporta concurrencia de escritura multi-usuario. Adecuado solo para aplicaciones de un solo usuario o lectura intensiva. |
-| **MySQL** | Menos características avanzadas que PostgreSQL (ej. JSONB, índices parciales). Comunidad más pequeña en el ecosistema Python. |
-| **MongoDB (NoSQL)** | Esquema flexible innecesario para datos estructurados como usuarios. Menos garantías de integridad referencial. |
-| **Redis (solo en memoria)** | No persistente. Adecuado solo para caché o sesiones temporales, no para datos permanentes como usuarios. |
-| **Supabase (PostgreSQL gestionado)** | Dependencia de un servicio externo. Para el entorno local de desarrollo, PostgreSQL local es más simple y no requiere cuenta externa. |
+| **PostgreSQL** | Excelente para producción a gran escala, pero introduce una complejidad operativa innecesaria (instalación, configuración de usuarios, puertos) para el alcance actual de un proyecto académico que solo maneja metadatos de usuarios. |
+| **MySQL** | Similar a PostgreSQL, requiere un servidor externo y no aporta beneficios sobre SQLite para este volumen de datos. |
+| **MongoDB (NoSQL)** | Esquema flexible innecesario para datos altamente estructurados como usuarios. Menos garantías de integridad referencial nativa. |
+| **Redis (solo en memoria)** | No persistente por defecto. Adecuado solo para caché o sesiones temporales, no para datos permanentes como el registro de usuarios. |
 
-### Consecuencias
+## Consecuencias
 
-#### Positivas
-- **Integridad de datos:** las restricciones `UNIQUE` en `username` y `email` garantizan que no haya duplicados a nivel de base de datos.
-- **Seguridad:** el hash de contraseñas con argon2 (ver ADR-014) se almacena de forma segura.
-- **Escalabilidad:** puede crecer para soportar las funciones sociales de las entregas 6 y posteriores.
-- **Ecosistema maduro:** herramientas como pgAdmin, DBeaver y migraciones con Alembic facilitan el desarrollo.
-- **Cumplimiento de la rúbrica:** la especificación exige una ADR justificando la base de datos del servidor.
+### Positivas
+- **Despliegue inmediato:** Cualquier miembro del equipo puede clonar el repositorio y ejecutar el servidor sin instalar dependencias de base de datos externas.
+- **Backups triviales:** Hacer una copia de seguridad es tan simple como copiar el archivo `.db`.
+- **Ecosistema maduro:** SQLAlchemy proporciona todas las herramientas necesarias para migraciones (Alembic) y consultas seguras.
+- **Cumplimiento de la rúbrica:** La especificación exige una ADR justificando la base de datos del servidor, y esta decisión está sólidamente fundamentada en el alcance del proyecto.
 
-#### Negativas / Restricciones
-- Requiere instalar y configurar PostgreSQL localmente para desarrollo.
-- Mayor complejidad operativa que SQLite (backups, mantenimiento).
-- Necesita variables de entorno para la conexión (mitigado con un archivo `.env` local, nunca subido al repositorio).
+### Negativas / Restricciones
+- **Concurrencia de escritura:** SQLite bloquea la base de datos durante escrituras pesadas. *Mitigación:* Habilitar el modo WAL (`PRAGMA journal_mode=WAL;`) y, dado el alcance del proyecto, la probabilidad de escrituras simultáneas conflictivas es extremadamente baja.
+- **No es ideal para SaaS masivo:** Si el proyecto escalara a miles de usuarios reales, se debería migrar a PostgreSQL. Sin embargo, para la entrega académica, SQLite es la elección más pragmática y eficiente.
 
-### Verificación (QA / CI)
-
-- [ ] El servidor se conecta correctamente a PostgreSQL usando `DATABASE_URL`.
-- [ ] Las pruebas automatizadas verifican que `username` y `email` son únicos (409 en duplicados).
+## Verificación (QA / CI)
+- [ ] El servidor se conecta correctamente a la base de datos SQLite usando `DATABASE_URL`.
+- [ ] Las pruebas automatizadas verifican que `username` y `email` son únicos (el servidor responde 409 en duplicados).
 - [ ] Las pruebas automatizadas verifican que el hash de la contraseña no es recuperable.
 - [ ] El README explica cómo configurar `DATABASE_URL` y `JWT_SECRET`.
-- [ ] El archivo `.env` está en `.gitignore` y nunca se sube al repositorio.
+- [ ] El archivo de base de datos `.db` y el archivo `.env` están en `.gitignore` y nunca se suben al repositorio.
 
-### Referencias
-
+## Referencias
 - Especificación Técnica Entrega 5: Sección 2.5 (Persistencia y Seguridad en el Servidor).
 - Guía Técnica: Secciones 1.3 y 4.3 (justificación de base de datos).
-- PostgreSQL Documentation: https://www.postgresql.org/docs/
-- FastAPI + SQLAlchemy + PostgreSQL: https://fastapi.tiangolo.com/tutorial/sql-databases/
+- SQLite Documentation: https://www.sqlite.org/index.html
+- FastAPI + SQLAlchemy + SQLite: https://fastapi.tiangolo.com/tutorial/sql-databases/
 - ADR-014: Autenticación local-servidor (JWT, argon2, keyring).
