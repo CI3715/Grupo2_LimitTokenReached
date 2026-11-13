@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-qa-auth = ["pytest", "httpx", "argon2-cffi", "bcrypt"]
+qa-auth = ["pytest", "httpx", "argon2-cffi", "bcrypt", "hypothesis"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
