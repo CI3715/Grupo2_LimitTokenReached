@@ -84,6 +84,7 @@ pub fn run() {
             comandos::social::responder_invitacion_amistad,
             comandos::social::listar_amistades,
             comandos::social::eliminar_amistad,
+            comandos::social::listar_grupos,
             comandos::social::crear_grupo,
             comandos::social::invitar_miembro_grupo,
             comandos::social::responder_invitacion_grupo,

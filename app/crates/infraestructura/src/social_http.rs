@@ -2,7 +2,7 @@ use aplicacion::puertos::{ClienteSocial, ErrorOperacion};
 use contrato::{
     AmistadCreadaDTO, CrearAmistadRequestDTO, CrearGrupoRequestDTO, DetalleGrupoDTO,
     GastoCreadoDTO, GrupoDTO, InvitacionGrupoCreadaDTO, InvitarMiembroGrupoRequestDTO,
-    ListaAmistadesDTO, RegistrarGastoRequestDTO, RespuestaInvitacionDTO,
+    ListaAmistadesDTO, ListaGruposDTO, RegistrarGastoRequestDTO, RespuestaInvitacionDTO,
     RespuestaInvitacionGrupoDTO, UsuarioResumenDTO,
 };
 use reqwest::{Client, Response, StatusCode};
@@ -189,6 +189,17 @@ impl ClienteSocialHttp {
             .await
             .map_err(|_| SocialError::red())?;
         Ok(deserializar::<AmistadIdRespuesta>(respuesta).await?.id)
+    }
+
+    pub async fn listar_grupos(&self, token: &str) -> Result<ListaGruposDTO, SocialError> {
+        let respuesta = self
+            .cliente
+            .get(format!("{}/grupos", self.base_url))
+            .bearer_auth(token)
+            .send()
+            .await
+            .map_err(|_| SocialError::red())?;
+        deserializar(respuesta).await
     }
 
     pub async fn crear_grupo(
@@ -418,6 +429,19 @@ impl ClienteSocial for ClienteSocialHttp {
     > {
         Box::pin(async move {
             ClienteSocialHttp::crear_grupo(self, &datos, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn listar_grupos(
+        &self,
+        token: String,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<ListaGruposDTO, ErrorOperacion>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::listar_grupos(self, &token)
                 .await
                 .map_err(Into::into)
         })

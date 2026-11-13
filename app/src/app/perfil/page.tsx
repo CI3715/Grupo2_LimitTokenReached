@@ -222,6 +222,29 @@ export default function PerfilPage() {
                       )}
                     </div>
                   </div>
+                  {amistades.enviadas.length > 0 && (
+                    <section
+                      className="friends-section"
+                      aria-labelledby="outgoing-friend-invitations"
+                    >
+                      <div className="section-heading">
+                        <h2 id="outgoing-friend-invitations">
+                          Invitaciones enviadas
+                        </h2>
+                      </div>
+                      <div className="friends-list">
+                        {amistades.enviadas.map((invitacion) => (
+                          <article className="friend-card" key={invitacion.id}>
+                            <div>
+                              <strong>{invitacion.nombre_visible}</strong>
+                              <span>{invitacion.nombre_usuario}</span>
+                            </div>
+                            <span>Esperando respuesta</span>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                   <section className="friends-section" aria-labelledby="friends-title">
                     <div className="section-heading">
                       <h2 id="friends-title">Amigos</h2>

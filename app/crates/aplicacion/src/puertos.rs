@@ -62,6 +62,10 @@ pub trait ClienteSocial: Send + Sync {
         nombre_usuario: String,
         token: String,
     ) -> Pin<Box<dyn Future<Output = Result<(), ErrorOperacion>> + Send + '_>>;
+    fn listar_grupos(
+        &self,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::ListaGruposDTO, ErrorOperacion>> + Send + '_>>;
     fn crear_grupo(
         &self,
         datos: contrato::CrearGrupoRequestDTO,

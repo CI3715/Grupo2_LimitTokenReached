@@ -91,6 +91,17 @@ pub async fn eliminar_amistad(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn listar_grupos(
+    app: AppHandle,
+    cliente: State<'_, Box<dyn ClienteSocial>>,
+) -> Result<contrato::ListaGruposDTO, String> {
+    let token = obtener_token(&app)?;
+    aplicacion::casos_uso::social::listar_grupos(cliente.inner().as_ref(), token)
+        .await
+        .map_err(|error| mensaje_error(&app, error))
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn crear_grupo(
     app: AppHandle,
     datos: CrearGrupoRequestDTO,
