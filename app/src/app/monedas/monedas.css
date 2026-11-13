@@ -30,8 +30,34 @@
   color: #6c8176;
   font-size: 12px;
 }
-.currency-catalog .patrimonio-table-wrap {
-  overflow: visible;
+.currency-catalog-table-wrap {
+  overflow-x: auto;
+}
+
+.currency-catalog-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.currency-catalog-table th,
+.currency-catalog-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid #edf1ed;
+  text-align: left;
+}
+
+.currency-catalog-table th {
+  background: #f7faf8;
+  color: #71847a;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.currency-catalog-table td:nth-child(2) {
+  font-variant-numeric: tabular-nums;
 }
 @media (max-width: 700px) {
   .currency-create-panel,

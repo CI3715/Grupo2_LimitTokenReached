@@ -118,13 +118,15 @@ export function GroupsWorkspace() {
             </p>
           ) : !usuario ? (
             <section className="group-login">
-              <div className="group-page-heading">
-                <p className="breadcrumb">
-                  Inicio <span>/</span> Grupos
-                </p>
-                <h1>Grupos de amigos</h1>
-                <p>Inicia sesión para dividir gastos compartidos.</p>
-              </div>
+              <header className="accounts-header tasas-header">
+                <div>
+                  <p className="breadcrumb">
+                    Inicio <span>/</span> Grupos
+                  </p>
+                  <h1>Grupos de amigos</h1>
+                  <p>Inicia sesión para dividir gastos compartidos.</p>
+                </div>
+              </header>
               <LoginForm mensaje={mensajeLogin} onSubmit={enviarLogin} />
             </section>
           ) : (
