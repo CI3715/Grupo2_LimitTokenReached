@@ -70,17 +70,17 @@ fn validar_participantes(participantes: &[String]) -> Result<(), String> {
 fn repartir_residuo(
     partes_truncadas: Vec<(String, Decimal)>,
     monto_total: Decimal,
-) -> Vec<ParteCalculada> {
+) -> Result<Vec<ParteCalculada>, String> {
     let suma_truncada: Decimal = partes_truncadas.iter().map(|(_, monto)| *monto).sum();
     let residuo_centavos = ((monto_total - suma_truncada) * Decimal::new(100, 0))
         .trunc()
         .to_i64()
-        .expect("el residuo debe caber en un entero");
+        .ok_or_else(|| "El residuo no puede convertirse a céntimos enteros".to_string())?;
 
     let mut partes_ordenadas = partes_truncadas;
     partes_ordenadas.sort_by(|a, b| a.0.cmp(&b.0));
 
-    partes_ordenadas
+    Ok(partes_ordenadas
         .into_iter()
         .enumerate()
         .map(|(indice, (username, monto))| {
@@ -97,7 +97,7 @@ fn repartir_residuo(
                 tiene_redondeo,
             }
         })
-        .collect()
+        .collect())
 }
 
 fn dividir_partes_iguales(
@@ -113,7 +113,7 @@ fn dividir_partes_iguales(
         .map(|username| (username.clone(), parte_base))
         .collect();
 
-    Ok(repartir_residuo(partes_truncadas, monto_total))
+    repartir_residuo(partes_truncadas, monto_total)
 }
 
 fn dividir_por_porcentajes(
@@ -151,7 +151,7 @@ fn dividir_por_porcentajes(
         })
         .collect();
 
-    Ok(repartir_residuo(partes_truncadas, monto_total))
+    repartir_residuo(partes_truncadas, monto_total)
 }
 
 fn dividir_por_montos_fijos(
