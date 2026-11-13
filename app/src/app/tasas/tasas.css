@@ -1,0 +1,157 @@
+.tasas-header {
+  align-items: flex-end;
+}
+
+.tasas-header > div:first-child {
+  margin-right: auto;
+}
+
+.patrimonio-date {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  color: #60766a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.patrimonio-date input {
+  margin-top: 0;
+}
+
+.tasas-empty,
+.tasas-pair {
+  overflow: hidden;
+  margin-top: 20px;
+  border: 1px solid #e0e6e2;
+  border-radius: 18px;
+  background: white;
+}
+
+.tasas-empty {
+  padding: 28px;
+  color: #647a6d;
+}
+
+.tasas-empty h2 {
+  margin: 0 0 8px;
+  color: #173f3b;
+  font-size: 17px;
+}
+
+.tasas-empty p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.tasas-pair > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8ede9;
+}
+
+.tasas-history {
+  max-height: calc(100vh - 70px);
+  display: grid;
+  gap: 20px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.tasas-pair h2 {
+  margin: 0;
+  color: #173f3b;
+  font-size: 16px;
+}
+
+.tasas-pair header p {
+  margin: 6px 0 0;
+  color: #6c8176;
+  font-size: 11px;
+}
+
+.tasas-pair header > span {
+  color: #6c8176;
+  font-size: 11px;
+}
+
+.tasas-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tasas-table th,
+.tasas-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid #edf1ed;
+  text-align: left;
+}
+
+.tasas-table th {
+  background: #f7faf8;
+  color: #71847a;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.tasas-table td:nth-child(2) {
+  font-variant-numeric: tabular-nums;
+}
+
+.tasas-status {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #e6f2e9;
+  color: #315e51;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tasas-status-deleted {
+  background: #f5e9e7;
+  color: #93453d;
+}
+
+.tasas-delete-button {
+  padding: 7px 10px;
+  border: 1px solid #e6c9c5;
+  border-radius: 8px;
+  background: white;
+  color: #93453d;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tasas-delete-button:hover:not(:disabled) {
+  background: #fbf0ee;
+}
+
+.tasas-error {
+  color: #9e352d;
+}
+
+.tasas-notice {
+  color: #315e51;
+}
+
+@media (max-width: 700px) {
+  .tasas-header {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  .tasas-header > div:first-child {
+      padding-left: 52px;
+    }
+  .tasas-pair > header {
+      padding: 18px;
+    }
+}

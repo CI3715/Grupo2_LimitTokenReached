@@ -1,10 +1,8 @@
 ﻿import type { Metadata } from "next";
 
 import type { ReactNode } from "react";
-import { AuthSessionIndicator } from "@/features/auth/AuthSessionIndicator";
 import { AuthSessionProvider } from "@/features/auth/useAuthSession";
 
-import "./auth.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +22,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body>
         <AuthSessionProvider>
           {children}
-          <AuthSessionIndicator />
         </AuthSessionProvider>
       </body>
     </html>

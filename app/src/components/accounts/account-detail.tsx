@@ -42,6 +42,7 @@ export function AccountDetail({
   categoriesError,
   onRetryCategories,
   onCreateCategory,
+  sesionActiva,
 }: {
   account: Account;
   currency?: Currency;
@@ -58,6 +59,7 @@ export function AccountDetail({
   categoriesError: string | null;
   onRetryCategories: () => void;
   onCreateCategory: (request: CrearCategoriaRequest) => Promise<CategoriaDTO>;
+  sesionActiva: boolean;
 }) {
   const [correctionMovement, setCorrectionMovement] = useState<MovimientoDTO | null>(null);
   const currentBalance = minorUnits(account.saldo);
@@ -82,7 +84,7 @@ export function AccountDetail({
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
-        <AccountsSidebar />
+        <AccountsSidebar sesionActiva={sesionActiva} />
         <main className="accounts-workspace account-detail-workspace">
           <header className="accounts-header">
             <div>

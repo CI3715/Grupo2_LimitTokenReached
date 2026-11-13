@@ -5,15 +5,17 @@ import { useSearchParams } from "next/navigation";
 import { useAccounts } from "@/features/accounts/useAccounts";
 import { useAccountMovements } from "@/features/movements/useAccountMovements";
 import { useMovementCategories } from "@/features/movements/useMovementCategories";
+import { useAuthSession } from "@/features/auth/useAuthSession";
 import { AccountDetail } from "@/components/accounts/account-detail";
 import { registerMovementFromForm } from "@/features/movements/register-movement";
 import { correctMovementFromForm } from "@/features/movements/correct-movement";
 import { createCategory } from "@/services/createCategory";
-import "../accounts.css";
+import "./account.css";
 
 function AccountDetailContent() {
   const searchParams = useSearchParams();
   const { accounts, currencies, refresh: refreshAccounts } = useAccounts();
+  const { usuario } = useAuthSession();
   const accountId = searchParams.get("id");
   const { movements, error: movementsError, refresh: refreshMovements } =
     useAccountMovements(accountId);
@@ -55,6 +57,7 @@ function AccountDetailContent() {
         await refreshCategories();
         return category;
       }}
+      sesionActiva={Boolean(usuario)}
     />
   );
 }

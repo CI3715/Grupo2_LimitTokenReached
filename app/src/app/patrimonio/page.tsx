@@ -3,6 +3,7 @@
 import Decimal from "decimal.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
+import { useAuthSession } from "@/features/auth/useAuthSession";
 import { RegistrarTasaForm } from "@/components/patrimonio/RegistrarTasaForm";
 import { changeBaseCurrency } from "@/services/changeBaseCurrency";
 import { consultarPatrimonio } from "@/services/consultarPatrimonio";
@@ -11,7 +12,7 @@ import { registrarTasa } from "@/services/registrarTasa";
 import type { Currency } from "@/types/accounts";
 import type { Patrimonio, SaldoCuenta, TasaUsada } from "@/types/patrimonio";
 import type { RegistrarTasaRequest } from "@/types/tasas";
-import "../accounts.css";
+import "./patrimonio.css";
 
 function today() {
   const date = new Date();
@@ -218,6 +219,7 @@ function PatrimonioTable({
 }
 
 export default function PatrimonioPage() {
+  const { usuario } = useAuthSession();
   const [date, setDate] = useState(today);
   const [data, setData] = useState<Patrimonio | null>(null);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
@@ -339,7 +341,7 @@ export default function PatrimonioPage() {
   return (
     <div className="accounts-page patrimonio-page">
       <div className="accounts-shell">
-        <AccountsSidebar active="patrimonio" />
+        <AccountsSidebar active="patrimonio" sesionActiva={Boolean(usuario)} />
         <main className="accounts-workspace">
           {rateNotice && (
             <p className="floating-notice" role="status">
@@ -433,7 +435,7 @@ export default function PatrimonioPage() {
                   </button>
                   {rateFormOpen && (
                     <RegistrarTasaForm
-                      key={date}
+                      key={`${date}-${currencies.map((currency) => currency.codigo).join(",")}`}
                       currencies={currencies}
                       initialOrigin={missingRates[0]?.moneda_origen}
                       initialDestination={missingRates[0]?.moneda_destino}

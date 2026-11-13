@@ -1,0 +1,172 @@
+.profile-heading-subtitle {
+  margin: 8px 0 0;
+  color: #536b61;
+  font-size: 14px;
+}
+.profile-loading {
+  margin-top: 32px;
+  color: #61736b;
+}
+.profile-floating-actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 20px 0;
+}
+.friend-search-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+.notifications-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.notification-action {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+.notification-action span {
+  font-size: 19px;
+  line-height: 1;
+}
+.notification-action {
+  width: 40px;
+  padding: 8px;
+}
+.friend-search-bar {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex: 1;
+  min-width: 280px;
+}
+.friend-search-bar input {
+  min-width: 200px;
+  max-width: 250px;
+  min-height: 40px;
+  margin-top: 0;
+  flex: 1;
+}
+.friend-search-bar .account-primary {
+  min-height: 40px;
+  padding: 8px 14px;
+}
+.notifications-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 260px;
+  padding: 16px;
+  border: 1px solid #dce7e1;
+  border-radius: 12px;
+  background: #f7faf8;
+  color: #61736b;
+  font-size: 13px;
+  box-shadow: 0 12px 30px rgba(34, 65, 58, 0.16);
+}
+.notification-list {
+  display: grid;
+  gap: 14px;
+}
+.notification-item {
+  display: grid;
+  gap: 10px;
+  color: #344840;
+  line-height: 1.4;
+  border-bottom: 1px solid #cbd9d2;
+  padding-bottom: 10px;
+}
+.notification-item > div {
+  display: flex;
+  gap: 8px;
+}
+.notification-item button {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.profile-social-error {
+  margin: 12px 0;
+  color: #a52e2e;
+}
+.friend-search-result,
+.friend-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #dce7e1;
+  border-radius: 12px;
+  background: #fff;
+}
+.friend-search-result {
+  width: 250px;
+}
+.friend-search-result div,
+.friend-card div {
+  display: grid;
+  gap: 4px;
+}
+.friend-search-result span,
+.friend-card span {
+  color: #71847a;
+  font-size: 13px;
+}
+.friends-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+.friends-section {
+  padding-top: 24px;
+  border-top: 1px solid #e1e6e3;
+}
+.friends-empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 42px 20px;
+  border: 1px dashed #cbd9d2;
+  border-radius: 14px;
+  background: #fbfdfc;
+  text-align: center;
+}
+.friends-empty p {
+  margin: 0;
+  color: #344840;
+  font-weight: 600;
+}
+.friends-empty span {
+  color: #7a8d84;
+  font-size: 13px;
+}
+.profile-retry {
+  margin-top: 16px;
+}
+@media (max-width: 700px) {
+  .accounts-header > .account-primary {
+    margin-left: 52px;
+  }
+  .profile-floating-actions,
+  .friend-search-area {
+    align-items: stretch;
+  }
+  .profile-floating-actions {
+    flex-direction: column;
+  }
+  .friend-search-area {
+    flex-direction: column;
+  }
+  .friend-search-result {
+    min-width: 0;
+  }
+  .notifications-wrapper {
+    align-self: flex-end;
+  }
+}

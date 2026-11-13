@@ -35,6 +35,21 @@ function load(relative, mocks = {}) {
         if (!resolved) throw new Error(`No se pudo resolver el alias ${name}`);
         return load(resolved, mocks);
       }
+      if (name.startsWith('./') || name.startsWith('../')) {
+        const importPath = path.resolve(path.dirname(filename), name);
+        const candidates = [
+          importPath,
+          `${importPath}.ts`,
+          `${importPath}.tsx`,
+          `${importPath}.js`,
+          `${importPath}.mjs`,
+          path.join(importPath, 'index.ts'),
+          path.join(importPath, 'index.tsx'),
+        ];
+        const resolved = candidates.find((candidate) => fs.existsSync(candidate));
+        if (!resolved) throw new Error(`No se pudo resolver el import relativo ${name} desde ${filename}`);
+        return load(path.relative(path.resolve(import.meta.dirname, '..'), resolved), mocks);
+      }
       return resolveDependency(name);
     }, compiledModule, compiledModule.exports,
   );
