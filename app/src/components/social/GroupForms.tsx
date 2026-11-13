@@ -157,7 +157,11 @@ export function InviteMemberForm({
           ))}
         </select>
       </label>
-      <button className="account-primary" type="submit" disabled={pending || !usuario}>
+      <button
+        className="account-primary"
+        type="submit"
+        disabled={pending || !usuarioSeleccionado}
+      >
         Invitar
       </button>
     </form>
