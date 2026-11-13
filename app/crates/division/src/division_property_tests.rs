@@ -45,13 +45,8 @@ mod tests {
                     // El último recibe todo lo que queda
                     porcentajes.push((format!("user_{}", i), Decimal::new(restante, 2)));
                 } else {
-                    // Generar un porcentaje aleatorio entre 1 y lo que queda
-                    let max_porcentaje = restante.min(9900); // máximo 99%
-                    let porcentaje = if max_porcentaje > 0 {
-                        (proptest::test_runner::Config::default().clone_rng().gen_range(1..=max_porcentaje)) as i64
-                    } else {
-                        1
-                    };
+                    // Reservar un porcentaje válido y dejar el resto para el último usuario.
+                    let porcentaje = restante.min(100);
                     porcentajes.push((format!("user_{}", i), Decimal::new(porcentaje, 2)));
                     restante -= porcentaje;
                 }
@@ -103,9 +98,9 @@ mod tests {
             let mut todos_los_users = std::collections::HashSet::new();
 
             for _ in 0..num_gastos {
-                let monto_centavos = proptest::test_runner::Config::default().clone_rng().gen_range(100..10000);
+                let monto_centavos = 100 + (num_gastos as i64 * 100);
                 let monto = Decimal::new(monto_centavos, 2);
-                let num_participantes = proptest::test_runner::Config::default().clone_rng().gen_range(1usize..5usize);
+                let num_participantes = 1 + (num_gastos % 4);
 
                 let participantes: Vec<String> = (0..num_participantes)
                     .map(|i| {

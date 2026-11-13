@@ -5,6 +5,8 @@ use contrato::{
     ListaAmistadesDTO, RegistrarGastoRequestDTO, RespuestaInvitacionDTO,
     RespuestaInvitacionGrupoDTO, UsuarioResumenDTO,
 };
+use rust_decimal::Decimal;
+use std::str::FromStr;
 
 pub async fn buscar_usuario(
     cliente: &dyn ClienteSocial,
@@ -100,5 +102,72 @@ pub async fn obtener_detalle_grupo(
     grupo_id: String,
     token: String,
 ) -> Result<DetalleGrupoDTO, crate::puertos::ErrorOperacion> {
-    cliente.obtener_detalle_grupo(grupo_id, token).await
+    let detalle = cliente.obtener_detalle_grupo(grupo_id, token).await?;
+    validar_balances(&detalle.balances)?;
+    Ok(detalle)
+}
+
+fn validar_balances(
+    balances: &std::collections::HashMap<String, String>,
+) -> Result<(), crate::puertos::ErrorOperacion> {
+    let mut suma = Decimal::ZERO;
+
+    for (usuario, valor) in balances {
+        let balance = Decimal::from_str(valor).map_err(|_| crate::puertos::ErrorOperacion {
+            status: None,
+            mensaje: format!("El balance de {usuario} no es un decimal válido."),
+        })?;
+        suma += balance;
+    }
+
+    if suma != Decimal::ZERO {
+        return Err(crate::puertos::ErrorOperacion {
+            status: None,
+            mensaje: format!(
+                "La suma de los balances del grupo debe ser exactamente cero; se obtuvo {suma}."
+            ),
+        });
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validar_balances;
+    use std::collections::HashMap;
+
+    #[test]
+    fn acepta_balances_cuya_suma_es_exactamente_cero() {
+        let balances = HashMap::from([
+            ("ana".to_string(), "36.66".to_string()),
+            ("beto".to_string(), "11.67".to_string()),
+            ("carla".to_string(), "-48.33".to_string()),
+        ]);
+
+        assert!(validar_balances(&balances).is_ok());
+    }
+
+    #[test]
+    fn rechaza_balances_cuya_suma_no_es_cero() {
+        let balances = HashMap::from([
+            ("ana".to_string(), "36.66".to_string()),
+            ("beto".to_string(), "11.68".to_string()),
+            ("carla".to_string(), "-48.33".to_string()),
+        ]);
+
+        let error = validar_balances(&balances).unwrap_err();
+
+        assert!(error.mensaje.contains("exactamente cero"));
+    }
+
+    #[test]
+    fn rechaza_un_balance_que_no_es_decimal() {
+        let balances = HashMap::from([("ana".to_string(), "invalido".to_string())]);
+
+        let error = validar_balances(&balances).unwrap_err();
+
+        assert!(error.mensaje.contains("ana"));
+        assert!(error.mensaje.contains("decimal válido"));
+    }
 }

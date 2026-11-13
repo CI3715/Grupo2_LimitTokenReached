@@ -234,6 +234,62 @@ mod tests {
     }
 
     #[test]
+    fn truncamiento_y_residuo_evitan_perder_centavos() {
+        let monto = Decimal::new(5, 2); // 0.05
+        let participantes = vec!["beto".to_string(), "ana".to_string()];
+        let regla = ReglaDivision::PartesIguales { participantes };
+
+        let partes = calcular_division(monto, &regla).unwrap();
+        let ana = partes.iter().find(|p| p.username == "ana").unwrap();
+        let beto = partes.iter().find(|p| p.username == "beto").unwrap();
+
+        assert_eq!(ana.monto, Decimal::new(3, 2));
+        assert!(ana.tiene_redondeo);
+        assert_eq!(beto.monto, Decimal::new(2, 2));
+        assert!(!beto.tiene_redondeo);
+    }
+
+    #[test]
+    fn porcentajes_reparten_residuo_despues_de_truncar() {
+        let monto = Decimal::new(5, 2); // 0.05
+        let porcentajes = vec![
+            ("beto".to_string(), Decimal::new(5000, 2)),
+            ("ana".to_string(), Decimal::new(5000, 2)),
+        ];
+        let regla = ReglaDivision::Porcentajes { porcentajes };
+
+        let partes = calcular_division(monto, &regla).unwrap();
+        let suma: Decimal = partes.iter().map(|p| p.monto).sum();
+
+        assert_eq!(suma, monto);
+        assert_eq!(
+            partes.iter().find(|p| p.username == "ana").unwrap().monto,
+            Decimal::new(3, 2)
+        );
+    }
+
+    #[test]
+    fn porcentajes_con_suma_inexacta_se_rechazan() {
+        let regla = ReglaDivision::Porcentajes {
+            porcentajes: vec![
+                ("ana".to_string(), Decimal::new(9998, 2)),
+                ("beto".to_string(), Decimal::new(1, 2)),
+            ],
+        };
+
+        assert!(calcular_division(Decimal::ONE, &regla).is_err());
+    }
+
+    #[test]
+    fn participantes_repetidos_se_rechazan() {
+        let regla = ReglaDivision::PartesIguales {
+            participantes: vec!["ana".to_string(), "ana".to_string()],
+        };
+
+        assert!(calcular_division(Decimal::ONE, &regla).is_err());
+    }
+
+    #[test]
     fn monto_grande_se_divide_con_precision() {
         let monto = Decimal::new(99999999, 2); // 999,999.99
         let participantes = vec!["ana".to_string(), "beto".to_string(), "carla".to_string()];

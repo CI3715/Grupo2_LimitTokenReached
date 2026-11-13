@@ -10,6 +10,7 @@ pub mod listar_cuentas;
 pub mod listar_historial_tasas;
 pub mod listar_monedas;
 pub mod obtener_historial_movimientos;
+pub mod previsualizar_division;
 pub mod registrar_movimiento;
 pub mod registrar_tasa;
 pub mod social;
