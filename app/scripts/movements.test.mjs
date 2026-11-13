@@ -21,20 +21,6 @@ function load(relative, mocks = {}) {
     (name) => {
       if (Object.hasOwn(mocks, name)) return mocks[name];
       if (name.endsWith('.css')) return {};
-      if (name.startsWith('.')) {
-        const from = path.dirname(relative);
-        const candidateBase = path.posix.normalize(path.posix.join(from, name));
-        const candidates = [
-          `${candidateBase}.ts`,
-          `${candidateBase}.tsx`,
-          `${candidateBase}/index.ts`,
-          `${candidateBase}/index.tsx`,
-        ];
-        const resolved = candidates.find((candidate) =>
-          fs.existsSync(path.resolve(import.meta.dirname, '..', candidate)),
-        );
-        if (resolved) return load(resolved, mocks);
-      }
       if (name.startsWith('@/')) {
         const aliasPath = `src/${name.slice(2)}`;
         const candidates = [
