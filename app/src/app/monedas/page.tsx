@@ -92,8 +92,8 @@ export default function MonedasPage() {
             {loading ? (
               <p className="accounts-feedback">Cargando monedas…</p>
             ) : (
-              <div className="patrimonio-table-wrap">
-                <table className="tasas-table">
+              <div className="currency-catalog-table-wrap">
+                <table className="currency-catalog-table">
                   <thead>
                     <tr>
                       <th>Código</th>
