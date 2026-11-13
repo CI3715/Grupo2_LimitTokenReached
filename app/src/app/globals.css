@@ -1,8 +1,10 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
+@import "./accounts-shared.css";
 
 * {
   box-sizing: border-box;
 }
+
 html,
 body {
   margin: 0;
@@ -10,9 +12,81 @@ body {
   background: #e8edeb;
   color-scheme: light;
 }
+
 body {
   min-height: 100vh;
 }
+
+.form-stack,
+.form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.form-stack {
+  margin-top: 20px;
+}
+
+.form-grid-two-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-stack label,
+.form-grid label {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  margin-top: 8px;
+  color: #344840;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+input:not([type="radio"]):not([type="checkbox"]),
+select,
+textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  margin-top: 9px;
+  padding: 9px 12px;
+  border: 1px solid #ccd8d2;
+  border-radius: 10px;
+  background: #fbfdfc;
+  color: #1b2926;
+  font: inherit;
+  font-weight: 400;
+}
+
+input:not([type="radio"]):not([type="checkbox"]):focus,
+select:focus,
+textarea:focus {
+  border-color: #3b7165;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #b83b3b;
+}
+
+.form-stack small,
+.form-grid small {
+  color: #6c8176;
+  font-weight: 400;
+}
+
+.form-stack .account-primary,
+.form-grid .account-primary {
+  justify-self: start;
+  margin-top: 12px;
+}
+
+.form-error {
+  margin: 4px 0;
+  color: #a52e2e !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -21,5 +95,11 @@ body {
     transition-duration: 0.001ms !important;
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .form-grid-two-columns {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

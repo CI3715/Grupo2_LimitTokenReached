@@ -6,15 +6,17 @@ import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { AccountsSummary } from "@/components/accounts/accounts-summary";
 import { NewAccountModal } from "@/components/accounts/new-account-modal";
 import { useAccounts } from "@/features/accounts/useAccounts";
-import "./accounts.css";
+import { useAuthSession } from "@/features/auth/useAuthSession";
+import "./home/home.css";
 export default function HomePage() {
   const { accounts, currencies, create } = useAccounts();
+  const { usuario } = useAuthSession();
   const [createOpen, setCreateOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
-        <AccountsSidebar />
+        <AccountsSidebar sesionActiva={Boolean(usuario)} />
         <main className="accounts-workspace">
           <AccountsHeader
             onCreateAccount={() => setCreateOpen(true)}

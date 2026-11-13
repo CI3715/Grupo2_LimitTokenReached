@@ -18,6 +18,7 @@ export function parseErrorValidacion(
     } catch {
       return null;
     }
+
   }
 
   if (
@@ -32,6 +33,15 @@ export function parseErrorValidacion(
       campo: candidate.campo,
       mensaje: candidate.mensaje,
     };
+  }
+
+  if (typeof candidate === "object" && candidate !== null) {
+    if ("message" in candidate && typeof candidate.message === "string") {
+      return parseErrorValidacion(candidate.message);
+    }
+    if ("error" in candidate && typeof candidate.error === "string") {
+      return parseErrorValidacion(candidate.error);
+    }
   }
 
   return null;

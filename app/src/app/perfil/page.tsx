@@ -1,99 +1,272 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
+import type { UseFormReturn } from "react-hook-form";
 
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { iniciarSesionDesdeFormulario } from "@/features/auth/login";
+import { useSocial } from "@/features/social/useSocial";
 import { useAuthSession } from "@/features/auth/useAuthSession";
-import "../accounts.css";
+import type { LoginFormValues } from "@/types/schemas";
+import type { InvitacionAmistadDTO } from "@/types/social";
+import "./perfil.css";
 
 export default function PerfilPage() {
+  const { usuario, cargando, salir } = useAuthSession();
   const {
-    usuario,
-    cargando,
-    errorPerfil,
-    esAplicacionTauri,
-    cargarPerfil,
-  } = useAuthSession();
-  const fechaAlta = usuario ? new Date(usuario.fecha_alta) : null;
-  const fechaAltaFormateada =
-    fechaAlta && !Number.isNaN(fechaAlta.getTime())
-      ? new Intl.DateTimeFormat("es-VE", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(fechaAlta)
-      : (usuario?.fecha_alta ?? "");
+    amistades,
+    usuarioEncontrado,
+    cargando: cargandoAmistades,
+    error: errorSocial,
+    buscar,
+    invitar,
+    responder,
+    eliminar,
+  } = useSocial(Boolean(usuario));
+  const router = useRouter();
+  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+  const [busquedaAmigo, setBusquedaAmigo] = useState("");
+  const [mensajeLogin, setMensajeLogin] = useState("");
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function cerrarNotificaciones(event: MouseEvent) {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setMostrarNotificaciones(false);
+      }
+    }
+
+    document.addEventListener("mousedown", cerrarNotificaciones);
+    return () => document.removeEventListener("mousedown", cerrarNotificaciones);
+  }, []);
+
+  function enviarLogin(
+    datos: LoginFormValues,
+    form: UseFormReturn<LoginFormValues>,
+  ) {
+    setMensajeLogin("");
+    return iniciarSesionDesdeFormulario(
+      datos,
+      form,
+      setMensajeLogin,
+      () => {
+        window.dispatchEvent(new Event("auth-session-changed"));
+        router.push("/");
+      },
+    );
+  }
+
+  async function buscarAmigo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!busquedaAmigo.trim()) return;
+    await buscar(busquedaAmigo);
+  }
+
+  async function responderInvitacion(
+    invitacion: InvitacionAmistadDTO,
+    aceptar: boolean,
+  ) {
+    await responder(invitacion, aceptar);
+  }
 
   return (
     <div className="accounts-page">
       <div className="accounts-shell">
-        <AccountsSidebar active="profile" />
+        <AccountsSidebar
+          active={usuario ? "profile" : "auth"}
+          sesionActiva={Boolean(usuario)}
+        />
         <main className="accounts-workspace">
-          <header className="accounts-header tasas-header">
-            <div>
-              <p className="breadcrumb">
-                Inicio <span>/</span> Mi perfil
-              </p>
-              <h1>Mi perfil</h1>
-              
-            </div>
-          </header>
-
-          <section className="auth-card profile-card" aria-labelledby="profile-title">
-            <h2 id="profile-title">Datos del usuario</h2>
-            {cargando ? (
-              <p role="status">Consultando tu perfil…</p>
-            ) : usuario ? (
-              <>
-                <dl className="profile-details">
-                  <div>
-                    <dt>Nombre visible</dt>
-                    <dd>{usuario.nombre_visible}</dd>
-                  </div>
-                  <div>
-                    <dt>Nombre de usuario</dt>
-                    <dd>{usuario.nombre_usuario}</dd>
-                  </div>
-                  <div>
-                    <dt>Correo</dt>
-                    <dd>{usuario.correo}</dd>
-                  </div>
-                  <div>
-                    <dt>Fecha de registro</dt>
-                    <dd>{fechaAltaFormateada}</dd>
-                  </div>
-                </dl>
+          {!usuario ? (
+            <LoginForm mensaje={mensajeLogin} onSubmit={enviarLogin} />
+          ) : (
+            <>
+              <header className="accounts-header tasas-header">
+                <div>
+                  <p className="breadcrumb">
+                    Inicio <span>/</span> Mi perfil
+                  </p>
+                  <h1>{usuario.nombre_visible}</h1>
+                  <p className="profile-heading-subtitle">
+                    {usuario.nombre_usuario}
+                  </p>
+                </div>
                 <button
                   className="account-primary"
                   type="button"
-                  onClick={cargarPerfil}
-                  disabled={cargando}
+                  onClick={() => void salir()}
                 >
-                  Actualizar perfil
+                  Cerrar sesión
                 </button>
-              </>
-            ) : (
-              <div className="profile-empty">
-                <p className="auth-error" role="alert">
-                  {errorPerfil || "No hay una sesión iniciada."}
+              </header>
+
+              {cargando ? (
+                <p className="profile-loading" role="status">
+                  Consultando tu perfil…
                 </p>
-                {esAplicacionTauri && (
-                  <Link className="auth-link-button" href="/login/">
-                    Iniciar sesión
-                  </Link>
-                )}
-                {esAplicacionTauri && (
-                  <button
-                    className="account-primary"
-                    type="button"
-                    onClick={cargarPerfil}
-                    disabled={cargando}
-                  >
-                    Reintentar consulta
-                  </button>
-                )}
-              </div>
-            )}
-          </section>
+              ) : (
+                <>
+                  <div className="profile-floating-actions">
+                    <div className="friend-search-area">
+                      <form
+                        className="friend-search-bar"
+                        onSubmit={(event) => void buscarAmigo(event)}
+                      >
+                        <input
+                          id="search-friend-username"
+                          value={busquedaAmigo}
+                          onChange={(event) =>
+                            setBusquedaAmigo(event.target.value)
+                          }
+                          placeholder="Nombre de usuario"
+                        />
+                        <button
+                          className="account-primary"
+                          type="submit"
+                          disabled={cargandoAmistades}
+                        >
+                          Buscar
+                        </button>
+                      </form>
+                      {usuarioEncontrado && (
+                        <div className="friend-search-result">
+                          <div>
+                            <strong>{usuarioEncontrado.nombre_visible}</strong>
+                            <span>{usuarioEncontrado.nombre_usuario}</span>
+                          </div>
+                          <button
+                            className="account-primary"
+                            type="button"
+                            onClick={async () => {
+                              const enviada = await invitar(
+                                usuarioEncontrado.nombre_usuario,
+                              );
+                              if (enviada) {
+                                setBusquedaAmigo("");
+                              }
+                            }}
+                          >
+                            Agregar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className="notifications-wrapper"
+                      ref={notificationsRef}
+                    >
+                      <button
+                        className="account-secondary notification-action"
+                        type="button"
+                        aria-label="Abrir notificaciones"
+                        aria-expanded={mostrarNotificaciones}
+                        onClick={() =>
+                          setMostrarNotificaciones((visible) => !visible)
+                        }
+                      >
+                        <span aria-hidden="true">🔔</span>
+                      </button>
+                      {mostrarNotificaciones && (
+                        <div className="notifications-menu" role="status">
+                          {amistades.recibidas.length === 0 ? (
+                            "No tienes invitaciones pendientes."
+                          ) : (
+                            <div className="notification-list">
+                              {amistades.recibidas.map((invitacion) => (
+                                <div
+                                  className="notification-item"
+                                  key={invitacion.id}
+                                >
+                                  <span>
+                                    {invitacion.nombre_visible} (
+                                    {invitacion.nombre_usuario}) te invitó a
+                                    ser su amigo.
+                                  </span>
+                                  <div>
+                                    <button
+                                      className="account-primary"
+                                      type="button"
+                                      onClick={() =>
+                                        void responderInvitacion(
+                                          invitacion,
+                                          true,
+                                        )
+                                      }
+                                    >
+                                      Aceptar
+                                    </button>
+                                    <button
+                                      className="account-secondary"
+                                      type="button"
+                                      onClick={() =>
+                                        void responderInvitacion(
+                                          invitacion,
+                                          false,
+                                        )
+                                      }
+                                    >
+                                      Rechazar
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <section className="friends-section" aria-labelledby="friends-title">
+                    <div className="section-heading">
+                      <h2 id="friends-title">Amigos</h2>
+                    </div>
+                    {errorSocial && (
+                      <p className="profile-social-error" role="alert">
+                        {errorSocial}
+                      </p>
+                    )}
+                    {cargandoAmistades ? (
+                      <p className="profile-loading" role="status">
+                        Cargando amistades…
+                      </p>
+                    ) : amistades.amigos.length === 0 ? (
+                      <div className="friends-empty">
+                        <p>Aún no tienes amigos.</p>
+                        <span>Cuando agregues amigos, aparecerán aquí.</span>
+                      </div>
+                    ) : (
+                      <div className="friends-list">
+                        {amistades.amigos.map((amigo) => (
+                          <article
+                            className="friend-card"
+                            key={amigo.nombre_usuario}
+                          >
+                            <div>
+                              <strong>{amigo.nombre_visible}</strong>
+                              <span>{amigo.nombre_usuario}</span>
+                            </div>
+                            <button
+                              className="account-secondary"
+                              type="button"
+                              onClick={() => void eliminar(amigo.nombre_usuario)}
+                            >
+                              Eliminar
+                            </button>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
+            </>
+          )}
         </main>
       </div>
     </div>

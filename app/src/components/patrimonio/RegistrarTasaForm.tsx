@@ -6,6 +6,7 @@ import { GlobalForm, FormField } from "@/components/forms";
 import { registerRateSchema, type RegisterRateFormValues } from "@/types/schemas";
 import { applyBackendValidationError } from "@/types/validation";
 import type { UseFormReturn } from "react-hook-form";
+import "./RegistrarTasaForm.css";
 
 type Props = {
   currencies: Currency[];
@@ -90,6 +91,7 @@ export function RegistrarTasaForm({
       <h2 id="registrar-tasa-title">Registrar tasa de cambio</h2>
 
       <GlobalForm<RegisterRateFormValues>
+        className="rate-form-grid"
         schema={registerRateSchema}
         defaultValues={{
           moneda_origen: selectedOrigin,
@@ -104,14 +106,51 @@ export function RegistrarTasaForm({
           <>
             <FormField<RegisterRateFormValues> name="moneda_origen" label="Moneda de origen">
               {(props) => (
-                <select {...props} value={selectedOrigin} onChange={(event) => setOrigin(event.currentTarget.value)} disabled={saving || currencies.length === 0}>
+                <select
+                  {...props}
+                  {...form.register("moneda_origen")}
+                  value={selectedOrigin}
+                  onChange={(event) => {
+                    const nextOrigin = event.currentTarget.value;
+                    const nextDestination =
+                      currencies.some(
+                        (currency) =>
+                          currency.codigo === destination &&
+                          currency.codigo !== nextOrigin,
+                      )
+                        ? destination
+                        : currencies.find(
+                            (currency) => currency.codigo !== nextOrigin,
+                          )?.codigo ?? "";
+                    setOrigin(nextOrigin);
+                    setDestination(nextDestination);
+                    void form.setValue(
+                      "moneda_origen",
+                      nextOrigin,
+                    );
+                    void form.setValue("moneda_destino", nextDestination);
+                  }}
+                  disabled={saving || currencies.length === 0}
+                >
                   {currencies.map((currency) => <option key={currency.codigo} value={currency.codigo}>{currency.codigo} · {currency.nombre}</option>)}
                 </select>
               )}
             </FormField>
             <FormField<RegisterRateFormValues> name="moneda_destino" label="Moneda de destino">
               {(props) => (
-                <select {...props} value={selectedDestination} onChange={(event) => setDestination(event.currentTarget.value)} disabled={saving || currencies.length < 2}>
+                <select
+                  {...props}
+                  {...form.register("moneda_destino")}
+                  value={selectedDestination}
+                  onChange={(event) => {
+                    setDestination(event.currentTarget.value);
+                    void form.setValue(
+                      "moneda_destino",
+                      event.currentTarget.value,
+                    );
+                  }}
+                  disabled={saving || currencies.length < 2}
+                >
                   {currencies.map((currency) => <option key={currency.codigo} value={currency.codigo} disabled={currency.codigo === selectedOrigin}>{currency.codigo} · {currency.nombre}</option>)}
                 </select>
               )}
@@ -125,7 +164,11 @@ export function RegistrarTasaForm({
             <FormField<RegisterRateFormValues> name="fuente" label="Fuente">
               {(props) => <input {...props} type="text" placeholder="Ej. BCV" disabled={saving} {...form.register("fuente")} />}
             </FormField>
-            <button type="submit" disabled={saving || currencies.length < 2}>
+            <button
+              className="account-primary"
+              type="submit"
+              disabled={saving || currencies.length < 2}
+            >
               {saving ? "Registrando…" : "Registrar tasa"}
             </button>
           </>

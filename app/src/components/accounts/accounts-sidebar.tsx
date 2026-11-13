@@ -7,6 +7,7 @@ import logo from "@/img/logo-rm-bg.png";
 
 export function AccountsSidebar({
   active = "accounts",
+  sesionActiva = false,
 }: {
   active?:
     | "accounts"
@@ -16,6 +17,7 @@ export function AccountsSidebar({
     | "monedas"
     | "auth"
     | "profile";
+  sesionActiva?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -105,22 +107,25 @@ export function AccountsSidebar({
           >
             <span aria-hidden="true">⌁</span> Conexión
           </Link>
-          <Link
-            href="/login/"
-            aria-current={active === "auth" ? "page" : undefined}
-            className={active === "auth" ? "nav-current" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            <span aria-hidden="true">◎</span> Iniciar sesión
-          </Link>
-          <Link
-            href="/perfil/"
-            aria-current={active === "profile" ? "page" : undefined}
-            className={active === "profile" ? "nav-current" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            <span aria-hidden="true">◉</span> Mi perfil
-          </Link>
+          {sesionActiva ? (
+            <Link
+              href="/perfil/"
+              aria-current={active === "profile" ? "page" : undefined}
+              className={active === "profile" ? "nav-current" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              <span aria-hidden="true">◉</span> Mi perfil
+            </Link>
+          ) : (
+            <Link
+              href="/login/"
+              aria-current={active === "auth" ? "page" : undefined}
+              className={active === "auth" ? "nav-current" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              <span aria-hidden="true">◎</span> Iniciar sesión
+            </Link>
+          )}
         </nav>
       </aside>
     </>

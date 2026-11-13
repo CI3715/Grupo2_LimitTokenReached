@@ -3,6 +3,7 @@
 import Decimal from "decimal.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
+import { useAuthSession } from "@/features/auth/useAuthSession";
 import { RegistrarTasaForm } from "@/components/patrimonio/RegistrarTasaForm";
 import { deleteRate } from "@/services/deleteRate";
 import { listCurrencies } from "@/services/listCurrencies";
@@ -11,7 +12,7 @@ import { registrarTasa } from "@/services/registrarTasa";
 import type { Currency } from "@/types/accounts";
 import { parseErrorValidacion } from "@/types/error_validacion";
 import type { RegistrarTasaRequest, TasaDTO } from "@/types/tasas";
-import "../accounts.css";
+import "./tasas.css";
 
 function today() {
   const date = new Date();
@@ -53,6 +54,7 @@ function errorMessage(error: unknown) {
 }
 
 export default function TasasPage() {
+  const { usuario } = useAuthSession();
   const [date, setDate] = useState(today);
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [rates, setRates] = useState<TasaDTO[]>([]);
@@ -159,7 +161,7 @@ export default function TasasPage() {
   return (
     <div className="accounts-page patrimonio-page">
       <div className="accounts-shell">
-        <AccountsSidebar active="tasas" />
+        <AccountsSidebar active="tasas" sesionActiva={Boolean(usuario)} />
         <main className="accounts-workspace">
           <header className="accounts-header tasas-header">
             <div>
