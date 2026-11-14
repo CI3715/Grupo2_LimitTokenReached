@@ -8,6 +8,7 @@ pub mod movimiento;
 pub mod patrimonio;
 pub mod social;
 pub mod tasa;
+pub mod sincronizacion;
 
 // Re-exportaciones para uso cómodo desde otros crates
 pub use autenticacion::{IniciarSesionRequest, RegistrarUsuarioRequest, SesionDTO, UsuarioDTO};
@@ -31,6 +32,7 @@ pub use social::{
     RespuestaInvitacionGrupoDTO, UsuarioResumenDTO,
 };
 pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
+pub use sincronizacion::{EventoCambioDTO, ObtenerCambiosRequest, RespuestaCambiosDTO};
 
 // Módulos de pruebas
 #[cfg(test)]
@@ -50,3 +52,6 @@ mod patrimonio_tests;
 
 #[cfg(test)]
 mod social_tests;
+
+#[cfg(test)]
+mod sincronizacion_tests; 
