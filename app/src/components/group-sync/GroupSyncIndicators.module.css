@@ -1,0 +1,15 @@
+.panel { padding: 20px; border: 1px solid #dce7e1; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(32, 63, 53, .035); }
+.panel h3 { margin: 0; color: #203d34; font-size: 15px; }
+.panel p { color: #71847a; font-size: 12px; line-height: 1.45; }
+.list { display: grid; gap: 10px; padding: 0; margin: 14px 0 0; list-style: none; }
+.item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; border: 1px solid #dce7e1; border-radius: 10px; color: #203d34; font-size: 13px; }
+.item div { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.item small { color: #71847a; }
+.item .pending { color: #806022; }
+.item .error { color: #a52e2e; }
+.badge { display: inline-block; width: fit-content; padding: 3px 8px; border-radius: 999px; background: #e8f3ec; color: #32634c; font-size: 11px; font-weight: 600; }
+.control { display: grid; gap: 6px; color: #42584f; font-size: 12px; font-weight: 600; }
+.control select { width: 100%; padding: 10px; border: 1px solid #dce7e1; border-radius: 8px; color: #203d34; background: #fff; }
+.button { padding: 10px 16px; border: 0; border-radius: 8px; background: #32634c; color: white; font-weight: 600; cursor: pointer; }
+.button:disabled { opacity: .55; cursor: not-allowed; }
+.panel .error { color: #a52e2e; }
