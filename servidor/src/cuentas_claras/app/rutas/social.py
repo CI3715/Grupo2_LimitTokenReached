@@ -1,13 +1,19 @@
+import json
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Annotated
+from hashlib import sha256
+from typing import Annotated, cast
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import and_, or_, select
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from cuentas_claras.app.rutas.autenticacion import obtener_usuario_actual
+from cuentas_claras.contrato.sincronizacion import (
+    EventoCambioDTO,
+    RespuestaCambiosDTO,
+)
 from cuentas_claras.contrato.social import (
     CrearAmistadRequest,
     CrearGrupoRequest,
@@ -19,9 +25,11 @@ from cuentas_claras.dominio.usuario import Usuario
 from cuentas_claras.infraestructura.base_datos import obtener_db
 from cuentas_claras.infraestructura.modelos_sociales import (
     AmistadDB,
+    CambioGastoDB,
     GastoDB,
     GrupoDB,
     MiembroGrupoDB,
+    OperacionIdempotenteDB,
     ParteGastoDB,
 )
 from cuentas_claras.infraestructura.modelos_usuario import UsuarioDB
@@ -511,8 +519,36 @@ def registrar_gasto(
     datos: RegistrarGastoRequest,
     actor: Annotated[Usuario, Depends(obtener_usuario_actual)],
     db: Annotated[Session, Depends(obtener_db)],
+    respuesta_http: Response,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> dict[str, object]:
-    _grupo_miembro(db, id, actor.id)
+    datos_hash = sha256(
+        json.dumps(
+            datos.model_dump(mode="json", exclude_none=True),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+    ruta = f"/grupos/{id}/gastos"
+
+    if idempotency_key:
+        operacion = db.get(OperacionIdempotenteDB, idempotency_key)
+        if operacion is not None:
+            if operacion.usuario_id != actor.id:
+                raise _error(
+                    status.HTTP_409_CONFLICT,
+                    "La clave de idempotencia ya fue utilizada.",
+                )
+            if operacion.ruta != ruta or operacion.datos_hash != datos_hash:
+                raise _error(
+                    status.HTTP_409_CONFLICT,
+                    "La clave ya fue utilizada con datos diferentes.",
+                )
+            respuesta_http.status_code = status.HTTP_200_OK
+            return cast(dict[str, object], json.loads(operacion.respuesta_json))
+
+    grupo = _grupo_miembro(db, id, actor.id)
     miembros = db.scalars(
         select(UsuarioDB)
         .join(MiembroGrupoDB, MiembroGrupoDB.usuario_id == UsuarioDB.id)
@@ -584,9 +620,89 @@ def registrar_gasto(
                 "residuo": recibio_residuo,
             }
         )
-    db.commit()
+
+        ultima_posicion = db.scalar(
+            select(func.max(CambioGastoDB.posicion)).where(
+                CambioGastoDB.usuario_id == participante.id
+            )
+        )
+        posicion = (ultima_posicion or 0) + 1
+        db.add(
+            CambioGastoDB(
+                id_evento=str(uuid4()),
+                usuario_id=participante.id,
+                posicion=posicion,
+                tipo="GastoDeGrupoRegistrado",
+                grupo_id=grupo.id,
+                gasto_id=gasto.id,
+                concepto=concepto,
+                fecha=gasto.fecha,
+                moneda=grupo.moneda,
+                monto_centimos=monto_parte,
+                incluye_redondeo=recibio_residuo,
+            )
+        )
     partes.sort(key=lambda parte: str(parte["usuario"]))
-    return {"id": gasto.id, "partes": partes}
+    respuesta: dict[str, object] = {"id": gasto.id, "partes": partes}
+    if idempotency_key:
+        db.add(
+            OperacionIdempotenteDB(
+                clave=idempotency_key,
+                usuario_id=actor.id,
+                ruta=ruta,
+                datos_hash=datos_hash,
+                respuesta_json=json.dumps(respuesta),
+                creada_en=datetime.now(timezone.utc),
+            )
+        )
+    db.commit()
+    return respuesta
+
+
+@router.get("/cambios", response_model=RespuestaCambiosDTO)
+def obtener_cambios(
+    actor: Annotated[Usuario, Depends(obtener_usuario_actual)],
+    db: Annotated[Session, Depends(obtener_db)],
+    desde: int = 0,
+) -> RespuestaCambiosDTO:
+    if desde < 0:
+        raise _error(status.HTTP_400_BAD_REQUEST, "El cursor no es válido.")
+
+    filas = db.scalars(
+        select(CambioGastoDB)
+        .where(
+            CambioGastoDB.usuario_id == actor.id,
+            CambioGastoDB.posicion > desde,
+        )
+        .order_by(CambioGastoDB.posicion)
+        .limit(101)
+    ).all()
+
+    hay_mas = len(filas) > 100
+    lote = filas[:100]
+    nuevo_cursor = lote[-1].posicion if lote else desde
+
+    eventos = [
+        EventoCambioDTO(
+            id_evento=fila.id_evento,
+            tipo=fila.tipo,
+            grupo_id=fila.grupo_id,
+            gasto_id=fila.gasto_id,
+            concepto=fila.concepto,
+            fecha=fila.fecha,
+            moneda=fila.moneda,
+            monto_parte=Decimal(fila.monto_centimos).scaleb(-2),
+            incluye_redondeo=fila.incluye_redondeo,
+            posicion_cursor=fila.posicion,
+        )
+        for fila in lote
+    ]
+
+    return RespuestaCambiosDTO(
+        eventos=eventos,
+        nuevo_cursor=nuevo_cursor,
+        hay_mas=hay_mas,
+    )
 
 
 @router.get("/grupos/{id}")

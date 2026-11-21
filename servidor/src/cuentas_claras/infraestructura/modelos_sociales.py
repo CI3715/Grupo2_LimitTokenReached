@@ -91,3 +91,39 @@ class ParteGastoDB(Base):
     )
     monto_centimos: Mapped[int] = mapped_column(Integer, nullable=False)
     recibio_residuo: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+
+class CambioGastoDB(Base):
+    __tablename__ = "cambios_gasto"
+    __table_args__ = (
+        UniqueConstraint(
+            "usuario_id",
+            "posicion",
+            name="uq_cambio_usuario_posicion",
+        ),
+    )
+
+    id_evento: Mapped[str] = mapped_column(String(36), primary_key=True)
+    usuario_id: Mapped[str] = mapped_column(
+        ForeignKey("usuarios.id"), nullable=False, index=True
+    )
+    posicion: Mapped[int] = mapped_column(Integer, nullable=False)
+    tipo: Mapped[str] = mapped_column(String(60), nullable=False)
+    grupo_id: Mapped[str] = mapped_column(ForeignKey("grupos.id"), nullable=False)
+    gasto_id: Mapped[str] = mapped_column(ForeignKey("gastos.id"), nullable=False)
+    concepto: Mapped[str] = mapped_column(String(200), nullable=False)
+    fecha: Mapped[date] = mapped_column(Date, nullable=False)
+    moneda: Mapped[str] = mapped_column(String(3), nullable=False)
+    monto_centimos: Mapped[int] = mapped_column(Integer, nullable=False)
+    incluye_redondeo: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+
+class OperacionIdempotenteDB(Base):
+    __tablename__ = "operaciones_idempotentes"
+
+    clave: Mapped[str] = mapped_column(String(200), primary_key=True)
+    usuario_id: Mapped[str] = mapped_column(ForeignKey("usuarios.id"), nullable=False)
+    ruta: Mapped[str] = mapped_column(String(300), nullable=False)
+    datos_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    respuesta_json: Mapped[str] = mapped_column(String(5000), nullable=False)
+    creada_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

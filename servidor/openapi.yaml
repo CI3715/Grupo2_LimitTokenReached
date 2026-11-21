@@ -373,8 +373,7 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /grupos/{id}/gastos:
     post:
-      summary: Registrar Gasto (con soporte idempotente)
-      description: Registra un gasto compartido. Si se envía con una Idempotency-Key ya procesada, devuelve el gasto existente (200) en lugar de duplicarlo (201).
+      summary: Registrar Gasto
       operationId: registrar_gasto_grupos__id__gastos_post
       security:
       - HTTPBearer: []
@@ -387,12 +386,12 @@ paths:
           title: Id
       - name: Idempotency-Key
         in: header
-        required: true
+        required: false
         schema:
-          type: string
-          format: uuid
-          title: Idempotency Key
-        description: Clave única generada por el cliente para garantizar idempotencia en reintentos.
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idempotency-Key
       requestBody:
         required: true
         content:
@@ -400,42 +399,41 @@ paths:
             schema:
               $ref: '#/components/schemas/RegistrarGastoRequest'
       responses:
-        '200':
-          description: La clave de idempotencia ya fue procesada previamente. Se devuelve el gasto registrado.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                title: Response Registrar Gasto Grupos  Id  Gastos Post
         '201':
-          description: Gasto registrado exitosamente.
+          description: Successful Response
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: true
                 title: Response Registrar Gasto Grupos  Id  Gastos Post
-        '400':
-          description: Datos inválidos (ej. porcentajes que no suman 100, montos que no cuadran, cursor inválido).
+        '422':
+          description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-        '401':
-          description: Token ausente, inválido o vencido.
+  /cambios:
+    get:
+      summary: Obtener Cambios
+      operationId: obtener_cambios_cambios_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: desde
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+          title: Desde
+      responses:
+        '200':
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorAutenticacionDTO'
-        '404':
-          description: Grupo inexistente o el usuario no es miembro (misma respuesta en ambos casos).
-        '409':
-          description: La clave de idempotencia ya fue usada previamente, pero con datos distintos.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorAutenticacionDTO'
+                $ref: '#/components/schemas/RespuestaCambiosDTO'
         '422':
           description: Validation Error
           content:
@@ -464,47 +462,6 @@ paths:
                 type: object
                 additionalProperties: true
                 title: Response Ver Grupo Grupos  Id  Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /cambios:
-    get:
-      summary: Obtener cambios (eventos de gastos de grupo) para sincronización
-      description: Devuelve los eventos del usuario autenticado posteriores al cursor indicado, en lotes de máximo 100, junto con el nuevo cursor.
-      operationId: obtener_cambios_cambios_get
-      security:
-      - HTTPBearer: []
-      parameters:
-      - name: desde
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int64
-          title: Desde
-        description: Cursor a partir del cual obtener los eventos. Si se omite, devuelve desde el inicio.
-      responses:
-        '200':
-          description: Lista de eventos y nuevo cursor.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RespuestaCambios'
-        '400':
-          description: Cursor inválido.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorAutenticacionDTO'
-        '401':
-          description: Token ausente, inválido o vencido.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorAutenticacionDTO'
         '422':
           description: Validation Error
           content:
@@ -577,7 +534,45 @@ components:
       - campo
       - mensaje
       title: ErrorAutenticacionDTO
-    EventoCambio:
+    EventoCambioDTO:
+      properties:
+        id_evento:
+          type: string
+          title: Id Evento
+          description: Identificador único e inmutable del evento
+        tipo:
+          type: string
+          title: Tipo
+          description: Tipo de evento (ej. GastoDeGrupoRegistrado)
+        grupo_id:
+          type: string
+          title: Grupo Id
+        gasto_id:
+          type: string
+          title: Gasto Id
+        concepto:
+          type: string
+          title: Concepto
+        fecha:
+          type: string
+          format: date
+          title: Fecha
+        moneda:
+          type: string
+          title: Moneda
+        monto_parte:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d{0,2}0*$
+          title: Monto Parte
+          description: Monto exacto de la parte
+        incluye_redondeo:
+          type: boolean
+          title: Incluye Redondeo
+          description: True si incluye céntimos de residuo
+        posicion_cursor:
+          type: integer
+          title: Posicion Cursor
+          description: Posición creciente en el registro
       type: object
       required:
       - id_evento
@@ -590,41 +585,8 @@ components:
       - monto_parte
       - incluye_redondeo
       - posicion_cursor
-      properties:
-        id_evento:
-          type: string
-          description: Identificador único e inmutable del evento (INV-13).
-        tipo:
-          type: string
-          description: Tipo de evento (ej. GastoDeGrupoAplicado).
-        grupo_id:
-          type: string
-          description: ID del grupo al que pertenece el gasto.
-        gasto_id:
-          type: string
-          description: ID del gasto de grupo.
-        concepto:
-          type: string
-          description: Concepto del gasto (ej. Hotel, Cena).
-        fecha:
-          type: string
-          format: date-time
-          description: Fecha del gasto en formato ISO 8601.
-        moneda:
-          type: string
-          description: Código ISO de 3 letras de la moneda del grupo.
-        monto_parte:
-          type: string
-          description: Monto exacto de la parte en formato decimal (String para evitar pérdida de precisión, INV-03).
-        incluye_redondeo:
-          type: boolean
-          description: True si incluye céntimos de residuo (Sección 2.4 Entrega 6).
-        posicion_cursor:
-          type: integer
-          format: int64
-          description: Posición creciente en el registro del usuario, usada como cursor.
-      additionalProperties: false
-      title: EventoCambio
+      title: EventoCambioDTO
+      description: Evento de cambio para sincronización (GET /cambios).
     HTTPValidationError:
       properties:
         detail:
@@ -750,28 +712,30 @@ components:
       - correo
       - contrasena
       title: RegistrarUsuarioRequest
-    RespuestaCambios:
+    RespuestaCambiosDTO:
+      properties:
+        eventos:
+          items:
+            $ref: '#/components/schemas/EventoCambioDTO'
+          type: array
+          maxItems: 100
+          title: Eventos
+          description: Lote de eventos
+        nuevo_cursor:
+          type: integer
+          title: Nuevo Cursor
+          description: Cursor para la próxima petición
+        hay_mas:
+          type: boolean
+          title: Hay Mas
+          description: True si quedan más eventos por sincronizar
       type: object
       required:
       - eventos
       - nuevo_cursor
       - hay_mas
-      properties:
-        eventos:
-          type: array
-          items:
-            $ref: '#/components/schemas/EventoCambio'
-          maxItems: 100
-          description: Lote de eventos (máximo 100 por petición).
-        nuevo_cursor:
-          type: integer
-          format: int64
-          description: Cursor para la próxima petición.
-        hay_mas:
-          type: boolean
-          description: True si quedan más eventos por sincronizar.
-      additionalProperties: false
-      title: RespuestaCambios
+      title: RespuestaCambiosDTO
+      description: Respuesta del endpoint GET /cambios.
     RespuestaRequest:
       properties:
         aceptar:
