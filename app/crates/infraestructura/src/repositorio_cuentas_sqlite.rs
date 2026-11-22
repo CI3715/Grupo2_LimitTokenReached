@@ -78,6 +78,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
             moneda_codigo: req.moneda_codigo.clone(),
             saldo: req.saldo_inicial.clone(),
             creada_en: Utc::now().to_rfc3339(),
+            activa: true,
         })
     }
 
@@ -85,7 +86,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
         let conn = self.conexion.lock().map_err(|e| e.to_string())?;
 
         let mut stmt = conn
-            .prepare("SELECT id, nombre, tipo, moneda_codigo, saldo FROM cuenta")
+            .prepare("SELECT id, nombre, tipo, moneda_codigo, saldo, activa FROM cuenta")
             .map_err(|e| e.to_string())?;
 
         let iterador = stmt
@@ -95,6 +96,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
                 let tipo_str: String = row.get(2)?;
                 let moneda_codigo: String = row.get(3)?;
                 let saldo: String = row.get(4)?;
+                let activa: i64 = row.get(5)?;
 
                 let tipo: TipoCuentaDTO = serde_json::from_str(&format!("\"{}\"", tipo_str))
                     .unwrap_or(TipoCuentaDTO::Efectivo);
@@ -106,6 +108,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
                     moneda_codigo,
                     saldo,
                     creada_en: Utc::now().to_rfc3339(),
+                    activa: activa != 0,
                 })
             })
             .map_err(|e| e.to_string())?;

@@ -172,6 +172,24 @@ pub trait RepositorioMovimientos: Send + Sync {
     fn guardar_movimiento(&self, movimiento: &Movimiento) -> Result<MovimientoDTO, String>;
     fn guardar_ajuste(&self, ajuste: &dominio::movimiento::Ajuste)
     -> Result<MovimientoDTO, String>;
+    fn movimiento_es_de_grupo(&self, movimiento_id: &Uuid) -> Result<bool, String>;
+    fn guardar_aplicacion_gasto_grupo(
+        &self,
+        movimiento: &Movimiento,
+        evento: &contrato::EventoCambioDTO,
+    ) -> Result<MovimientoDTO, String>;
+    fn guardar_parte_grupo_pendiente(
+        &self,
+        evento: &contrato::EventoCambioDTO,
+    ) -> Result<(), String>;
+    fn listar_partes_grupo_pendientes(
+        &self,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String>;
+    fn listar_partes_grupo_pendientes_por_grupo(
+        &self,
+        grupo_id: &str,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String>;
+    fn eliminar_parte_grupo_pendiente(&self, id_evento: &str) -> Result<(), String>;
     fn obtener_movimiento_por_id(
         &self,
         id: &Uuid,

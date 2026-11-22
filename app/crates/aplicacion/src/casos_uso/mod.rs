@@ -15,3 +15,7 @@ pub mod registrar_movimiento;
 pub mod registrar_tasa;
 pub mod social;
 pub mod verificar_conexion;
+pub mod sincronizar_cambios;
+pub mod aplicar_eventos_grupo;
+pub mod elegir_cuenta_grupo;
+pub mod procesar_cola_gastos;

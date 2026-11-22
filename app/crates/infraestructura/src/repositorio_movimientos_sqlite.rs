@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use chrono::NaiveDate;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
 use serde_json::json;
 use std::collections::HashMap;
@@ -197,6 +197,9 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             nota: movimiento.nota.clone(),
             es_correccion: false,
             movimiento_original_id: None,
+            gasto_grupo: false,
+            grupo_id: None,
+            grupo_gasto_id: None,
         })
     }
 
@@ -287,6 +290,9 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             nota: None,
             es_correccion: true,
             movimiento_original_id: Some(ajuste.movimiento_original_id.to_string()),
+            gasto_grupo: false,
+            grupo_id: None,
+            grupo_gasto_id: None,
         })
     }
 
@@ -511,6 +517,16 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                             ));
                         }
                     };
+                    let marcador_grupo: Option<(String, String)> = conn
+                    .query_row(
+                        "SELECT grupo_id, gasto_id
+                         FROM movimiento_grupo
+                         WHERE movimiento_id = ?1",
+                        params![id],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    )
+                    .optional()
+                    .map_err(|e| e.to_string())?;
 
                     Ok(MovimientoDTO {
                         id: id.clone(),
@@ -530,9 +546,206 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                         nota,
                         es_correccion,
                         movimiento_original_id,
+                        gasto_grupo: marcador_grupo.is_some(),
+                        grupo_id: marcador_grupo.as_ref().map(|valor| valor.0.clone()),
+                        grupo_gasto_id: marcador_grupo.map(|valor| valor.1),
                     })
                 },
             )
             .collect()
+    }
+
+    fn movimiento_es_de_grupo(&self, movimiento_id: &Uuid) -> Result<bool, String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        let existe: Option<String> = conn
+            .query_row(
+                "SELECT movimiento_id FROM movimiento_grupo WHERE movimiento_id = ?1",
+                params![movimiento_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+        Ok(existe.is_some())
+    }
+
+    fn guardar_aplicacion_gasto_grupo(
+        &self,
+        movimiento: &Movimiento,
+        evento: &contrato::EventoCambioDTO,
+    ) -> Result<MovimientoDTO, String> {
+        let mut conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        let tx = conn.transaction().map_err(|e| e.to_string())?;
+
+        let ya_aplicado: Option<String> = tx
+            .query_row(
+                "SELECT id_evento FROM eventos_grupo_aplicados WHERE id_evento = ?1",
+                params![evento.id_evento],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+        if ya_aplicado.is_some() {
+            tx.commit().map_err(|e| e.to_string())?;
+            return Err("El evento ya fue aplicado.".to_string());
+        }
+
+        tx.execute(
+            "INSERT INTO movimiento
+             (id, cuenta_id, tipo, monto, fecha, categoria_id, nota)
+             VALUES (?1, ?2, 'Gasto', ?3, ?4, ?5, ?6)",
+            params![
+                movimiento.id.to_string(),
+                movimiento.cuenta_id.to_string(),
+                movimiento.monto.to_string(),
+                movimiento.fecha.to_string(),
+                movimiento.categoria_id.to_string(),
+                movimiento.nota,
+            ],
+        )
+        .map_err(|e| format!("No se pudo guardar el gasto de grupo: {e}"))?;
+
+        let saldo: String = tx
+            .query_row(
+                "SELECT saldo FROM cuenta WHERE id = ?1",
+                params![movimiento.cuenta_id.to_string()],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("No se pudo obtener el saldo: {e}"))?;
+        let saldo_actual =
+            Decimal::from_str_exact(&saldo).map_err(|e| format!("Saldo invalido: {e}"))?;
+        let nuevo_saldo = saldo_actual - movimiento.monto;
+        tx.execute(
+            "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
+            params![nuevo_saldo.to_string(), movimiento.cuenta_id.to_string()],
+        )
+        .map_err(|e| format!("No se pudo actualizar el saldo: {e}"))?;
+
+        let datos_aplicado = json!({
+            "id_evento": evento.id_evento,
+            "movimiento_id": movimiento.id.to_string(),
+            "grupo_id": evento.grupo_id,
+            "gasto_id": evento.gasto_id,
+        });
+        crate::bd::insertar_evento(&tx, "GastoDeGrupoAplicado", &datos_aplicado)
+            .map_err(|e| e.to_string())?;
+
+        tx.execute(
+            "INSERT INTO movimiento_grupo
+             (movimiento_id, id_evento, grupo_id, gasto_id, concepto_grupo, moneda)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                movimiento.id.to_string(),
+                evento.id_evento,
+                evento.grupo_id,
+                evento.gasto_id,
+                movimiento.nota,
+                evento.moneda,
+            ],
+        )
+        .map_err(|e| format!("No se pudo marcar el movimiento de grupo: {e}"))?;
+
+        tx.execute(
+            "INSERT INTO eventos_grupo_aplicados
+             (id_evento, movimiento_id, aplicado_en)
+             VALUES (?1, ?2, CURRENT_TIMESTAMP)",
+            params![evento.id_evento, movimiento.id.to_string()],
+        )
+        .map_err(|e| e.to_string())?;
+
+        tx.commit().map_err(|e| e.to_string())?;
+
+        Ok(MovimientoDTO {
+            id: movimiento.id.to_string(),
+            cuenta_id: movimiento.cuenta_id.to_string(),
+            tipo: TipoMovimientoDTO::Gasto,
+            monto: movimiento.monto.to_string(),
+            monto_resultante: movimiento.monto.to_string(),
+            fecha: movimiento.fecha.to_string(),
+            categoria_id: Some(movimiento.categoria_id.to_string()),
+            nota: movimiento.nota.clone(),
+            es_correccion: false,
+            movimiento_original_id: None,
+            gasto_grupo: true,
+            grupo_id: Some(evento.grupo_id.clone()),
+            grupo_gasto_id: Some(evento.gasto_id.clone()),
+        })
+    }
+
+    fn guardar_parte_grupo_pendiente(
+        &self,
+        evento: &contrato::EventoCambioDTO,
+    ) -> Result<(), String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT INTO partes_grupo_pendientes
+             (id_evento, grupo_id, gasto_id, concepto, fecha, moneda,
+              monto_parte, incluye_redondeo, posicion_cursor, recibido_en)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, CURRENT_TIMESTAMP)
+             ON CONFLICT(id_evento) DO NOTHING",
+            params![
+                evento.id_evento,
+                evento.grupo_id,
+                evento.gasto_id,
+                evento.concepto,
+                evento.fecha,
+                evento.moneda,
+                evento.monto_parte,
+                evento.incluye_redondeo as i64,
+                evento.posicion_cursor as i64,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn listar_partes_grupo_pendientes(
+        &self,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id_evento, grupo_id, gasto_id, concepto, fecha, moneda,
+                        monto_parte, incluye_redondeo, posicion_cursor
+                 FROM partes_grupo_pendientes
+                 ORDER BY posicion_cursor ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let filas = stmt
+            .query_map([], |row| {
+                Ok(contrato::ParteGrupoPendienteDTO {
+                    id_evento: row.get(0)?,
+                    grupo_id: row.get(1)?,
+                    gasto_id: row.get(2)?,
+                    concepto: row.get(3)?,
+                    fecha: row.get(4)?,
+                    moneda: row.get(5)?,
+                    monto_parte: row.get(6)?,
+                    incluye_redondeo: row.get::<_, i64>(7)? != 0,
+                    posicion_cursor: row.get::<_, i64>(8)? as u64,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        filas.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+    }
+
+    fn listar_partes_grupo_pendientes_por_grupo(
+        &self,
+        grupo_id: &str,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String> {
+        let todas = self.listar_partes_grupo_pendientes()?;
+        Ok(todas
+            .into_iter()
+            .filter(|parte| parte.grupo_id == grupo_id)
+            .collect())
+    }
+
+    fn eliminar_parte_grupo_pendiente(&self, id_evento: &str) -> Result<(), String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "DELETE FROM partes_grupo_pendientes WHERE id_evento = ?1",
+            params![id_evento],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
     }
 }

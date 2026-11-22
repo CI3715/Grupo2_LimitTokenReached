@@ -18,6 +18,19 @@ pub async fn ejecutar(
         mensaje: "ID de movimiento original inválido".to_string(),
     })?;
 
+    if repo_movimientos
+        .movimiento_es_de_grupo(&movimiento_id)
+        .map_err(|mensaje| ErrorValidacionDTO {
+            campo: "movimiento_id".to_string(),
+            mensaje,
+        })?
+    {
+        return Err(ErrorValidacionDTO {
+            campo: "movimiento_id".to_string(),
+            mensaje: "Los gastos de grupo no se pueden corregir desde el libro.".to_string(),
+        });
+    }
+
     let monto_correcto =
         Decimal::from_str(&datos.monto_correcto).map_err(|_| ErrorValidacionDTO {
             campo: "monto_correcto".to_string(),

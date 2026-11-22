@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS partes_grupo_pendientes (
     grupo_id TEXT NOT NULL,
     gasto_id TEXT NOT NULL,
     concepto TEXT NOT NULL,
-    fecha TEXT NOT NOT NULL,
+    fecha TEXT NOT NULL,
     moneda TEXT NOT NULL,
     monto_parte TEXT NOT NULL,
     incluye_redondeo INTEGER NOT NULL CHECK (incluye_redondeo IN (0, 1)),
@@ -39,6 +39,33 @@ CREATE TABLE IF NOT EXISTS cola_gastos_grupo (
     motivo TEXT,
     orden INTEGER NOT NULL,
     creado_en TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS movimiento_grupo (
+    movimiento_id TEXT PRIMARY KEY,
+    id_evento TEXT NOT NULL UNIQUE,
+    grupo_id TEXT NOT NULL,
+    gasto_id TEXT NOT NULL,
+    concepto_grupo TEXT NOT NULL,
+    moneda TEXT NOT NULL,
+    FOREIGN KEY (movimiento_id) REFERENCES movimiento(id)
+);
+
+ALTER TABLE cuenta ADD COLUMN activa INTEGER NOT NULL DEFAULT 1
+    CHECK (activa IN (0, 1));
+
+INSERT OR IGNORE INTO categoria (
+    id,
+    nombre,
+    tipo,
+    padre_id,
+    archivada
+) VALUES (
+    '00000000-0000-4000-8000-000000000001',
+    'Gastos de grupo',
+    'Gasto',
+    NULL,
+    0
 );
 
 CREATE INDEX IF NOT EXISTS idx_eventos_grupo_posicion
