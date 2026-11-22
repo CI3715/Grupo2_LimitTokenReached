@@ -68,11 +68,11 @@ CREATE INDEX idx_usuarios_email ON usuarios(email);
 - **No es ideal para SaaS masivo:** Si el proyecto escalara a miles de usuarios reales, se debería migrar a PostgreSQL. Sin embargo, para la entrega académica, SQLite es la elección más pragmática y eficiente.
 
 ## Verificación (QA / CI)
-- [ ] El servidor se conecta correctamente a la base de datos SQLite usando `DATABASE_URL`.
-- [ ] Las pruebas automatizadas verifican que `username` y `email` son únicos (el servidor responde 409 en duplicados).
-- [ ] Las pruebas automatizadas verifican que el hash de la contraseña no es recuperable.
-- [ ] El README explica cómo configurar `DATABASE_URL` y `JWT_SECRET`.
-- [ ] El archivo de base de datos `.db` y el archivo `.env` están en `.gitignore` y nunca se suben al repositorio.
+- [x] El servidor se conecta correctamente a la base de datos SQLite usando `DATABASE_URL`.
+- [x] Las pruebas automatizadas verifican que `username` y `email` son únicos (el servidor responde 409 en duplicados).
+- [x] Las pruebas automatizadas verifican que el hash de la contraseña no es recuperable.
+- [x] El README explica cómo configurar `DATABASE_URL` y `JWT_SECRET`.
+- [x] El archivo de base de datos `.db` y el archivo `.env` están en `.gitignore` y nunca se suben al repositorio.
 
 ## Referencias
 - Especificación Técnica Entrega 5: Sección 2.5 (Persistencia y Seguridad en el Servidor).
