@@ -4,12 +4,10 @@ use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::puertos::{
-    RepositorioCuentas, RepositorioSincronizacion,
-};
+use crate::puertos::EventoGrupoPreparado;
+use crate::puertos::{RepositorioCuentas, RepositorioSincronizacion};
 use contrato::EventoCambioDTO;
 use dominio::movimiento::{Movimiento, TipoMovimiento};
-use crate::puertos::EventoGrupoPreparado;
 
 pub enum ResultadoPreparacion {
     YaAplicado,
@@ -21,9 +19,7 @@ pub enum ResultadoPreparacion {
     },
 }
 
-pub fn evento_preparado(
-    evento: &EventoCambioDTO,
-) -> EventoGrupoPreparado {
+pub fn evento_preparado(evento: &EventoCambioDTO) -> EventoGrupoPreparado {
     EventoGrupoPreparado {
         id_evento: evento.id_evento.clone(),
         grupo_id: evento.grupo_id.clone(),
@@ -54,21 +50,17 @@ pub fn preparar_evento(
     };
 
     let cuenta = repo_cuentas.obtener_cuenta_por_id(&seleccion.cuenta_id)?;
-    if !cuenta.activa
-        || cuenta.moneda_codigo != evento.moneda
-        || seleccion.moneda != evento.moneda
+    if !cuenta.activa || cuenta.moneda_codigo != evento.moneda || seleccion.moneda != evento.moneda
     {
         return Ok(ResultadoPreparacion::Pendiente(evento_preparado));
     }
 
     let monto = Decimal::from_str(&evento.monto_parte)
         .map_err(|_| "La parte del gasto no es un monto válido.".to_string())?;
-    let fecha = NaiveDate::parse_from_str(
-        evento.fecha.get(..10).unwrap_or(&evento.fecha),
-        "%Y-%m-%d",
-    )
-    .map_err(|_| "La fecha del gasto no es válida.".to_string())?;
-    let categoria_id = Uuid::parse_str("00000000-0000-4000-8000-000000000001")
+    let fecha =
+        NaiveDate::parse_from_str(evento.fecha.get(..10).unwrap_or(&evento.fecha), "%Y-%m-%d")
+            .map_err(|_| "La fecha del gasto no es válida.".to_string())?;
+    let categoria_id = Uuid::parse_str("00000000-0000-0000-0000-000000000007")
         .map_err(|_| "La categoría de gastos de grupo no es válida.".to_string())?;
 
     let movimiento = Movimiento {
@@ -92,4 +84,3 @@ pub fn preparar_evento(
         efecto_saldo: -monto,
     })
 }
-

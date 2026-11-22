@@ -17,10 +17,7 @@ impl RepositorioColaGastosSqlite {
 }
 
 impl RepositorioColaGastos for RepositorioColaGastosSqlite {
-    fn guardar_pendiente(
-        &self,
-        operacion: &OperacionGastoOfflineDTO,
-    ) -> Result<(), String> {
+    fn guardar_pendiente(&self, operacion: &OperacionGastoOfflineDTO) -> Result<(), String> {
         let conn = self.conexion.lock().map_err(|error| error.to_string())?;
         let datos_json =
             serde_json::to_string(&operacion.datos).map_err(|error| error.to_string())?;
@@ -130,11 +127,7 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
         Ok(gastos)
     }
 
-    fn marcar_rechazada(
-        &self,
-        idempotency_key: &str,
-        motivo: &str,
-    ) -> Result<(), String> {
+    fn marcar_rechazada(&self, idempotency_key: &str, motivo: &str) -> Result<(), String> {
         let conn = self.conexion.lock().map_err(|error| error.to_string())?;
         conn.execute(
             "UPDATE cola_gastos_grupo

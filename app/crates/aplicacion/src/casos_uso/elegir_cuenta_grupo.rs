@@ -1,10 +1,10 @@
 use crate::puertos::{
-    AplicacionGastoPlan, LoteSincronizacionPlan, RepositorioCuentas,
-    RepositorioMovimientos, RepositorioSincronizacion,
+    AplicacionGastoPlan, LoteSincronizacionPlan, RepositorioCuentas, RepositorioMovimientos,
+    RepositorioSincronizacion,
 };
 use contrato::CuentaGrupoSeleccionDTO;
 
-use super::aplicar_eventos_grupo::{preparar_evento, ResultadoPreparacion};
+use super::aplicar_eventos_grupo::{ResultadoPreparacion, preparar_evento};
 
 pub fn ejecutar(
     seleccion: CuentaGrupoSeleccionDTO,
@@ -44,13 +44,12 @@ pub fn ejecutar(
             posicion_cursor: parte.posicion_cursor,
         };
 
-        match preparar_evento(
-            &evento,
-            None,
-            repo_sincronizacion,
-            repo_cuentas,
-        )? {
-            ResultadoPreparacion::Aplicar { movimiento, evento, efecto_saldo } => {
+        match preparar_evento(&evento, None, repo_sincronizacion, repo_cuentas)? {
+            ResultadoPreparacion::Aplicar {
+                movimiento,
+                evento,
+                efecto_saldo,
+            } => {
                 movimientos.push(AplicacionGastoPlan {
                     movimiento,
                     evento,
@@ -75,9 +74,7 @@ pub fn ejecutar(
         aplicadas += 1;
     }
 
-    for parte in repo_movimientos
-        .listar_partes_grupo_pendientes_por_grupo(&seleccion.grupo_id)?
-    {
+    for parte in repo_movimientos.listar_partes_grupo_pendientes_por_grupo(&seleccion.grupo_id)? {
         if repo_sincronizacion.evento_ya_aplicado(&parte.id_evento)? {
             repo_movimientos.eliminar_parte_grupo_pendiente(&parte.id_evento)?;
         }

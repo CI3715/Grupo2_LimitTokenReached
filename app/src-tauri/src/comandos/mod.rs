@@ -9,5 +9,5 @@ pub mod preferencias;
 pub mod previsualizacion;
 pub mod sesion;
 pub mod social;
-pub mod tasas;
 pub mod sync;
+pub mod tasas;

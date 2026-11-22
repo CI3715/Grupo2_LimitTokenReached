@@ -186,11 +186,7 @@ pub async fn registrar_gasto(
                 moneda,
                 datos,
             };
-            repo_cola
-                .inner()
-                .as_ref()
-                .guardar_pendiente(&operacion)
-                .map_err(|mensaje| mensaje)?;
+            repo_cola.inner().as_ref().guardar_pendiente(&operacion)?;
             Err("Gasto guardado pendiente de envío.".to_string())
         }
         Err(error) => Err(mensaje_error(&app, error)),

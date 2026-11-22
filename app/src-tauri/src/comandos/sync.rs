@@ -1,10 +1,9 @@
 use aplicacion::puertos::{
-    ClienteSocial, RepositorioColaGastos, RepositorioCuentas,
-    RepositorioMovimientos, RepositorioSincronizacion,
+    ClienteSocial, RepositorioColaGastos, RepositorioCuentas, RepositorioMovimientos,
+    RepositorioSincronizacion,
 };
 use contrato::{
-    CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, GastoColaDTO,
-    ParteGrupoPendienteDTO,
+    CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, GastoColaDTO, ParteGrupoPendienteDTO,
 };
 use tauri::{AppHandle, State};
 
@@ -35,14 +34,14 @@ pub async fn sincronizar_grupos(
     )
     .await;
 
-    if let Err(error) = &resultado_cola {
-        if error.status == Some(401) {
-            let _ = repo_sincronizacion
-                .inner()
-                .as_ref()
-                .guardar_sesion_vencida(true);
-            return Err(manejar_error(&app, error.clone()));
-        }
+    if let Err(error) = &resultado_cola
+        && error.status == Some(401)
+    {
+        let _ = repo_sincronizacion
+            .inner()
+            .as_ref()
+            .guardar_sesion_vencida(true);
+        return Err(manejar_error(&app, error.clone()));
     }
     resultado_cola.map_err(|error| manejar_error(&app, error))?;
 

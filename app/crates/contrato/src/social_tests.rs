@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use super::{
-    DetalleGrupoDTO, GastoCreadoDTO, GastoDTO, MiembroGrupoDTO, ParteGastoDTO,
-};
+use super::{DetalleGrupoDTO, GastoCreadoDTO, GastoDTO, MiembroGrupoDTO, ParteGastoDTO};
 
 #[test]
 fn gasto_creado_conserva_montos_y_marca_de_residuo() {

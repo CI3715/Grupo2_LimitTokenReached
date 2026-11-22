@@ -1,18 +1,17 @@
-use crate::puertos::{
-    ClienteSocial, RepositorioColaGastos,
-};
+use crate::puertos::{ClienteSocial, RepositorioColaGastos};
 
 pub async fn ejecutar(
     cliente: &dyn ClienteSocial,
     token: String,
     repo_cola: &dyn RepositorioColaGastos,
 ) -> Result<(), crate::puertos::ErrorOperacion> {
-    let operaciones = repo_cola
-        .listar_en_orden()
-        .map_err(|mensaje| crate::puertos::ErrorOperacion {
-            status: None,
-            mensaje,
-        })?;
+    let operaciones =
+        repo_cola
+            .listar_en_orden()
+            .map_err(|mensaje| crate::puertos::ErrorOperacion {
+                status: None,
+                mensaje,
+            })?;
 
     for operacion in operaciones {
         match cliente

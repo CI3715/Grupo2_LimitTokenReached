@@ -4,16 +4,16 @@ use serde::{Deserialize, Serialize};
 /// cumple con idempotencia y sincronización sin duplicados
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EventoCambioDTO {
-    pub id_evento: String,             // identificador único e inmutable (INV-13)
-    pub tipo: String,                  // ej. "GastoDeGrupoRegistrado"
+    pub id_evento: String, // identificador único e inmutable (INV-13)
+    pub tipo: String,      // ej. "GastoDeGrupoRegistrado"
     pub grupo_id: String,
     pub gasto_id: String,
     pub concepto: String,
-    pub fecha: String,                 // formato ISO 8601
+    pub fecha: String, // formato ISO 8601
     pub moneda: String,
-    pub monto_parte: String,           // INV-03: string para precisión decimal exacta
-    pub incluye_redondeo: bool,        // marca de céntimos de residuo 
-    pub posicion_cursor: u64,          // cursor creciente para paginación
+    pub monto_parte: String, // INV-03: string para precisión decimal exacta
+    pub incluye_redondeo: bool, // marca de céntimos de residuo
+    pub posicion_cursor: u64, // cursor creciente para paginación
 }
 
 /// respuesta del endpoint GET /cambios
@@ -27,12 +27,13 @@ pub struct RespuestaCambiosDTO {
 /// query params para GET /cambios
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ObtenerCambiosRequest {
-    pub desde: Option<u64>,            // cursor a partir del cual obtener eventos
+    pub desde: Option<u64>, // cursor a partir del cual obtener eventos
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct ParteGrupoPendienteDTO {     // representa una parte que llegó sin cuenta elegida.
+pub struct ParteGrupoPendienteDTO {
+    // representa una parte que llegó sin cuenta elegida.
     pub id_evento: String,
     pub grupo_id: String,
     pub gasto_id: String,
@@ -46,7 +47,8 @@ pub struct ParteGrupoPendienteDTO {     // representa una parte que llegó sin c
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct CuentaGrupoSeleccionDTO {    // epresenta la selección local del usuario.
+pub struct CuentaGrupoSeleccionDTO {
+    // epresenta la selección local del usuario.
     pub grupo_id: String,
     pub cuenta_id: String,
     pub moneda: String,
@@ -54,7 +56,8 @@ pub struct CuentaGrupoSeleccionDTO {    // epresenta la selección local del usu
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct EstadoSincronizacionDTO {    // permite mostrar cursor, última sincronización y vencimiento de sesión.
+pub struct EstadoSincronizacionDTO {
+    // permite mostrar cursor, última sincronización y vencimiento de sesión.
     pub cursor: u64,
     pub ultima_sincronizacion: Option<String>,
     pub sesion_vencida: bool,

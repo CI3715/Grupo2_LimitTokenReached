@@ -1,15 +1,15 @@
 pub mod comandos;
 
 use aplicacion::puertos::{
-    ClienteSocial, Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas,
-    RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
-    RepositorioSincronizacion, RepositorioColaGastos,
+    ClienteSocial, Reloj, RepositorioCategorias, RepositorioColaGastos, RepositorioCuentas,
+    RepositorioMonedas, RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias,
+    RepositorioSincronizacion, RepositorioTasas,
 };
 use infraestructura::{
-    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite,
-    RepositorioMonedasSqlite, RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite,
-    RepositorioPreferenciasSqlite, RepositorioTasasSqlite,
-    RepositorioSincronizacionSqlite, RepositorioColaGastosSqlite, bd,
+    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioColaGastosSqlite,
+    RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
+    RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite, RepositorioSincronizacionSqlite,
+    RepositorioTasasSqlite, bd,
 };
 use tauri::Manager;
 

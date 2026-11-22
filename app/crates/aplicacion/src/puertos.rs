@@ -138,24 +138,14 @@ pub trait ClienteSocial: Send + Sync {
         datos: contrato::RegistrarGastoRequestDTO,
         idempotency_key: String,
         token: String,
-    ) -> Pin<
-        Box<
-            dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>>
-                + Send
-                + '_,
-        >,
-    >;
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>> + Send + '_>>;
 
     fn obtener_cambios(
         &self,
         desde: u64,
         token: String,
     ) -> Pin<
-        Box<
-            dyn Future<Output = Result<contrato::RespuestaCambiosDTO, ErrorOperacion>>
-                + Send
-                + '_,
-        >,
+        Box<dyn Future<Output = Result<contrato::RespuestaCambiosDTO, ErrorOperacion>> + Send + '_>,
     >;
 }
 
@@ -225,7 +215,6 @@ pub trait RepositorioMovimientos: Send + Sync {
     fn obtener_categorias(&self) -> Result<Vec<Categoria>, String>;
 }
 
-
 pub trait RepositorioSincronizacion: Send + Sync {
     fn obtener_cursor(&self) -> Result<u64, String>;
     fn guardar_cursor(&self, cursor: u64) -> Result<(), String>;
@@ -234,11 +223,7 @@ pub trait RepositorioSincronizacion: Send + Sync {
     fn guardar_ultima_sincronizacion(&self, fecha: &str) -> Result<(), String>;
 
     fn evento_ya_aplicado(&self, id_evento: &str) -> Result<bool, String>;
-    fn guardar_evento_aplicado(
-        &self,
-        id_evento: &str,
-        movimiento_id: &str,
-    ) -> Result<(), String>;
+    fn guardar_evento_aplicado(&self, id_evento: &str, movimiento_id: &str) -> Result<(), String>;
 
     fn obtener_cuenta_grupo(
         &self,
@@ -269,11 +254,7 @@ pub trait RepositorioColaGastos: Send + Sync {
 
     fn listar_estados_en_orden(&self) -> Result<Vec<contrato::GastoColaDTO>, String>;
 
-    fn marcar_rechazada(
-        &self,
-        idempotency_key: &str,
-        motivo: &str,
-    ) -> Result<(), String>;
+    fn marcar_rechazada(&self, idempotency_key: &str, motivo: &str) -> Result<(), String>;
 
     fn eliminar(&self, idempotency_key: &str) -> Result<(), String>;
 }

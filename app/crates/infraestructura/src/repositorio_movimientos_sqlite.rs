@@ -518,15 +518,15 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                         }
                     };
                     let marcador_grupo: Option<(String, String)> = conn
-                    .query_row(
-                        "SELECT grupo_id, gasto_id
+                        .query_row(
+                            "SELECT grupo_id, gasto_id
                          FROM movimiento_grupo
                          WHERE movimiento_id = ?1",
-                        params![id],
-                        |row| Ok((row.get(0)?, row.get(1)?)),
-                    )
-                    .optional()
-                    .map_err(|e| e.to_string())?;
+                            params![id],
+                            |row| Ok((row.get(0)?, row.get(1)?)),
+                        )
+                        .optional()
+                        .map_err(|e| e.to_string())?;
 
                     Ok(MovimientoDTO {
                         id: id.clone(),
@@ -595,7 +595,9 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 })
             })
             .map_err(|e| e.to_string())?;
-        filas.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+        filas
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
     }
 
     fn listar_partes_grupo_pendientes_por_grupo(

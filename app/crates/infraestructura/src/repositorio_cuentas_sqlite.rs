@@ -74,7 +74,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
         Ok(CuentaDTO {
             id: id_generado,
             nombre: req.nombre.trim().to_string(),
-            tipo: req.tipo.clone(),
+            tipo: req.tipo,
             moneda_codigo: req.moneda_codigo.clone(),
             saldo: req.saldo_inicial.clone(),
             creada_en: Utc::now().to_rfc3339(),

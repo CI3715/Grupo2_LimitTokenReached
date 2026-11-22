@@ -131,7 +131,10 @@ fn dividir_por_porcentajes(
             .collect::<Vec<_>>(),
     )?;
 
-    if porcentajes.iter().any(|(_, porcentaje)| *porcentaje < Decimal::ZERO) {
+    if porcentajes
+        .iter()
+        .any(|(_, porcentaje)| *porcentaje < Decimal::ZERO)
+    {
         return Err("Los porcentajes no pueden ser negativos".to_string());
     }
 

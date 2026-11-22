@@ -1,8 +1,8 @@
-use std::sync::Mutex;
 use aplicacion::puertos::RepositorioSincronizacion;
 use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
 use serde_json::json;
+use std::sync::Mutex;
 
 pub struct RepositorioSincronizacionSqlite {
     conexion: Mutex<Connection>,
@@ -14,7 +14,6 @@ impl RepositorioSincronizacionSqlite {
             conexion: Mutex::new(conexion),
         }
     }
-
 }
 
 impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
@@ -29,7 +28,11 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
             .optional()
             .map_err(|error| error.to_string())?;
         valor
-            .map(|cursor| cursor.parse().map_err(|error| format!("Cursor invalido: {error}")))
+            .map(|cursor| {
+                cursor
+                    .parse()
+                    .map_err(|error| format!("Cursor invalido: {error}"))
+            })
             .transpose()
             .map(|cursor| cursor.unwrap_or(0))
     }
@@ -82,11 +85,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
         Ok(existente.is_some())
     }
 
-    fn guardar_evento_aplicado(
-        &self,
-        id_evento: &str,
-        movimiento_id: &str,
-    ) -> Result<(), String> {
+    fn guardar_evento_aplicado(&self, id_evento: &str, movimiento_id: &str) -> Result<(), String> {
         let conn = self.conexion.lock().map_err(|error| error.to_string())?;
         conn.execute(
             "INSERT INTO eventos_grupo_aplicados
@@ -247,7 +246,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 .map_err(|error| format!("Saldo invalido: {error}"))?;
             tx.execute(
                 "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-                params![(&saldo_actual + efecto_saldo).to_string(), cuenta_id],
+                params![(saldo_actual + efecto_saldo).to_string(), cuenta_id],
             )
             .map_err(|error| format!("No se pudo actualizar el saldo: {error}"))?;
 

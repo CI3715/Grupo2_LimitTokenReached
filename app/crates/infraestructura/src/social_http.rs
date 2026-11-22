@@ -275,9 +275,8 @@ impl ClienteSocialHttp {
             .map_err(|_| SocialError::red())?;
 
         deserializar(respuesta).await
-        }
+    }
 
-        
     pub async fn obtener_cambios(
         &self,
         desde: u64,
@@ -509,48 +508,33 @@ impl ClienteSocial for ClienteSocialHttp {
     }
 
     fn registrar_gasto(
-    &self,
-    grupo_id: String,
-    datos: contrato::RegistrarGastoRequestDTO,
-    idempotency_key: String,
-    token: String,
-) -> Pin<
-    Box<
-        dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>>
-            + Send
-            + '_,
-    >,
-> {
-    Box::pin(async move {
-        ClienteSocialHttp::registrar_gasto(
-            self,
-            &grupo_id,
-            &datos,
-            &idempotency_key,
-            &token,
-        )
-        .await
-        .map_err(Into::into)
-    })
-}
+        &self,
+        grupo_id: String,
+        datos: contrato::RegistrarGastoRequestDTO,
+        idempotency_key: String,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>> + Send + '_>>
+    {
+        Box::pin(async move {
+            ClienteSocialHttp::registrar_gasto(self, &grupo_id, &datos, &idempotency_key, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
 
     fn obtener_cambios(
-    &self,
-    desde: u64,
-    token: String,
-) -> Pin<
-    Box<
-        dyn Future<Output = Result<contrato::RespuestaCambiosDTO, ErrorOperacion>>
-            + Send
-            + '_,
-    >,
-> {
-    Box::pin(async move {
-        ClienteSocialHttp::obtener_cambios(self, desde, &token)
-            .await
-            .map_err(Into::into)
-    })
-}
+        &self,
+        desde: u64,
+        token: String,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<contrato::RespuestaCambiosDTO, ErrorOperacion>> + Send + '_>,
+    > {
+        Box::pin(async move {
+            ClienteSocialHttp::obtener_cambios(self, desde, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
 
     fn obtener_detalle_grupo(
         &self,

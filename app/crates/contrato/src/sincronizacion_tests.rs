@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::sincronizacion::{EventoCambioDTO, RespuestaCambiosDTO, ObtenerCambiosRequest};
+    use crate::sincronizacion::{EventoCambioDTO, ObtenerCambiosRequest, RespuestaCambiosDTO};
 
     #[test]
     fn dto_evento_cambio_mantiene_precision_decimal() {
@@ -13,9 +13,9 @@ mod tests {
             fecha: "2026-11-17T10:00:00Z".to_string(),
             moneda: "USD".to_string(),
             // aqui se fuerza que el monto sea string para cumplir estrictamente el inv-03
-            // si usara f64 o f32, el dinero perderia precision por errores de punto flotante 
+            // si usara f64 o f32, el dinero perderia precision por errores de punto flotante
             // y la suma de los balances del grupo no daria exactamente cero
-            monto_parte: "33.34".to_string(), 
+            monto_parte: "33.34".to_string(),
             incluye_redondeo: true,
             posicion_cursor: 1,
         };
@@ -34,7 +34,7 @@ mod tests {
         };
 
         // valido la logica de paginacion
-        // se quieren lotes de maximo 100 eventos para no saturar la red ni la memoria del 
+        // se quieren lotes de maximo 100 eventos para no saturar la red ni la memoria del
         // dispositivo movil durante la sincronizacion en segundo plano
         assert_eq!(respuesta.nuevo_cursor, 100);
         assert!(respuesta.hay_mas);
@@ -43,10 +43,13 @@ mod tests {
     #[test]
     fn request_cambios_permite_cursor_nulo() {
         let req = ObtenerCambiosRequest { desde: None };
-        
-        // si el cursor es none, el backend debe interpretar que es la primera 
-        // sincronizacion del usuario o que se perdió el estado local, por lo que 
+
+        // si el cursor es none, el backend debe interpretar que es la primera
+        // sincronizacion del usuario o que se perdió el estado local, por lo que
         // debe devolver todos los eventos disponibles desde el principio (cursor 0)
-        assert!(req.desde.is_none(), "el cursor inicial puede ser nulo para sincronizacion completa");
+        assert!(
+            req.desde.is_none(),
+            "el cursor inicial puede ser nulo para sincronizacion completa"
+        );
     }
 }

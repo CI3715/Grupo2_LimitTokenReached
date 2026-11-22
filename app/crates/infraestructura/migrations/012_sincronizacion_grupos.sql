@@ -55,20 +55,6 @@ CREATE TABLE IF NOT EXISTS movimiento_grupo (
 ALTER TABLE cuenta ADD COLUMN activa INTEGER NOT NULL DEFAULT 1
     CHECK (activa IN (0, 1));
 
-INSERT OR IGNORE INTO categoria (
-    id,
-    nombre,
-    tipo,
-    padre_id,
-    archivada
-) VALUES (
-    '00000000-0000-4000-8000-000000000001',
-    'Gastos de grupo',
-    'Gasto',
-    NULL,
-    0
-);
-
 CREATE INDEX IF NOT EXISTS idx_eventos_grupo_posicion
     ON partes_grupo_pendientes(posicion_cursor);
 

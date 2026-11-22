@@ -1,17 +1,12 @@
-use aplicacion::puertos::{
-    RepositorioColaGastos, RepositorioSincronizacion,
-};
+use aplicacion::puertos::{RepositorioColaGastos, RepositorioSincronizacion};
 use contrato::{
-    CuentaGrupoSeleccionDTO, EventoCambioDTO, OperacionGastoOfflineDTO,
-    RegistrarGastoRequestDTO,
+    CuentaGrupoSeleccionDTO, EventoCambioDTO, OperacionGastoOfflineDTO, RegistrarGastoRequestDTO,
 };
-use rust_decimal::Decimal;
+use infraestructura::{RepositorioColaGastosSqlite, RepositorioSincronizacionSqlite, bd};
 use rusqlite::Connection;
+use rust_decimal::Decimal;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use infraestructura::{
-    RepositorioColaGastosSqlite, RepositorioSincronizacionSqlite, bd,
-};
 
 fn conexion_migrada(ruta: &std::path::Path) -> Connection {
     let mut conn = Connection::open(ruta).unwrap();
@@ -156,9 +151,7 @@ impl aplicacion::puertos::RepositorioCuentas for RepositorioCuentasPrueba {
         Err("No implementado".to_string())
     }
 
-    fn obtener_cuentas(
-        &self,
-    ) -> Result<Vec<contrato::cuenta::CuentaDTO>, String> {
+    fn obtener_cuentas(&self) -> Result<Vec<contrato::cuenta::CuentaDTO>, String> {
         Ok(vec![contrato::cuenta::CuentaDTO {
             id: "00000000-0000-4000-8000-000000000010".to_string(),
             nombre: "Cuenta USD".to_string(),
@@ -170,10 +163,7 @@ impl aplicacion::puertos::RepositorioCuentas for RepositorioCuentasPrueba {
         }])
     }
 
-    fn obtener_cuenta_por_id(
-        &self,
-        id: &str,
-    ) -> Result<contrato::cuenta::CuentaDTO, String> {
+    fn obtener_cuenta_por_id(&self, id: &str) -> Result<contrato::cuenta::CuentaDTO, String> {
         self.obtener_cuentas()?
             .into_iter()
             .find(|cuenta| cuenta.id == id)
