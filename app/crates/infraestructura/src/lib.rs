@@ -14,11 +14,16 @@ pub mod repositorio_patrimonio_sqlite;
 pub mod repositorio_preferencias_sqlite;
 pub mod repositorio_tasas_sqlite;
 pub mod social_http;
+pub mod repositorio_cola_gastos_sqlite;
+pub mod repositorio_sincronizacion_sqlite;
 
 pub use autenticacion_http::{
     ClienteAutenticacionHttp, ErrorApi, InicioSesionHttp, RegistroUsuarioHttp, SesionHttp,
     UsuarioHttp,
 };
+
+pub use repositorio_cola_gastos_sqlite::RepositorioColaGastosSqlite;
+pub use repositorio_sincronizacion_sqlite::RepositorioSincronizacionSqlite;
 pub use repositorio_categorias_sqlite::RepositorioCategoriasSqlite;
 pub use repositorio_cuentas_sqlite::RepositorioCuentasSqlite;
 pub use repositorio_monedas_sqlite::RepositorioMonedasSqlite;
