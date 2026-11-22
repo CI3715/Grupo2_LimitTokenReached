@@ -18,6 +18,7 @@ RUTAS = (
     ("POST", "/grupos/{id}/miembros/yo/respuesta"),
     ("POST", "/grupos/{id}/gastos"),
     ("GET", "/grupos/{id}"),
+    ("GET", "/cambios"),
 )
 
 

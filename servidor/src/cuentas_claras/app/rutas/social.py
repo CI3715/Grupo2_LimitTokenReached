@@ -5,7 +5,7 @@ import json
 from typing import Annotated
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
