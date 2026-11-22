@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
 import hashlib
 import json
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from typing import Annotated
 from uuid import UUID, uuid4
 
@@ -11,6 +11,10 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from cuentas_claras.app.rutas.autenticacion import obtener_usuario_actual
+from cuentas_claras.contrato.sincronizacion import (
+    EventoCambioDTO,
+    RespuestaCambiosDTO,
+)
 from cuentas_claras.contrato.social import (
     CrearAmistadRequest,
     CrearGrupoRequest,
@@ -18,22 +22,17 @@ from cuentas_claras.contrato.social import (
     RegistrarGastoRequest,
     RespuestaRequest,
 )
-
-from cuentas_claras.contrato.sincronizacion import (
-    EventoCambioDTO,
-    RespuestaCambiosDTO,
-)
 from cuentas_claras.dominio.usuario import Usuario
 from cuentas_claras.infraestructura.base_datos import obtener_db
 from cuentas_claras.infraestructura.modelos_sociales import (
     AmistadDB,
-    GastoDB,
-    GrupoDB,
-    MiembroGrupoDB,
-    ParteGastoDB,
     CursorCambiosDB,
     EventoCambioDB,
+    GastoDB,
+    GrupoDB,
     IdempotenciaGastoDB,
+    MiembroGrupoDB,
+    ParteGastoDB,
 )
 from cuentas_claras.infraestructura.modelos_usuario import UsuarioDB
 

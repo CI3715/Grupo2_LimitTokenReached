@@ -2,8 +2,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import status
-from qa.entrega6.escenario import EscenarioSocial, USUARIO_IDS
-from sqlalchemy import select
+from qa.entrega6.escenario import USUARIO_IDS, EscenarioSocial
 
 from cuentas_claras.infraestructura.modelos_sociales import (
     CursorCambiosDB,
