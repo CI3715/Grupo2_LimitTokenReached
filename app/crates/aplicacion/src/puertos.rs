@@ -14,13 +14,26 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct AplicacionGastoPlan {
     pub movimiento: Movimiento,
-    pub evento: contrato::EventoCambioDTO,
+    pub evento: EventoGrupoPreparado,
     pub efecto_saldo: rust_decimal::Decimal,
 }
 
 #[derive(Debug, Clone)]
 pub struct PartePendientePlan {
-    pub evento: contrato::EventoCambioDTO,
+    pub evento: EventoGrupoPreparado,
+}
+
+#[derive(Debug, Clone)]
+pub struct EventoGrupoPreparado {
+    pub id_evento: String,
+    pub grupo_id: String,
+    pub gasto_id: String,
+    pub concepto: String,
+    pub fecha: String,
+    pub moneda: String,
+    pub monto_parte: String,
+    pub incluye_redondeo: bool,
+    pub posicion_cursor: u64,
 }
 
 #[derive(Debug, Clone)]

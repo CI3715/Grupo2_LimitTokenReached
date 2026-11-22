@@ -9,15 +9,32 @@ use crate::puertos::{
 };
 use contrato::EventoCambioDTO;
 use dominio::movimiento::{Movimiento, TipoMovimiento};
+use crate::puertos::EventoGrupoPreparado;
 
 pub enum ResultadoPreparacion {
     YaAplicado,
-    Pendiente(EventoCambioDTO),
+    Pendiente(EventoGrupoPreparado),
     Aplicar {
         movimiento: Movimiento,
-        evento: EventoCambioDTO,
+        evento: EventoGrupoPreparado,
         efecto_saldo: Decimal,
     },
+}
+
+pub fn evento_preparado(
+    evento: &EventoCambioDTO,
+) -> EventoGrupoPreparado {
+    EventoGrupoPreparado {
+        id_evento: evento.id_evento.clone(),
+        grupo_id: evento.grupo_id.clone(),
+        gasto_id: evento.gasto_id.clone(),
+        concepto: evento.concepto.clone(),
+        fecha: evento.fecha.clone(),
+        moneda: evento.moneda.clone(),
+        monto_parte: evento.monto_parte.clone(),
+        incluye_redondeo: evento.incluye_redondeo,
+        posicion_cursor: evento.posicion_cursor,
+    }
 }
 
 pub fn preparar_evento(
@@ -29,10 +46,11 @@ pub fn preparar_evento(
     if repo_sincronizacion.evento_ya_aplicado(&evento.id_evento)? {
         return Ok(ResultadoPreparacion::YaAplicado);
     }
+    let evento_preparado = evento_preparado(evento);
 
     let seleccion = repo_sincronizacion.obtener_cuenta_grupo(&evento.grupo_id)?;
     let Some(seleccion) = seleccion else {
-        return Ok(ResultadoPreparacion::Pendiente(evento.clone()));
+        return Ok(ResultadoPreparacion::Pendiente(evento_preparado));
     };
 
     let cuenta = repo_cuentas.obtener_cuenta_por_id(&seleccion.cuenta_id)?;
@@ -40,7 +58,7 @@ pub fn preparar_evento(
         || cuenta.moneda_codigo != evento.moneda
         || seleccion.moneda != evento.moneda
     {
-        return Ok(ResultadoPreparacion::Pendiente(evento.clone()));
+        return Ok(ResultadoPreparacion::Pendiente(evento_preparado));
     }
 
     let monto = Decimal::from_str(&evento.monto_parte)
@@ -70,7 +88,7 @@ pub fn preparar_evento(
 
     Ok(ResultadoPreparacion::Aplicar {
         movimiento,
-        evento: evento.clone(),
+        evento: evento_preparado,
         efecto_saldo: -monto,
     })
 }
