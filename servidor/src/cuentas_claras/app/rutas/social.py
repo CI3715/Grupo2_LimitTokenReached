@@ -591,18 +591,18 @@ def responder_invitacion_grupo(
     response_model=RespuestaCambiosDTO,
 )
 def obtener_cambios(
+    actor: Annotated[
+        Usuario,
+        Depends(obtener_usuario_actual),
+    ],
+    db: Annotated[
+        Session,
+        Depends(obtener_db),
+    ],
     desde: Annotated[
         int,
         Query(ge=0),
     ] = 0,
-    actor: Annotated[
-        Usuario,
-        Depends(obtener_usuario_actual),
-    ] = ...,
-    db: Annotated[
-        Session,
-        Depends(obtener_db),
-    ] = ...,
 ) -> RespuestaCambiosDTO:
     eventos = db.scalars(
         select(EventoCambioDB)
