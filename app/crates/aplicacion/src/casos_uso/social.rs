@@ -99,9 +99,10 @@ pub async fn registrar_gasto(
     cliente: &dyn ClienteSocial,
     grupo_id: String,
     datos: RegistrarGastoRequestDTO,
+    idempotency_key: Option<String>,
     token: String,
 ) -> Result<GastoCreadoDTO, crate::puertos::ErrorOperacion> {
-    let idempotency_key = uuid::Uuid::new_v4().to_string();
+    let idempotency_key = idempotency_key.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     cliente
         .registrar_gasto(grupo_id, datos, idempotency_key, token)
         .await
