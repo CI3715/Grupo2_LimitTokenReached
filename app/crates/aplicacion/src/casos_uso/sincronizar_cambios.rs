@@ -54,8 +54,12 @@ pub async fn ejecutar(
                 ResultadoPreparacion::Pendiente(evento) => {
                     pendientes.push(PartePendientePlan { evento });
                 }
-                ResultadoPreparacion::Aplicar { movimiento, evento } => {
-                    movimientos.push(AplicacionGastoPlan { movimiento, evento });
+                ResultadoPreparacion::Aplicar { movimiento, evento, efecto_saldo } => {
+                    movimientos.push(AplicacionGastoPlan {
+                        movimiento,
+                        evento,
+                        efecto_saldo,
+                    });
                 }
             }
         }

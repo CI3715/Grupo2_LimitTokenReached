@@ -16,6 +16,7 @@ pub enum ResultadoPreparacion {
     Aplicar {
         movimiento: Movimiento,
         evento: EventoCambioDTO,
+        efecto_saldo: Decimal,
     },
 }
 
@@ -70,6 +71,7 @@ pub fn preparar_evento(
     Ok(ResultadoPreparacion::Aplicar {
         movimiento,
         evento: evento.clone(),
+        efecto_saldo: -monto,
     })
 }
 

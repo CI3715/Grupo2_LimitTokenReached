@@ -219,6 +219,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
             let concepto_movimiento = movimiento.nota.clone();
             let fecha = movimiento.fecha.to_string();
             let monto = movimiento.monto;
+            let efecto_saldo = aplicacion.efecto_saldo;
 
             tx.execute(
                 "INSERT INTO movimiento
@@ -246,7 +247,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 .map_err(|error| format!("Saldo invalido: {error}"))?;
             tx.execute(
                 "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-                params![(&saldo_actual - monto).to_string(), cuenta_id],
+                params![(&saldo_actual + efecto_saldo).to_string(), cuenta_id],
             )
             .map_err(|error| format!("No se pudo actualizar el saldo: {error}"))?;
 

@@ -15,6 +15,7 @@ use uuid::Uuid;
 pub struct AplicacionGastoPlan {
     pub movimiento: Movimiento,
     pub evento: contrato::EventoCambioDTO,
+    pub efecto_saldo: rust_decimal::Decimal,
 }
 
 #[derive(Debug, Clone)]

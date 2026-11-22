@@ -50,8 +50,12 @@ pub fn ejecutar(
             repo_sincronizacion,
             repo_cuentas,
         )? {
-            ResultadoPreparacion::Aplicar { movimiento, evento } => {
-                movimientos.push(AplicacionGastoPlan { movimiento, evento });
+            ResultadoPreparacion::Aplicar { movimiento, evento, efecto_saldo } => {
+                movimientos.push(AplicacionGastoPlan {
+                    movimiento,
+                    evento,
+                    efecto_saldo,
+                });
             }
             ResultadoPreparacion::YaAplicado | ResultadoPreparacion::Pendiente(_) => {}
         }
