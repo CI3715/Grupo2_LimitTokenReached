@@ -21,8 +21,16 @@ pub async fn ejecutar(
         let lote = cliente.obtener_cambios(cursor, token.clone()).await?;
 
         for evento in &lote.eventos {
+            let nombre_grupo = match cliente
+                .obtener_detalle_grupo(evento.grupo_id.clone(), token.clone())
+                .await
+            {
+                Ok(detalle) => Some(detalle.nombre),
+                Err(_) => None,
+            };
             aplicar_eventos_grupo::aplicar_evento(
                 evento,
+                nombre_grupo.as_deref(),
                 repo_sincronizacion,
                 repo_movimientos,
                 repo_cuentas,

@@ -45,6 +45,7 @@ pub fn ejecutar(
 
         if aplicar_eventos_grupo::aplicar_evento(
             &evento,
+            None,
             repo_sincronizacion,
             repo_movimientos,
             repo_cuentas,

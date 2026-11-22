@@ -29,23 +29,50 @@ pub async fn sincronizar_grupos(
 ) -> Result<u64, String> {
     let token = obtener_token(&app)?;
 
-    aplicacion::casos_uso::procesar_cola_gastos::ejecutar(
+    let resultado_cola = aplicacion::casos_uso::procesar_cola_gastos::ejecutar(
         cliente.inner().as_ref(),
         token.clone(),
         repo_cola.inner().as_ref(),
     )
-    .await
-    .map_err(|error| manejar_error(&app, error))?;
+    .await;
 
-    aplicacion::casos_uso::sincronizar_cambios::ejecutar(
+    if let Err(error) = &resultado_cola {
+        if error.status == Some(401) {
+            let _ = repo_sincronizacion
+                .inner()
+                .as_ref()
+                .guardar_sesion_vencida(true);
+            return Err(manejar_error(&app, error.clone()));
+        }
+    }
+    resultado_cola.map_err(|error| manejar_error(&app, error))?;
+
+    let resultado_cambios = aplicacion::casos_uso::sincronizar_cambios::ejecutar(
         cliente.inner().as_ref(),
         token,
         repo_sincronizacion.inner().as_ref(),
         repo_movimientos.inner().as_ref(),
         repo_cuentas.inner().as_ref(),
     )
-    .await
-    .map_err(|error| manejar_error(&app, error))
+    .await;
+
+    match resultado_cambios {
+        Ok(cursor) => {
+            let _ = repo_sincronizacion
+                .inner()
+                .as_ref()
+                .guardar_sesion_vencida(false);
+            Ok(cursor)
+        }
+        Err(error) if error.status == Some(401) => {
+            let _ = repo_sincronizacion
+                .inner()
+                .as_ref()
+                .guardar_sesion_vencida(true);
+            Err(manejar_error(&app, error))
+        }
+        Err(error) => Err(manejar_error(&app, error)),
+    }
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -92,6 +119,9 @@ pub async fn estado_sincronizacion(
             .inner()
             .as_ref()
             .obtener_ultima_sincronizacion()?,
-        sesion_vencida: false,
+        sesion_vencida: repo_sincronizacion
+            .inner()
+            .as_ref()
+            .obtener_sesion_vencida()?,
     })
 }

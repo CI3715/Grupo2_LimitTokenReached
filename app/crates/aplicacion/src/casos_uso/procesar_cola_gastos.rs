@@ -33,7 +33,7 @@ pub async fn ejecutar(
                     })?;
             }
             Err(error) => {
-                if matches!(error.status, Some(400 | 409)) {
+                if matches!(error.status, Some(400 | 403 | 404 | 409)) {
                     repo_cola
                         .marcar_rechazada(&operacion.idempotency_key, &error.mensaje)
                         .map_err(|mensaje| crate::puertos::ErrorOperacion {

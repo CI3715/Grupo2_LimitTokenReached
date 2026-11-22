@@ -12,6 +12,7 @@ use dominio::movimiento::{Movimiento, TipoMovimiento};
 
 pub fn aplicar_evento(
     evento: &EventoCambioDTO,
+    nombre_grupo: Option<&str>,
     repo_sincronizacion: &dyn RepositorioSincronizacion,
     repo_movimientos: &dyn RepositorioMovimientos,
     repo_cuentas: &dyn RepositorioCuentas,
@@ -56,7 +57,11 @@ pub fn aplicar_evento(
         monto,
         fecha,
         categoria_id,
-        nota: Some(format!("{} · {}", evento.grupo_id, evento.concepto)),
+        nota: Some(format!(
+            "{} · {}",
+            nombre_grupo.unwrap_or(&evento.grupo_id),
+            evento.concepto
+        )),
     };
 
     repo_movimientos.guardar_aplicacion_gasto_grupo(&movimiento, evento)?;

@@ -226,6 +226,9 @@ pub trait RepositorioSincronizacion: Send + Sync {
         &self,
         seleccion: &contrato::CuentaGrupoSeleccionDTO,
     ) -> Result<(), String>;
+
+    fn obtener_sesion_vencida(&self) -> Result<bool, String>;
+    fn guardar_sesion_vencida(&self, vencida: bool) -> Result<(), String>;
 }
 
 pub trait RepositorioColaGastos: Send + Sync {

@@ -138,4 +138,30 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
         .map_err(|error| error.to_string())?;
         Ok(())
     }
+
+    fn obtener_sesion_vencida(&self) -> Result<bool, String> {
+        let conn = self.conexion.lock().map_err(|error| error.to_string())?;
+        let valor: Option<String> = conn
+            .query_row(
+                "SELECT valor FROM sincronizacion_grupo_meta
+                 WHERE clave = 'sesion_vencida'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|error| error.to_string())?;
+        Ok(valor.as_deref() == Some("true"))
+    }
+
+    fn guardar_sesion_vencida(&self, vencida: bool) -> Result<(), String> {
+        let conn = self.conexion.lock().map_err(|error| error.to_string())?;
+        conn.execute(
+            "INSERT INTO sincronizacion_grupo_meta (clave, valor)
+             VALUES ('sesion_vencida', ?1)
+             ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor",
+            params![if vencida { "true" } else { "false" }],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(())
+    }
 }
