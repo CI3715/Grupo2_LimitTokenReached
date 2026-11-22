@@ -48,11 +48,11 @@ Saldo = Saldo Inicial + Σ(Ingresos) − Σ(Gastos) ± Σ(Ajustes)
 - Requiere pruebas exhaustivas que reproduzcan el ejemplo de la sección 2.2.
 
 ## Verificación (QA / CI)
-- [ ] Las pruebas automatizadas validan INV-05: el saldo calculado coincide con `inicial + ingresos − gastos ± ajustes`.
-- [ ] Las pruebas automatizadas validan INV-03: ningún cálculo usa `f32` o `f64`.
-- [ ] El ejemplo de la sección 2.2 (saldo final 1.750,00 USD) se reproduce exitosamente en las pruebas unitarias.
-- [ ] Las pruebas detectan discrepancias entre el saldo precalculado y la suma de eventos (RF-LIB-09).
-- [ ] El README explica cómo ejecutar estas pruebas con el repositorio en memoria.
+- [x] Las pruebas automatizadas validan INV-05: el saldo calculado coincide con `inicial + ingresos − gastos ± ajustes`.
+- [x] Las pruebas automatizadas validan INV-03: ningún cálculo usa `f32` o `f64`.
+- [x] El ejemplo de la sección 2.2 (saldo final 1.750,00 USD) se reproduce exitosamente en las pruebas unitarias.
+- [x] Las pruebas detectan discrepancias entre el saldo precalculado y la suma de eventos (RF-LIB-09).
+- [x] El README explica cómo ejecutar estas pruebas con el repositorio en memoria.
 
 ## Referencias
 - Especificación Técnica Entrega 3: Secciones 2.1 (Reglas de validación), 2.2 (Corregir un Movimiento) y 2.3 (Saldo y Detalle de la Cuenta).

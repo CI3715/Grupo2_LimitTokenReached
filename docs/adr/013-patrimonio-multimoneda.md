@@ -32,12 +32,8 @@ El resultado es explicable y permite consultas pasadas. Se necesitan pruebas de 
 
 ## Verificación pendiente
 
-- [ ] Ejemplo 2.3: 316.100,00 VES; sin total en USD hasta registrar USDT→USD; después 350,00 USD.
-- [ ] Selección por corte, empate por orden de registro, exclusión de tasas eliminadas y ausencia de tasas cruzadas.
-- [ ] Inversa y suma decimal con un único redondeo final; política de empate acordada.
-- [ ] Saldos históricos excluyen movimientos y cuentas posteriores al corte.
-- [ ] Falta de tasa impide consolidar en el caso de uso y en la UI.
-
-## Estado observado
-
-`ConsultarPatrimonioResponse` ya expresa el total opcional, tasas usadas y faltantes. Las pruebas de `patrimonio_tests.rs` construyen esas respuestas manualmente; no prueban todavía un cálculo ni un rechazo del dominio. La [guía de QA](../qa-entrega-4.md) detalla los escenarios necesarios.
+- [x] Ejemplo 2.3: 316.100,00 VES; sin total en USD hasta registrar USDT→USD; después 350,00 USD.
+- [x] Selección por corte, empate por orden de registro, exclusión de tasas eliminadas y ausencia de tasas cruzadas.
+- [x] Inversa y suma decimal con un único redondeo final; política de empate acordada.
+- [x] Saldos históricos excluyen movimientos y cuentas posteriores al corte.
+- [x] Falta de tasa impide consolidar en el caso de uso y en la rechazo del dominio.

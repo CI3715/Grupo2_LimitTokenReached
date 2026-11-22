@@ -49,11 +49,11 @@ Cada evento tendrá un identificador único (UUID). El DTO `MovimientoDTO` inclu
 - La UI debe manejar la visualización de movimientos corregidos y sus ajustes.
 
 ## Verificación (QA / CI)
-- [ ] No existe código en el crate `infraestructura` que ejecute `UPDATE` o `DELETE` sobre la tabla de eventos.
-- [ ] Las pruebas automatizadas validan INV-04: un intento de "editar" un movimiento genera un nuevo evento `MovimientoCorregido`.
-- [ ] Las pruebas automatizadas validan INV-13: aplicar dos veces el mismo evento deja el estado inalterado.
-- [ ] El ejemplo de la sección 2.2 (saldo final 1.750,00 USD) se reproduce en las pruebas unitarias.
-- [ ] El README explica cómo ejecutar estas pruebas con el repositorio en memoria.
+- [x] No existe código en el crate `infraestructura` que ejecute `UPDATE` o `DELETE` sobre la tabla de eventos.
+- [x] Las pruebas automatizadas validan INV-04: un intento de "editar" un movimiento genera un nuevo evento `MovimientoCorregido`.
+- [x] Las pruebas automatizadas validan INV-13: aplicar dos veces el mismo evento deja el estado inalterado.
+- [x] El ejemplo de la sección 2.2 (saldo final 1.750,00 USD) se reproduce en las pruebas unitarias.
+- [x] El README explica cómo ejecutar estas pruebas con el repositorio en memoria.
 
 ## Referencias
 - Especificación Técnica Entrega 3: Secciones 2.2 (Corregir un Movimiento) y 2.4 (Almacenamiento Local).
