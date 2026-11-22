@@ -6,6 +6,13 @@ use contrato::CuentaGrupoSeleccionDTO;
 
 use super::aplicar_eventos_grupo::{ResultadoPreparacion, preparar_evento};
 
+pub fn obtener_cuenta_grupo(
+    grupo_id: &str,
+    repo_sincronizacion: &dyn RepositorioSincronizacion,
+) -> Result<Option<CuentaGrupoSeleccionDTO>, String> {
+    repo_sincronizacion.obtener_cuenta_grupo(grupo_id)
+}
+
 pub fn ejecutar(
     seleccion: CuentaGrupoSeleccionDTO,
     moneda_grupo: &str,
