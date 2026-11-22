@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+import hashlib
+import json
 from typing import Annotated
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
@@ -23,6 +26,9 @@ from cuentas_claras.infraestructura.modelos_sociales import (
     GrupoDB,
     MiembroGrupoDB,
     ParteGastoDB,
+    CursorCambiosDB,
+    EventoCambioDB,
+    IdempotenciaGastoDB,
 )
 from cuentas_claras.infraestructura.modelos_usuario import UsuarioDB
 
@@ -32,6 +38,39 @@ NO_ES_MIEMBRO = "Grupo no encontrado."
 
 def _error(codigo: int, mensaje: str) -> HTTPException:
     return HTTPException(status_code=codigo, detail=mensaje)
+
+def _validar_clave_idempotencia(clave: str) -> str:
+    try:
+        UUID(clave)
+    except ValueError:
+        raise _error(
+            status.HTTP_400_BAD_REQUEST,
+            "Idempotency-Key debe ser un UUID válido.",
+        ) from None
+    return clave
+
+
+def _huella_gasto(grupo_id: str, usuario_id: str, datos: RegistrarGastoRequest) -> str:
+    contenido = {
+        "grupo": grupo_id,
+        "usuario": usuario_id,
+        "concepto": datos.concepto.strip(),
+        "monto": datos.monto,
+        "fecha": datos.fecha.isoformat(),
+        "pagador": datos.pagador,
+        "regla": datos.regla,
+        "participantes": sorted(datos.participantes),
+        "valores": dict(sorted(datos.valores.items())),
+    }
+    serializado = json.dumps(
+        contenido,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(serializado.encode("utf-8")).hexdigest()
+
+
 
 
 def _usuario_por_nombre(db: Session, nombre: str) -> UsuarioDB:
@@ -61,6 +100,28 @@ def _a_monto(centimos: int) -> str:
     absoluto = abs(centimos)
     return f"{signo}{absoluto // 100}.{absoluto % 100:02d}"
 
+
+def _respuesta_gasto(db: Session, gasto: GastoDB) -> dict[str, object]:
+    filas = db.scalars(
+        select(ParteGastoDB)
+        .where(ParteGastoDB.gasto_id == gasto.id)
+        .order_by(ParteGastoDB.usuario_id)
+    ).all()
+
+    partes: list[dict[str, object]] = []
+    for parte in filas:
+        usuario = db.get(UsuarioDB, parte.usuario_id)
+        if usuario is not None:
+            partes.append(
+                {
+                    "usuario": usuario.nombre_usuario,
+                    "monto": _a_monto(parte.monto_centimos),
+                    "residuo": parte.recibio_residuo,
+                }
+            )
+
+    partes.sort(key=lambda parte: str(parte["usuario"]))
+    return {"id": gasto.id, "partes": partes}
 
 def _maximo_dos_decimales(numero: Decimal) -> bool:
     exponente = numero.as_tuple().exponent
@@ -505,14 +566,51 @@ def responder_invitacion_grupo(
     return {"id": grupo.id, "estado": invitacion.estado}
 
 
-@router.post("/grupos/{id}/gastos", status_code=status.HTTP_201_CREATED)
+@router.post("/grupos/{id}/gastos")
 def registrar_gasto(
     id: str,
     datos: RegistrarGastoRequest,
     actor: Annotated[Usuario, Depends(obtener_usuario_actual)],
     db: Annotated[Session, Depends(obtener_db)],
-) -> dict[str, object]:
-    _grupo_miembro(db, id, actor.id)
+    idempotency_key: Annotated[
+        str | None,
+        Header(alias="Idempotency-Key"),
+    ] = None,
+) -> JSONResponse:
+    if idempotency_key is None:
+        raise _error(
+            status.HTTP_400_BAD_REQUEST,
+            "El encabezado Idempotency-Key es obligatorio.",
+        )
+
+    clave = _validar_clave_idempotencia(idempotency_key.strip())
+    huella = _huella_gasto(id, actor.id, datos)
+
+    idempotencia = db.get(IdempotenciaGastoDB, clave)
+    if idempotencia is not None:
+        if (
+            idempotencia.usuario_id != actor.id
+            or idempotencia.grupo_id != id
+            or idempotencia.huella_datos != huella
+        ):
+            raise _error(
+                status.HTTP_409_CONFLICT,
+                "La clave de idempotencia ya fue usada con datos distintos.",
+            )
+
+        gasto_existente = db.get(GastoDB, idempotencia.gasto_id)
+        if gasto_existente is None:
+            raise _error(
+                status.HTTP_409_CONFLICT,
+                "La operación idempotente no tiene un gasto asociado.",
+            )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=_respuesta_gasto(db, gasto_existente),
+        )
+
+    grupo = _grupo_miembro(db, id, actor.id)
     miembros = db.scalars(
         select(UsuarioDB)
         .join(MiembroGrupoDB, MiembroGrupoDB.usuario_id == UsuarioDB.id)
@@ -577,6 +675,33 @@ def registrar_gasto(
                 recibio_residuo=recibio_residuo,
             )
         )
+
+        cursor = db.get(CursorCambiosDB, participante.id)
+        if cursor is None:
+            cursor = CursorCambiosDB(
+                usuario_id=participante.id,
+                posicion=0,
+            )
+            db.add(cursor)
+
+        cursor.posicion += 1
+        db.add(
+            EventoCambioDB(
+                id=str(uuid4()),
+                usuario_id=participante.id,
+                posicion=cursor.posicion,
+                grupo_id=grupo.id,
+                gasto_id=gasto.id,
+                tipo="GastoDeGrupoRegistrado",
+                concepto=concepto,
+                fecha=gasto.fecha,
+                moneda=grupo.moneda,
+                monto_centimos=monto_parte,
+                incluye_redondeo=recibio_residuo,
+                creado_en=datetime.now(timezone.utc),
+            )
+        )
+
         partes.append(
             {
                 "usuario": nombre_por_id[participante.id],
@@ -584,9 +709,23 @@ def registrar_gasto(
                 "residuo": recibio_residuo,
             }
         )
+
+    db.add(
+        IdempotenciaGastoDB(
+            clave=clave,
+            usuario_id=actor.id,
+            grupo_id=id,
+            gasto_id=gasto.id,
+            huella_datos=huella,
+            creada_en=datetime.now(timezone.utc),
+        )
+    )
     db.commit()
     partes.sort(key=lambda parte: str(parte["usuario"]))
-    return {"id": gasto.id, "partes": partes}
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content={"id": gasto.id, "partes": partes},
+    )
 
 
 @router.get("/grupos/{id}")
