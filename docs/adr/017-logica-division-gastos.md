@@ -58,11 +58,11 @@ El servidor FastAPI consume esta lógica (o la reimplementa en Python con `Decim
 - Las pruebas basadas en propiedades son más lentas que las unitarias (mitigación: `proptest` está configurado para ejecutar 100-256 combinaciones por prueba, no millones).
 
 ## Verificación (QA / CI)
-- [x] Las pruebas unitarias reproducen exactamente los ejemplos de las secciones 2.4 y 2.5 de la especificación.
-- [x] Las pruebas basadas en propiedades verifican INV-07 para montos aleatorios (0.01 a 99,999.99) y 1-20 participantes.
-- [x] Las pruebas basadas en propiedades verifican INV-08 para múltiples gastos aleatorios.
-- [x] El CI ejecuta `cargo test -p division` en cada push.
-- [x] El README explica cómo ejecutar las pruebas y cómo reproducir los ejemplos de la especificación.
+- [ ] Las pruebas unitarias reproducen exactamente los ejemplos de las secciones 2.4 y 2.5 de la especificación.
+- [ ] Las pruebas basadas en propiedades verifican INV-07 para montos aleatorios (0.01 a 99,999.99) y 1-20 participantes.
+- [ ] Las pruebas basadas en propiedades verifican INV-08 para múltiples gastos aleatorios.
+- [ ] El CI ejecuta `cargo test -p division` en cada push.
+- [ ] El README explica cómo ejecutar las pruebas y cómo reproducir los ejemplos de la especificación.
 
 ## Referencias
 - Especificación Técnica Entrega 6: Secciones 2.4 (Suma Exacta y Residuo del Redondeo) y 2.5 (Balance del Grupo).
