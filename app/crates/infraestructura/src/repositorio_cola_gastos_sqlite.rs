@@ -34,12 +34,13 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
 
         conn.execute(
             "INSERT INTO cola_gastos_grupo
-             (idempotency_key, grupo_id, datos_json, estado, motivo, orden, creado_en)
-             VALUES (?1, ?2, ?3, 'pendiente', NULL, ?4, CURRENT_TIMESTAMP)
+             (idempotency_key, grupo_id, moneda, datos_json, estado, motivo, orden, creado_en)
+             VALUES (?1, ?2, ?3, ?4, 'pendiente', NULL, ?5, CURRENT_TIMESTAMP)
              ON CONFLICT(idempotency_key) DO NOTHING",
             params![
                 operacion.idempotency_key,
                 operacion.grupo_id,
+                operacion.moneda,
                 datos_json,
                 siguiente_orden,
             ],
@@ -52,7 +53,7 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
         let conn = self.conexion.lock().map_err(|error| error.to_string())?;
         let mut statement = conn
             .prepare(
-                "SELECT idempotency_key, grupo_id, datos_json
+                "SELECT idempotency_key, grupo_id, moneda, datos_json
                  FROM cola_gastos_grupo
                  WHERE estado = 'pendiente'
                  ORDER BY orden ASC",
@@ -65,18 +66,20 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
                 ))
             })
             .map_err(|error| error.to_string())?;
 
         let mut operaciones = Vec::new();
         for fila in filas {
-            let (idempotency_key, grupo_id, datos_json) =
+            let (idempotency_key, grupo_id, moneda, datos_json) =
                 fila.map_err(|error| error.to_string())?;
             let datos = serde_json::from_str(&datos_json).map_err(|error| error.to_string())?;
             operaciones.push(OperacionGastoOfflineDTO {
                 idempotency_key,
                 grupo_id,
+                moneda,
                 datos,
             });
         }
@@ -87,7 +90,7 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
         let conn = self.conexion.lock().map_err(|error| error.to_string())?;
         let mut statement = conn
             .prepare(
-                "SELECT idempotency_key, grupo_id, datos_json, estado, motivo, orden
+                "SELECT idempotency_key, grupo_id, moneda, datos_json, estado, motivo, orden
                  FROM cola_gastos_grupo
                  ORDER BY orden ASC",
             )
@@ -100,15 +103,16 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
                     row.get::<_, String>(3)?,
-                    row.get::<_, Option<String>>(4)?,
-                    row.get::<_, i64>(5)?,
+                    row.get::<_, String>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, i64>(6)?,
                 ))
             })
             .map_err(|error| error.to_string())?;
 
         let mut gastos = Vec::new();
         for fila in filas {
-            let (key, grupo, datos_json, estado, motivo, orden) =
+            let (key, grupo, moneda, datos_json, estado, motivo, orden) =
                 fila.map_err(|error| error.to_string())?;
             let datos: contrato::RegistrarGastoRequestDTO =
                 serde_json::from_str(&datos_json).map_err(|error| error.to_string())?;
@@ -117,7 +121,7 @@ impl RepositorioColaGastos for RepositorioColaGastosSqlite {
                 grupo_id: grupo,
                 concepto: datos.concepto,
                 monto: datos.monto,
-                moneda: String::new(),
+                moneda,
                 estado,
                 motivo,
                 orden: orden as u64,

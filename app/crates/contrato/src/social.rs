@@ -112,6 +112,7 @@ pub struct RegistrarGastoRequestDTO {
 pub struct OperacionGastoOfflineDTO {
     pub idempotency_key: String,
     pub grupo_id: String,
+    pub moneda: String,
     pub datos: RegistrarGastoRequestDTO,
 }
 

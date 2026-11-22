@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS partes_grupo_pendientes (
 CREATE TABLE IF NOT EXISTS cola_gastos_grupo (
     idempotency_key TEXT PRIMARY KEY,
     grupo_id TEXT NOT NULL,
+    moneda TEXT NOT NULL,
     datos_json TEXT NOT NULL CHECK (json_valid(datos_json)),
     estado TEXT NOT NULL CHECK (estado IN ('pendiente', 'rechazado')),
     motivo TEXT,

@@ -159,6 +159,15 @@ pub async fn registrar_gasto(
 ) -> Result<GastoCreadoDTO, String> {
     let token = obtener_token(&app)?;
     let clave = uuid::Uuid::new_v4().to_string();
+    let moneda = match cliente
+        .inner()
+        .as_ref()
+        .obtener_detalle_grupo(grupo_id.clone(), token.clone())
+        .await
+    {
+        Ok(detalle) => detalle.moneda,
+        Err(_) => String::new(),
+    };
 
     match aplicacion::casos_uso::social::registrar_gasto(
         cliente.inner().as_ref(),
@@ -174,6 +183,7 @@ pub async fn registrar_gasto(
             let operacion = contrato::OperacionGastoOfflineDTO {
                 idempotency_key: clave,
                 grupo_id,
+                moneda,
                 datos,
             };
             repo_cola
