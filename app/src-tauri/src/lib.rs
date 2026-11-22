@@ -104,6 +104,7 @@ pub fn run() {
             comandos::social::obtener_detalle_grupo,
             comandos::sync::sincronizar_grupos,
             comandos::sync::elegir_cuenta_grupo,
+            comandos::sync::obtener_cuenta_grupo,
             comandos::sync::listar_partes_grupo_pendientes,
             comandos::sync::listar_cola_gastos_grupo,
             comandos::sync::estado_sincronizacion,

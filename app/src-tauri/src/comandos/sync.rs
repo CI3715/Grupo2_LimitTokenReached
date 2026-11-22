@@ -90,6 +90,17 @@ pub async fn elegir_cuenta_grupo(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn obtener_cuenta_grupo(
+    grupo_id: String,
+    repo_sincronizacion: State<'_, Box<dyn RepositorioSincronizacion>>,
+) -> Result<Option<CuentaGrupoSeleccionDTO>, String> {
+    aplicacion::casos_uso::elegir_cuenta_grupo::obtener_cuenta_grupo(
+        &grupo_id,
+        repo_sincronizacion.inner().as_ref(),
+    )
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn listar_partes_grupo_pendientes(
     repo_movimientos: State<'_, Box<dyn RepositorioMovimientos>>,
 ) -> Result<Vec<ParteGrupoPendienteDTO>, String> {
