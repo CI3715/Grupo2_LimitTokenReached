@@ -46,4 +46,7 @@ pub struct MovimientoDTO {
     pub nota: Option<String>,
     pub es_correccion: bool,
     pub movimiento_original_id: Option<String>, // None si es original, Some(id) si es ajuste
+    pub gasto_grupo: bool,
+    pub grupo_id: Option<String>,
+    pub grupo_gasto_id: Option<String>,
 }

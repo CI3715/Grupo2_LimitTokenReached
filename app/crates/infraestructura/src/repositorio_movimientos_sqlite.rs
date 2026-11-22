@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use chrono::NaiveDate;
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
 use serde_json::json;
 use std::collections::HashMap;
@@ -197,6 +197,9 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             nota: movimiento.nota.clone(),
             es_correccion: false,
             movimiento_original_id: None,
+            gasto_grupo: false,
+            grupo_id: None,
+            grupo_gasto_id: None,
         })
     }
 
@@ -287,6 +290,9 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             nota: None,
             es_correccion: true,
             movimiento_original_id: Some(ajuste.movimiento_original_id.to_string()),
+            gasto_grupo: false,
+            grupo_id: None,
+            grupo_gasto_id: None,
         })
     }
 
@@ -511,6 +517,16 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                             ));
                         }
                     };
+                    let marcador_grupo: Option<(String, String)> = conn
+                        .query_row(
+                            "SELECT grupo_id, gasto_id
+                         FROM movimiento_grupo
+                         WHERE movimiento_id = ?1",
+                            params![id],
+                            |row| Ok((row.get(0)?, row.get(1)?)),
+                        )
+                        .optional()
+                        .map_err(|e| e.to_string())?;
 
                     Ok(MovimientoDTO {
                         id: id.clone(),
@@ -530,9 +546,78 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                         nota,
                         es_correccion,
                         movimiento_original_id,
+                        gasto_grupo: marcador_grupo.is_some(),
+                        grupo_id: marcador_grupo.as_ref().map(|valor| valor.0.clone()),
+                        grupo_gasto_id: marcador_grupo.map(|valor| valor.1),
                     })
                 },
             )
             .collect()
+    }
+
+    fn movimiento_es_de_grupo(&self, movimiento_id: &Uuid) -> Result<bool, String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        let existe: Option<String> = conn
+            .query_row(
+                "SELECT movimiento_id FROM movimiento_grupo WHERE movimiento_id = ?1",
+                params![movimiento_id.to_string()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
+        Ok(existe.is_some())
+    }
+
+    fn listar_partes_grupo_pendientes(
+        &self,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id_evento, grupo_id, gasto_id, concepto, fecha, moneda,
+                        monto_parte, incluye_redondeo, posicion_cursor
+                 FROM partes_grupo_pendientes
+                 ORDER BY posicion_cursor ASC",
+            )
+            .map_err(|e| e.to_string())?;
+        let filas = stmt
+            .query_map([], |row| {
+                Ok(contrato::ParteGrupoPendienteDTO {
+                    id_evento: row.get(0)?,
+                    grupo_id: row.get(1)?,
+                    gasto_id: row.get(2)?,
+                    concepto: row.get(3)?,
+                    fecha: row.get(4)?,
+                    moneda: row.get(5)?,
+                    monto_parte: row.get(6)?,
+                    incluye_redondeo: row.get::<_, i64>(7)? != 0,
+                    posicion_cursor: row.get::<_, i64>(8)? as u64,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+        filas
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())
+    }
+
+    fn listar_partes_grupo_pendientes_por_grupo(
+        &self,
+        grupo_id: &str,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String> {
+        let todas = self.listar_partes_grupo_pendientes()?;
+        Ok(todas
+            .into_iter()
+            .filter(|parte| parte.grupo_id == grupo_id)
+            .collect())
+    }
+
+    fn eliminar_parte_grupo_pendiente(&self, id_evento: &str) -> Result<(), String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "DELETE FROM partes_grupo_pendientes WHERE id_evento = ?1",
+            params![id_evento],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
     }
 }

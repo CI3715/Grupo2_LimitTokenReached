@@ -91,3 +91,98 @@ class ParteGastoDB(Base):
     )
     monto_centimos: Mapped[int] = mapped_column(Integer, nullable=False)
     recibio_residuo: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+class CursorCambiosDB(Base):
+    __tablename__ = "cursores_cambios"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", name="uq_cursor_cambios_usuario"),
+    )
+
+    usuario_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("usuarios.id"),
+        primary_key=True,
+    )
+    posicion: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class EventoCambioDB(Base):
+    __tablename__ = "eventos_cambio"
+    __table_args__ = (
+        UniqueConstraint(
+            "usuario_id",
+            "posicion",
+            name="uq_evento_cambio_usuario_posicion",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    usuario_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("usuarios.id"),
+        nullable=False,
+        index=True,
+    )
+    posicion: Mapped[int] = mapped_column(Integer, nullable=False)
+    grupo_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("grupos.id"),
+        nullable=False,
+        index=True,
+    )
+    gasto_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("gastos.id"),
+        nullable=False,
+        index=True,
+    )
+    tipo: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="GastoDeGrupoRegistrado",
+    )
+    concepto: Mapped[str] = mapped_column(String(200), nullable=False)
+    fecha: Mapped[date] = mapped_column(Date, nullable=False)
+    moneda: Mapped[str] = mapped_column(String(3), nullable=False)
+    monto_centimos: Mapped[int] = mapped_column(Integer, nullable=False)
+    incluye_redondeo: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+
+class IdempotenciaGastoDB(Base):
+    __tablename__ = "idempotencia_gastos"
+    __table_args__ = (
+        UniqueConstraint(
+            "clave",
+            name="uq_idempotencia_gasto_clave",
+        ),
+    )
+
+    clave: Mapped[str] = mapped_column(String(36), primary_key=True)
+    usuario_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("usuarios.id"),
+        nullable=False,
+        index=True,
+    )
+    grupo_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("grupos.id"),
+        nullable=False,
+    )
+    gasto_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("gastos.id"),
+        nullable=False,
+    )
+    huella_datos: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+    creada_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )

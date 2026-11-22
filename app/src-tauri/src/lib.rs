@@ -1,13 +1,15 @@
 pub mod comandos;
 
 use aplicacion::puertos::{
-    ClienteSocial, Reloj, RepositorioCategorias, RepositorioCuentas, RepositorioMonedas,
-    RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias, RepositorioTasas,
+    ClienteSocial, Reloj, RepositorioCategorias, RepositorioColaGastos, RepositorioCuentas,
+    RepositorioMonedas, RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias,
+    RepositorioSincronizacion, RepositorioTasas,
 };
 use infraestructura::{
-    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioCuentasSqlite,
-    RepositorioMonedasSqlite, RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite,
-    RepositorioPreferenciasSqlite, RepositorioTasasSqlite, bd,
+    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioColaGastosSqlite,
+    RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
+    RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite, RepositorioSincronizacionSqlite,
+    RepositorioTasasSqlite, bd,
 };
 use tauri::Manager;
 
@@ -28,6 +30,8 @@ pub fn run() {
             let conn_tasas = bd::abrir(&ruta_db)?;
             let conn_patrimonio = bd::abrir(&ruta_db)?;
             let conn_preferencias = bd::abrir(&ruta_db)?;
+            let conn_sincronizacion = bd::abrir(&ruta_db)?;
+            let conn_cola = bd::abrir(&ruta_db)?;
 
             // Registrar repositorios
             let repo_cuentas_sqlite = RepositorioCuentasSqlite::new(conn_cuentas);
@@ -62,6 +66,14 @@ pub fn run() {
                 Box::new(RepositorioPreferenciasSqlite::new(conn_preferencias));
             app.manage(state_preferencias);
 
+            let state_sincronizacion: Box<dyn RepositorioSincronizacion> =
+                Box::new(RepositorioSincronizacionSqlite::new(conn_sincronizacion));
+            app.manage(state_sincronizacion);
+
+            let state_cola: Box<dyn RepositorioColaGastos> =
+                Box::new(RepositorioColaGastosSqlite::new(conn_cola));
+            app.manage(state_cola);
+
             let reloj: Box<dyn Reloj> = Box::new(RelojSistema);
             app.manage(reloj);
 
@@ -90,6 +102,11 @@ pub fn run() {
             comandos::social::responder_invitacion_grupo,
             comandos::social::registrar_gasto,
             comandos::social::obtener_detalle_grupo,
+            comandos::sync::sincronizar_grupos,
+            comandos::sync::elegir_cuenta_grupo,
+            comandos::sync::listar_partes_grupo_pendientes,
+            comandos::sync::listar_cola_gastos_grupo,
+            comandos::sync::estado_sincronizacion,
             comandos::cuentas::crear_cuenta,
             comandos::cuentas::listar_cuentas,
             comandos::moneda::listar_monedas,

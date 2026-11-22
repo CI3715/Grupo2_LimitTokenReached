@@ -6,9 +6,9 @@ pub mod error_validacion;
 pub mod moneda;
 pub mod movimiento;
 pub mod patrimonio;
+pub mod sincronizacion;
 pub mod social;
 pub mod tasa;
-pub mod sincronizacion;
 
 // Re-exportaciones para uso cómodo desde otros crates
 pub use autenticacion::{IniciarSesionRequest, RegistrarUsuarioRequest, SesionDTO, UsuarioDTO};
@@ -24,15 +24,19 @@ pub use patrimonio::{
     ConsultarPatrimonioRequest, ConsultarPatrimonioResponse, SaldoCuentaDTO, SubtotalMonedaDTO,
     TasaFaltanteDTO, TasaUsadaDTO,
 };
+pub use sincronizacion::{
+    CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, EventoCambioDTO, ObtenerCambiosRequest,
+    ParteGrupoPendienteDTO, RespuestaCambiosDTO,
+};
 pub use social::{
-    AmistadCreadaDTO, CrearAmistadRequestDTO, CrearGrupoRequestDTO, DetalleGrupoDTO,
+    AmistadCreadaDTO, CrearAmistadRequestDTO, CrearGrupoRequestDTO, DetalleGrupoDTO, GastoColaDTO,
     GastoCreadoDTO, GastoDTO, GrupoDTO, InvitacionAmistadDTO, InvitacionGrupoCreadaDTO,
     InvitarMiembroGrupoRequestDTO, ListaAmistadesDTO, ListaGruposDTO, MiembroGrupoDTO,
-    ParteGastoDTO, RegistrarGastoRequestDTO, ResponderInvitacionRequestDTO, RespuestaInvitacionDTO,
-    RespuestaInvitacionGrupoDTO, UsuarioResumenDTO,
+    OperacionGastoOfflineDTO, ParteGastoDTO, RegistrarGastoRequestDTO,
+    ResponderInvitacionRequestDTO, RespuestaInvitacionDTO, RespuestaInvitacionGrupoDTO,
+    UsuarioResumenDTO,
 };
 pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
-pub use sincronizacion::{EventoCambioDTO, ObtenerCambiosRequest, RespuestaCambiosDTO};
 
 // Módulos de pruebas
 #[cfg(test)]

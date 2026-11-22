@@ -7,6 +7,8 @@ use contrato::{
 };
 use reqwest::{Client, Response, StatusCode};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use std::future::Future;
+use std::pin::Pin;
 use thiserror::Error;
 
 #[derive(Debug, Deserialize)]
@@ -259,16 +261,36 @@ impl ClienteSocialHttp {
         &self,
         grupo_id: &str,
         datos: &RegistrarGastoRequestDTO,
+        idempotency_key: &str,
         token: &str,
     ) -> Result<GastoCreadoDTO, SocialError> {
         let respuesta = self
             .cliente
             .post(format!("{}/grupos/{}/gastos", self.base_url, grupo_id))
+            .header("Idempotency-Key", idempotency_key)
             .bearer_auth(token)
             .json(datos)
             .send()
             .await
             .map_err(|_| SocialError::red())?;
+
+        deserializar(respuesta).await
+    }
+
+    pub async fn obtener_cambios(
+        &self,
+        desde: u64,
+        token: &str,
+    ) -> Result<contrato::RespuestaCambiosDTO, SocialError> {
+        let respuesta = self
+            .cliente
+            .get(format!("{}/cambios", self.base_url))
+            .query(&[("desde", desde)])
+            .bearer_auth(token)
+            .send()
+            .await
+            .map_err(|_| SocialError::red())?;
+
         deserializar(respuesta).await
     }
 
@@ -488,13 +510,27 @@ impl ClienteSocial for ClienteSocialHttp {
     fn registrar_gasto(
         &self,
         grupo_id: String,
-        datos: RegistrarGastoRequestDTO,
+        datos: contrato::RegistrarGastoRequestDTO,
+        idempotency_key: String,
         token: String,
-    ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<GastoCreadoDTO, ErrorOperacion>> + Send + '_>,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>> + Send + '_>>
+    {
+        Box::pin(async move {
+            ClienteSocialHttp::registrar_gasto(self, &grupo_id, &datos, &idempotency_key, &token)
+                .await
+                .map_err(Into::into)
+        })
+    }
+
+    fn obtener_cambios(
+        &self,
+        desde: u64,
+        token: String,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<contrato::RespuestaCambiosDTO, ErrorOperacion>> + Send + '_>,
     > {
         Box::pin(async move {
-            ClienteSocialHttp::registrar_gasto(self, &grupo_id, &datos, &token)
+            ClienteSocialHttp::obtener_cambios(self, desde, &token)
                 .await
                 .map_err(Into::into)
         })

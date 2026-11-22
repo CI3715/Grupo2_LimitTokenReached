@@ -10,6 +10,7 @@ pub struct CuentaDTO {
     pub moneda_codigo: String, // "VES", "USD", etc.
     pub saldo: String,         // "1250.50" (string, no float)
     pub creada_en: String,     // ISO 8601: "2026-10-15T12:00:00Z"
+    pub activa: bool,
 }
 
 /// Tipos de cuenta permitidos

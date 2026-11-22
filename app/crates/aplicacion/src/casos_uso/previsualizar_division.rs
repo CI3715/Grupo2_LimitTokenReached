@@ -6,8 +6,7 @@ use division::{ReglaDivision, calcular_division};
 use rust_decimal::Decimal;
 
 fn decimal(valor: &str, campo: &str) -> Result<Decimal, String> {
-    Decimal::from_str(valor)
-        .map_err(|_| format!("El valor de {campo} debe ser un decimal válido."))
+    Decimal::from_str(valor).map_err(|_| format!("El valor de {campo} debe ser un decimal válido."))
 }
 
 fn validar_valores_extra(
@@ -20,7 +19,9 @@ fn validar_valores_extra(
         .map(String::as_str)
         .find(|usuario| !participantes.contains(usuario))
     {
-        return Err(format!("El usuario {usuario} no es participante del gasto."));
+        return Err(format!(
+            "El usuario {usuario} no es participante del gasto."
+        ));
     }
 
     Ok(())
@@ -55,7 +56,9 @@ fn construir_regla(datos: &RegistrarGastoRequestDTO) -> Result<ReglaDivision, St
                 .collect::<Result<Vec<_>, String>>()?;
 
             if datos.regla == "porcentajes" {
-                Ok(ReglaDivision::Porcentajes { porcentajes: valores })
+                Ok(ReglaDivision::Porcentajes {
+                    porcentajes: valores,
+                })
             } else {
                 Ok(ReglaDivision::MontosFijos { montos: valores })
             }
@@ -117,7 +120,9 @@ mod tests {
     #[test]
     fn vista_previa_rechaza_valor_de_participante_ausente() {
         let mut solicitud = datos("iguales");
-        solicitud.valores.insert("carla".to_string(), "50".to_string());
+        solicitud
+            .valores
+            .insert("carla".to_string(), "50".to_string());
 
         assert!(ejecutar(solicitud).is_err());
     }
@@ -133,7 +138,10 @@ mod tests {
         assert_eq!(resultado[0].monto, "0.03");
         assert_eq!(resultado[1].monto, "0.02");
         assert_eq!(
-            resultado.iter().map(|parte| parte.monto.parse::<Decimal>().unwrap()).sum::<Decimal>(),
+            resultado
+                .iter()
+                .map(|parte| parte.monto.parse::<Decimal>().unwrap())
+                .sum::<Decimal>(),
             Decimal::new(5, 2)
         );
     }
@@ -144,8 +152,14 @@ mod tests {
         valores(&mut solicitud, &[("ana", "0.03"), ("beto", "0.02")]);
 
         let resultado = ejecutar(solicitud).unwrap();
-        let ana = resultado.iter().find(|parte| parte.usuario == "ana").unwrap();
-        let beto = resultado.iter().find(|parte| parte.usuario == "beto").unwrap();
+        let ana = resultado
+            .iter()
+            .find(|parte| parte.usuario == "ana")
+            .unwrap();
+        let beto = resultado
+            .iter()
+            .find(|parte| parte.usuario == "beto")
+            .unwrap();
 
         assert_eq!(ana.monto, "0.03");
         assert_eq!(beto.monto, "0.02");

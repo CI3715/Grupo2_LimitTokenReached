@@ -155,11 +155,42 @@ pub async fn registrar_gasto(
     grupo_id: String,
     datos: RegistrarGastoRequestDTO,
     cliente: State<'_, Box<dyn ClienteSocial>>,
+    repo_cola: State<'_, Box<dyn aplicacion::puertos::RepositorioColaGastos>>,
 ) -> Result<GastoCreadoDTO, String> {
     let token = obtener_token(&app)?;
-    aplicacion::casos_uso::social::registrar_gasto(cliente.inner().as_ref(), grupo_id, datos, token)
+    let clave = uuid::Uuid::new_v4().to_string();
+    let moneda = match cliente
+        .inner()
+        .as_ref()
+        .obtener_detalle_grupo(grupo_id.clone(), token.clone())
         .await
-        .map_err(|error| mensaje_error(&app, error))
+    {
+        Ok(detalle) => detalle.moneda,
+        Err(_) => String::new(),
+    };
+
+    match aplicacion::casos_uso::social::registrar_gasto(
+        cliente.inner().as_ref(),
+        grupo_id.clone(),
+        datos.clone(),
+        Some(clave.clone()),
+        token,
+    )
+    .await
+    {
+        Ok(gasto) => Ok(gasto),
+        Err(error) if error.status.is_none() => {
+            let operacion = contrato::OperacionGastoOfflineDTO {
+                idempotency_key: clave,
+                grupo_id,
+                moneda,
+                datos,
+            };
+            repo_cola.inner().as_ref().guardar_pendiente(&operacion)?;
+            Err("Gasto guardado pendiente de envío.".to_string())
+        }
+        Err(error) => Err(mensaje_error(&app, error)),
+    }
 }
 
 #[tauri::command(rename_all = "snake_case")]

@@ -38,6 +38,7 @@ impl RepositorioEventos for RepositorioMemoria {
             moneda_codigo: request.moneda_codigo,
             saldo: request.saldo_inicial,
             creada_en: "2026-10-15T12:00:00Z".to_string(),
+            activa: true,
         };
 
         let mut cuentas = self.cuentas.lock().await;

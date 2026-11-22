@@ -109,6 +109,28 @@ pub struct RegistrarGastoRequestDTO {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
+pub struct OperacionGastoOfflineDTO {
+    pub idempotency_key: String,
+    pub grupo_id: String,
+    pub moneda: String,
+    pub datos: RegistrarGastoRequestDTO,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct GastoColaDTO {
+    pub idempotency_key: String,
+    pub grupo_id: String,
+    pub concepto: String,
+    pub monto: String,
+    pub moneda: String,
+    pub estado: String,
+    pub motivo: Option<String>,
+    pub orden: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ParteGastoDTO {
     pub usuario: String,
     pub monto: String,

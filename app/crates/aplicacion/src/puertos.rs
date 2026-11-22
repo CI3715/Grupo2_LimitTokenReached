@@ -11,6 +11,38 @@ use std::future::Future;
 use std::pin::Pin;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub struct AplicacionGastoPlan {
+    pub movimiento: Movimiento,
+    pub evento: EventoGrupoPreparado,
+    pub efecto_saldo: rust_decimal::Decimal,
+}
+
+#[derive(Debug, Clone)]
+pub struct PartePendientePlan {
+    pub evento: EventoGrupoPreparado,
+}
+
+#[derive(Debug, Clone)]
+pub struct EventoGrupoPreparado {
+    pub id_evento: String,
+    pub grupo_id: String,
+    pub gasto_id: String,
+    pub concepto: String,
+    pub fecha: String,
+    pub moneda: String,
+    pub monto_parte: String,
+    pub incluye_redondeo: bool,
+    pub posicion_cursor: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct LoteSincronizacionPlan {
+    pub nuevo_cursor: u64,
+    pub movimientos: Vec<AplicacionGastoPlan>,
+    pub pendientes: Vec<PartePendientePlan>,
+}
+
 pub trait Reloj: Send + Sync {
     fn ahora(&self) -> String;
 }
@@ -95,17 +127,26 @@ pub trait ClienteSocial: Send + Sync {
                 + '_,
         >,
     >;
-    fn registrar_gasto(
-        &self,
-        grupo_id: String,
-        datos: contrato::RegistrarGastoRequestDTO,
-        token: String,
-    ) -> Pin<Box<dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>> + Send + '_>>;
     fn obtener_detalle_grupo(
         &self,
         grupo_id: String,
         token: String,
     ) -> Pin<Box<dyn Future<Output = Result<contrato::DetalleGrupoDTO, ErrorOperacion>> + Send + '_>>;
+    fn registrar_gasto(
+        &self,
+        grupo_id: String,
+        datos: contrato::RegistrarGastoRequestDTO,
+        idempotency_key: String,
+        token: String,
+    ) -> Pin<Box<dyn Future<Output = Result<contrato::GastoCreadoDTO, ErrorOperacion>> + Send + '_>>;
+
+    fn obtener_cambios(
+        &self,
+        desde: u64,
+        token: String,
+    ) -> Pin<
+        Box<dyn Future<Output = Result<contrato::RespuestaCambiosDTO, ErrorOperacion>> + Send + '_>,
+    >;
 }
 
 pub trait RepositorioCuentas: Send + Sync {
@@ -153,6 +194,15 @@ pub trait RepositorioMovimientos: Send + Sync {
     fn guardar_movimiento(&self, movimiento: &Movimiento) -> Result<MovimientoDTO, String>;
     fn guardar_ajuste(&self, ajuste: &dominio::movimiento::Ajuste)
     -> Result<MovimientoDTO, String>;
+    fn movimiento_es_de_grupo(&self, movimiento_id: &Uuid) -> Result<bool, String>;
+    fn listar_partes_grupo_pendientes(
+        &self,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String>;
+    fn listar_partes_grupo_pendientes_por_grupo(
+        &self,
+        grupo_id: &str,
+    ) -> Result<Vec<contrato::ParteGrupoPendienteDTO>, String>;
+    fn eliminar_parte_grupo_pendiente(&self, id_evento: &str) -> Result<(), String>;
     fn obtener_movimiento_por_id(
         &self,
         id: &Uuid,
@@ -163,6 +213,50 @@ pub trait RepositorioMovimientos: Send + Sync {
     ) -> Result<Vec<dominio::movimiento::Ajuste>, String>;
     fn obtener_historial_de_cuenta(&self, cuenta_id: &Uuid) -> Result<Vec<MovimientoDTO>, String>;
     fn obtener_categorias(&self) -> Result<Vec<Categoria>, String>;
+}
+
+pub trait RepositorioSincronizacion: Send + Sync {
+    fn obtener_cursor(&self) -> Result<u64, String>;
+    fn guardar_cursor(&self, cursor: u64) -> Result<(), String>;
+
+    fn obtener_ultima_sincronizacion(&self) -> Result<Option<String>, String>;
+    fn guardar_ultima_sincronizacion(&self, fecha: &str) -> Result<(), String>;
+
+    fn evento_ya_aplicado(&self, id_evento: &str) -> Result<bool, String>;
+    fn guardar_evento_aplicado(&self, id_evento: &str, movimiento_id: &str) -> Result<(), String>;
+
+    fn obtener_cuenta_grupo(
+        &self,
+        grupo_id: &str,
+    ) -> Result<Option<contrato::CuentaGrupoSeleccionDTO>, String>;
+
+    fn guardar_cuenta_grupo(
+        &self,
+        seleccion: &contrato::CuentaGrupoSeleccionDTO,
+    ) -> Result<(), String>;
+
+    fn obtener_sesion_vencida(&self) -> Result<bool, String>;
+    fn guardar_sesion_vencida(&self, vencida: bool) -> Result<(), String>;
+
+    fn aplicar_lote_transaccional(
+        &self,
+        plan: &LoteSincronizacionPlan,
+    ) -> Result<Vec<String>, String>;
+}
+
+pub trait RepositorioColaGastos: Send + Sync {
+    fn guardar_pendiente(
+        &self,
+        operacion: &contrato::OperacionGastoOfflineDTO,
+    ) -> Result<(), String>;
+
+    fn listar_en_orden(&self) -> Result<Vec<contrato::OperacionGastoOfflineDTO>, String>;
+
+    fn listar_estados_en_orden(&self) -> Result<Vec<contrato::GastoColaDTO>, String>;
+
+    fn marcar_rechazada(&self, idempotency_key: &str, motivo: &str) -> Result<(), String>;
+
+    fn eliminar(&self, idempotency_key: &str) -> Result<(), String>;
 }
 // Adaptadores Fake
 
