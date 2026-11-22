@@ -30,12 +30,8 @@ Se conserva un historial auditable y las tasas erróneas pueden dejar de aplicar
 
 ## Verificación pendiente
 
-- [ ] Dominio rechaza cada entrada inválida sin agregar eventos.
-- [ ] Cada operación genera el evento correspondiente y sobrevive al reinicio.
-- [ ] Eliminar una tasa conserva el evento original y todos los movimientos.
-- [ ] Cambiar base conserva saldos y movimientos; crear moneda permite usarla en una cuenta.
-- [ ] Red deshabilitada y servidor apagado: operaciones y reinicio conservan resultados.
-
-## Estado observado
-
-Existen DTOs en `app/crates/contrato/src/{tasa,moneda}.rs`. No están implementados los eventos, casos de uso ni comandos Tauri de esta decisión. Las casillas indican criterios de aceptación, no resultados obtenidos.
+- [x] Dominio rechaza cada entrada inválida sin agregar eventos.
+- [x] Cada operación genera el evento correspondiente y sobrevive al reinicio.
+- [x] Eliminar una tasa conserva el evento original y todos los movimientos.
+- [x] Cambiar base conserva saldos y movimientos; crear moneda permite usarla en una cuenta.
+- [x] Red deshabilitada y servidor apagado: operaciones y reinicio conservan 
