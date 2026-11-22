@@ -1,9 +1,10 @@
 use crate::puertos::{
-    RepositorioCuentas, RepositorioMovimientos, RepositorioSincronizacion,
+    AplicacionGastoPlan, LoteSincronizacionPlan, RepositorioCuentas,
+    RepositorioMovimientos, RepositorioSincronizacion,
 };
 use contrato::CuentaGrupoSeleccionDTO;
 
-use super::aplicar_eventos_grupo;
+use super::aplicar_eventos_grupo::{preparar_evento, ResultadoPreparacion};
 
 pub fn ejecutar(
     seleccion: CuentaGrupoSeleccionDTO,
@@ -28,7 +29,7 @@ pub fn ejecutar(
     let pendientes =
         repo_movimientos.listar_partes_grupo_pendientes_por_grupo(&seleccion.grupo_id)?;
 
-    let mut aplicadas = 0;
+    let mut movimientos = Vec::new();
     for parte in pendientes {
         let evento = contrato::EventoCambioDTO {
             id_evento: parte.id_evento.clone(),
@@ -43,15 +44,38 @@ pub fn ejecutar(
             posicion_cursor: parte.posicion_cursor,
         };
 
-        if aplicar_eventos_grupo::aplicar_evento(
+        match preparar_evento(
             &evento,
             None,
             repo_sincronizacion,
-            repo_movimientos,
             repo_cuentas,
         )? {
-            repo_movimientos.eliminar_parte_grupo_pendiente(&evento.id_evento)?;
-            aplicadas += 1;
+            ResultadoPreparacion::Aplicar { movimiento, evento } => {
+                movimientos.push(AplicacionGastoPlan { movimiento, evento });
+            }
+            ResultadoPreparacion::YaAplicado | ResultadoPreparacion::Pendiente(_) => {}
+        }
+    }
+
+    let cursor = repo_sincronizacion.obtener_cursor()?;
+    let plan = LoteSincronizacionPlan {
+        nuevo_cursor: cursor,
+        movimientos,
+        pendientes: Vec::new(),
+    };
+    let aplicados = repo_sincronizacion.aplicar_lote_transaccional(&plan)?;
+
+    let mut aplicadas = 0;
+    for id_evento in aplicados {
+        repo_movimientos.eliminar_parte_grupo_pendiente(&id_evento)?;
+        aplicadas += 1;
+    }
+
+    for parte in repo_movimientos
+        .listar_partes_grupo_pendientes_por_grupo(&seleccion.grupo_id)?
+    {
+        if repo_sincronizacion.evento_ya_aplicado(&parte.id_evento)? {
+            repo_movimientos.eliminar_parte_grupo_pendiente(&parte.id_evento)?;
         }
     }
 

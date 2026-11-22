@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::puertos::{
-    RepositorioCuentas, RepositorioMovimientos, RepositorioSincronizacion,
+    RepositorioCuentas, RepositorioSincronizacion,
 };
 use contrato::EventoCambioDTO;
 use dominio::movimiento::{Movimiento, TipoMovimiento};
@@ -73,31 +73,3 @@ pub fn preparar_evento(
     })
 }
 
-pub fn aplicar_evento(
-    evento: &EventoCambioDTO,
-    nombre_grupo: Option<&str>,
-    repo_sincronizacion: &dyn RepositorioSincronizacion,
-    repo_movimientos: &dyn RepositorioMovimientos,
-    repo_cuentas: &dyn RepositorioCuentas,
-) -> Result<bool, String> {
-    match preparar_evento(
-        evento,
-        nombre_grupo,
-        repo_sincronizacion,
-        repo_cuentas,
-    )? {
-        ResultadoPreparacion::YaAplicado => Ok(false),
-        ResultadoPreparacion::Pendiente(evento) => {
-            repo_movimientos.guardar_parte_grupo_pendiente(&evento)?;
-            Ok(false)
-        }
-        ResultadoPreparacion::Aplicar { movimiento, evento } => {
-            repo_movimientos.guardar_aplicacion_gasto_grupo(&movimiento, &evento)?;
-            repo_sincronizacion.guardar_evento_aplicado(
-                &evento.id_evento,
-                &movimiento.id.to_string(),
-            )?;
-            Ok(true)
-        }
-    }
-}
