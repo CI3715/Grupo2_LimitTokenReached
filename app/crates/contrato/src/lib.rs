@@ -26,13 +26,17 @@ pub use patrimonio::{
 };
 pub use social::{
     AmistadCreadaDTO, CrearAmistadRequestDTO, CrearGrupoRequestDTO, DetalleGrupoDTO,
-    GastoCreadoDTO, GastoDTO, GrupoDTO, InvitacionAmistadDTO, InvitacionGrupoCreadaDTO,
-    InvitarMiembroGrupoRequestDTO, ListaAmistadesDTO, ListaGruposDTO, MiembroGrupoDTO,
-    ParteGastoDTO, RegistrarGastoRequestDTO, ResponderInvitacionRequestDTO, RespuestaInvitacionDTO,
-    RespuestaInvitacionGrupoDTO, UsuarioResumenDTO,
+    GastoColaDTO, GastoCreadoDTO, GastoDTO, GrupoDTO, InvitacionAmistadDTO,
+    InvitacionGrupoCreadaDTO, InvitarMiembroGrupoRequestDTO, ListaAmistadesDTO, ListaGruposDTO,
+    MiembroGrupoDTO, OperacionGastoOfflineDTO, ParteGastoDTO, RegistrarGastoRequestDTO,
+    ResponderInvitacionRequestDTO, RespuestaInvitacionDTO, RespuestaInvitacionGrupoDTO,
+    UsuarioResumenDTO,
 };
 pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
-pub use sincronizacion::{EventoCambioDTO, ObtenerCambiosRequest, RespuestaCambiosDTO};
+pub use sincronizacion::{
+    CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, EventoCambioDTO, ObtenerCambiosRequest,
+    ParteGrupoPendienteDTO, RespuestaCambiosDTO,
+};
 
 // Módulos de pruebas
 #[cfg(test)]

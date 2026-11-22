@@ -29,3 +29,33 @@ pub struct RespuestaCambiosDTO {
 pub struct ObtenerCambiosRequest {
     pub desde: Option<u64>,            // cursor a partir del cual obtener eventos
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ParteGrupoPendienteDTO {     // representa una parte que llegó sin cuenta elegida.
+    pub id_evento: String,
+    pub grupo_id: String,
+    pub gasto_id: String,
+    pub concepto: String,
+    pub fecha: String,
+    pub moneda: String,
+    pub monto_parte: String,
+    pub incluye_redondeo: bool,
+    pub posicion_cursor: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CuentaGrupoSeleccionDTO {    // epresenta la selección local del usuario.
+    pub grupo_id: String,
+    pub cuenta_id: String,
+    pub moneda: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct EstadoSincronizacionDTO {    // permite mostrar cursor, última sincronización y vencimiento de sesión.
+    pub cursor: u64,
+    pub ultima_sincronizacion: Option<String>,
+    pub sesion_vencida: bool,
+}
