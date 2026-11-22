@@ -18,6 +18,11 @@ from cuentas_claras.contrato.social import (
     RegistrarGastoRequest,
     RespuestaRequest,
 )
+
+from cuentas_claras.contrato.sincronizacion import (
+    EventoCambioDTO,
+    RespuestaCambiosDTO,
+)
 from cuentas_claras.dominio.usuario import Usuario
 from cuentas_claras.infraestructura.base_datos import obtener_db
 from cuentas_claras.infraestructura.modelos_sociales import (
@@ -72,6 +77,23 @@ def _huella_gasto(grupo_id: str, usuario_id: str, datos: RegistrarGastoRequest) 
 
 
 
+def _evento_cambio_dto(evento: EventoCambioDB) -> EventoCambioDTO:
+    return EventoCambioDTO(
+        id_evento=evento.id,
+        tipo=evento.tipo,
+        grupo_id=evento.grupo_id,
+        gasto_id=evento.gasto_id,
+        concepto=evento.concepto,
+        fecha=datetime.combine(
+            evento.fecha,
+            datetime.min.time(),
+            tzinfo=timezone.utc,
+        ),
+        moneda=evento.moneda,
+        monto_parte=Decimal(evento.monto_centimos).scaleb(-2),
+        incluye_redondeo=evento.incluye_redondeo,
+        posicion_cursor=evento.posicion,
+    )
 
 def _usuario_por_nombre(db: Session, nombre: str) -> UsuarioDB:
     usuario = db.scalar(select(UsuarioDB).where(UsuarioDB.nombre_usuario == nombre))
@@ -564,6 +586,50 @@ def responder_invitacion_grupo(
     invitacion.estado = "aceptada" if datos.aceptar else "rechazada"
     db.commit()
     return {"id": grupo.id, "estado": invitacion.estado}
+
+@router.get(
+    "/cambios",
+    response_model=RespuestaCambiosDTO,
+)
+def obtener_cambios(
+    desde: Annotated[
+        int,
+        Query(ge=0),
+    ] = 0,
+    actor: Annotated[
+        Usuario,
+        Depends(obtener_usuario_actual),
+    ] = ...,
+    db: Annotated[
+        Session,
+        Depends(obtener_db),
+    ] = ...,
+) -> RespuestaCambiosDTO:
+    eventos = db.scalars(
+        select(EventoCambioDB)
+        .where(
+            EventoCambioDB.usuario_id == actor.id,
+            EventoCambioDB.posicion > desde,
+        )
+        .order_by(
+            EventoCambioDB.posicion.asc(),
+            EventoCambioDB.id.asc(),
+        )
+        .limit(101)
+    ).all()
+
+    hay_mas = len(eventos) > 100
+    lote = eventos[:100]
+
+    nuevo_cursor = desde
+    if lote:
+        nuevo_cursor = lote[-1].posicion
+
+    return RespuestaCambiosDTO(
+        eventos=[_evento_cambio_dto(evento) for evento in lote],
+        nuevo_cursor=nuevo_cursor,
+        hay_mas=hay_mas,
+    )
 
 
 @router.post("/grupos/{id}/gastos")
