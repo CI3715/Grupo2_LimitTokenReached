@@ -11,6 +11,24 @@ use std::future::Future;
 use std::pin::Pin;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
+pub struct AplicacionGastoPlan {
+    pub movimiento: Movimiento,
+    pub evento: contrato::EventoCambioDTO,
+}
+
+#[derive(Debug, Clone)]
+pub struct PartePendientePlan {
+    pub evento: contrato::EventoCambioDTO,
+}
+
+#[derive(Debug, Clone)]
+pub struct LoteSincronizacionPlan {
+    pub nuevo_cursor: u64,
+    pub movimientos: Vec<AplicacionGastoPlan>,
+    pub pendientes: Vec<PartePendientePlan>,
+}
+
 pub trait Reloj: Send + Sync {
     fn ahora(&self) -> String;
 }
@@ -229,6 +247,11 @@ pub trait RepositorioSincronizacion: Send + Sync {
 
     fn obtener_sesion_vencida(&self) -> Result<bool, String>;
     fn guardar_sesion_vencida(&self, vencida: bool) -> Result<(), String>;
+
+    fn aplicar_lote_transaccional(
+        &self,
+        plan: &LoteSincronizacionPlan,
+    ) -> Result<Vec<String>, String>;
 }
 
 pub trait RepositorioColaGastos: Send + Sync {

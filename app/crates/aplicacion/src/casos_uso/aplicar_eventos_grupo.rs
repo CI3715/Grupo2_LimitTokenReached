@@ -10,33 +10,36 @@ use crate::puertos::{
 use contrato::EventoCambioDTO;
 use dominio::movimiento::{Movimiento, TipoMovimiento};
 
-pub fn aplicar_evento(
+pub enum ResultadoPreparacion {
+    YaAplicado,
+    Pendiente(EventoCambioDTO),
+    Aplicar {
+        movimiento: Movimiento,
+        evento: EventoCambioDTO,
+    },
+}
+
+pub fn preparar_evento(
     evento: &EventoCambioDTO,
     nombre_grupo: Option<&str>,
     repo_sincronizacion: &dyn RepositorioSincronizacion,
-    repo_movimientos: &dyn RepositorioMovimientos,
     repo_cuentas: &dyn RepositorioCuentas,
-) -> Result<bool, String> {
+) -> Result<ResultadoPreparacion, String> {
     if repo_sincronizacion.evento_ya_aplicado(&evento.id_evento)? {
-        return Ok(false);
+        return Ok(ResultadoPreparacion::YaAplicado);
     }
 
     let seleccion = repo_sincronizacion.obtener_cuenta_grupo(&evento.grupo_id)?;
     let Some(seleccion) = seleccion else {
-        repo_movimientos.guardar_parte_grupo_pendiente(evento)?;
-        return Ok(false);
+        return Ok(ResultadoPreparacion::Pendiente(evento.clone()));
     };
 
     let cuenta = repo_cuentas.obtener_cuenta_por_id(&seleccion.cuenta_id)?;
-
-    if !cuenta.activa {
-        repo_movimientos.guardar_parte_grupo_pendiente(evento)?;
-        return Ok(false);
-    }
-
-    if !cuenta.activa || cuenta.moneda_codigo != evento.moneda || seleccion.moneda != evento.moneda {
-        repo_movimientos.guardar_parte_grupo_pendiente(evento)?;
-        return Ok(false);
+    if !cuenta.activa
+        || cuenta.moneda_codigo != evento.moneda
+        || seleccion.moneda != evento.moneda
+    {
+        return Ok(ResultadoPreparacion::Pendiente(evento.clone()));
     }
 
     let monto = Decimal::from_str(&evento.monto_parte)
@@ -64,10 +67,37 @@ pub fn aplicar_evento(
         )),
     };
 
-    repo_movimientos.guardar_aplicacion_gasto_grupo(&movimiento, evento)?;
-    repo_sincronizacion.guardar_evento_aplicado(
-        &evento.id_evento,
-        &movimiento.id.to_string(),
-    )?;
-    Ok(true)
+    Ok(ResultadoPreparacion::Aplicar {
+        movimiento,
+        evento: evento.clone(),
+    })
+}
+
+pub fn aplicar_evento(
+    evento: &EventoCambioDTO,
+    nombre_grupo: Option<&str>,
+    repo_sincronizacion: &dyn RepositorioSincronizacion,
+    repo_movimientos: &dyn RepositorioMovimientos,
+    repo_cuentas: &dyn RepositorioCuentas,
+) -> Result<bool, String> {
+    match preparar_evento(
+        evento,
+        nombre_grupo,
+        repo_sincronizacion,
+        repo_cuentas,
+    )? {
+        ResultadoPreparacion::YaAplicado => Ok(false),
+        ResultadoPreparacion::Pendiente(evento) => {
+            repo_movimientos.guardar_parte_grupo_pendiente(&evento)?;
+            Ok(false)
+        }
+        ResultadoPreparacion::Aplicar { movimiento, evento } => {
+            repo_movimientos.guardar_aplicacion_gasto_grupo(&movimiento, &evento)?;
+            repo_sincronizacion.guardar_evento_aplicado(
+                &evento.id_evento,
+                &movimiento.id.to_string(),
+            )?;
+            Ok(true)
+        }
+    }
 }
