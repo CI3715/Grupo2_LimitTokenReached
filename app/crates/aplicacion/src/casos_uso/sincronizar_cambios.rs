@@ -1,6 +1,6 @@
 use crate::puertos::{
     AplicacionGastoPlan, ClienteSocial, LoteSincronizacionPlan, PartePendientePlan,
-    RepositorioCuentas, RepositorioMovimientos, RepositorioSincronizacion,
+    RepositorioCuentas, RepositorioSincronizacion,
 };
 use crate::casos_uso::aplicar_eventos_grupo::{
     preparar_evento, ResultadoPreparacion,
@@ -11,7 +11,6 @@ pub async fn ejecutar(
     cliente: &dyn ClienteSocial,
     token: String,
     repo_sincronizacion: &dyn RepositorioSincronizacion,
-    _repo_movimientos: &dyn RepositorioMovimientos,
     repo_cuentas: &dyn RepositorioCuentas,
 ) -> Result<u64, crate::puertos::ErrorOperacion> {
     let mut cursor = repo_sincronizacion

@@ -1,6 +1,6 @@
 use aplicacion::puertos::{
-    ClienteSocial, RepositorioColaGastos, RepositorioCuentas, RepositorioMovimientos,
-    RepositorioSincronizacion,
+    ClienteSocial, RepositorioColaGastos, RepositorioCuentas,
+    RepositorioMovimientos, RepositorioSincronizacion,
 };
 use contrato::{
     CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, GastoColaDTO,
@@ -23,7 +23,6 @@ pub async fn sincronizar_grupos(
     app: AppHandle,
     cliente: State<'_, Box<dyn ClienteSocial>>,
     repo_sincronizacion: State<'_, Box<dyn RepositorioSincronizacion>>,
-    repo_movimientos: State<'_, Box<dyn RepositorioMovimientos>>,
     repo_cuentas: State<'_, Box<dyn RepositorioCuentas>>,
     repo_cola: State<'_, Box<dyn RepositorioColaGastos>>,
 ) -> Result<u64, String> {
@@ -51,7 +50,6 @@ pub async fn sincronizar_grupos(
         cliente.inner().as_ref(),
         token,
         repo_sincronizacion.inner().as_ref(),
-        repo_movimientos.inner().as_ref(),
         repo_cuentas.inner().as_ref(),
     )
     .await;
