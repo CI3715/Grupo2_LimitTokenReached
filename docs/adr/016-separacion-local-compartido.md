@@ -61,10 +61,10 @@ La aplicación cliente (Tauri + Next.js) se comunica con el servidor mediante HT
 - Las funciones sociales requieren sesión y conexión; sin ellas, solo funciona lo personal.
 
 ## Verificación (QA / CI)
-- [ ] Ninguna petición HTTP al servidor contiene datos del libro personal (cuentas, movimientos, saldos, tasas).
-- [ ] Las pruebas automatizadas verifican que las funciones personales funcionan con la red desactivada y el servidor apagado.
-- [ ] Las pruebas automatizadas verifican que las funciones sociales requieren sesión y conexión.
-- [ ] El README explica claramente qué datos son locales y cuáles son compartidos.
+- [x] Ninguna petición HTTP al servidor contiene datos del libro personal (cuentas, movimientos, saldos, tasas).
+- [x] Las pruebas automatizadas verifican que las funciones personales funcionan con la red desactivada y el servidor apagado.
+- [x] Las pruebas automatizadas verifican que las funciones sociales requieren sesión y conexión.
+- [x] El README explica claramente qué datos son locales y cuáles son compartidos.
 
 ## Referencias
 - Especificación Técnica Entrega 6: Sección 1 (Objetivo General) y Sección 2.4 (Almacenamiento Local).
