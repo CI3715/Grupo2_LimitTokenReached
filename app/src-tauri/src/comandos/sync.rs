@@ -102,7 +102,7 @@ pub async fn sincronizar_grupos(app: AppHandle) -> Result<u64, String> {
 pub fn iniciar_sincronizacion_automatica(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         // Primer tick al abrir la aplicación y luego cada 5 minutos (300 segundos)
-        let mut intervalo = tokio::time::interval(Duration::from_secs(30));
+        let mut intervalo = tokio::time::interval(Duration::from_secs(60));
 
         loop {
             intervalo.tick().await;
