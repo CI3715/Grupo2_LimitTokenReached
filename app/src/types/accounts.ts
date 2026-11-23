@@ -13,6 +13,12 @@ export type Account = {
   moneda_codigo: CurrencyCode;
   saldo: string;
   creada_en: string;
+  activa: boolean;
+};
+export type SyncStatus = {
+  cursor: number;
+  ultima_sincronizacion: string | null;
+  sesion_vencida: boolean;
 };
 export type Currency = {
   codigo: CurrencyCode;

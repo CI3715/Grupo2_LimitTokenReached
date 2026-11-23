@@ -16,6 +16,7 @@ pub fn obtener_cuenta_grupo(
 pub fn ejecutar(
     seleccion: CuentaGrupoSeleccionDTO,
     moneda_grupo: &str,
+    nombre_grupo: Option<&str>,
     repo_sincronizacion: &dyn RepositorioSincronizacion,
     repo_movimientos: &dyn RepositorioMovimientos,
     repo_cuentas: &dyn RepositorioCuentas,
@@ -51,7 +52,7 @@ pub fn ejecutar(
             posicion_cursor: parte.posicion_cursor,
         };
 
-        match preparar_evento(&evento, None, repo_sincronizacion, repo_cuentas)? {
+        match preparar_evento(&evento, nombre_grupo, repo_sincronizacion, repo_cuentas)? {
             ResultadoPreparacion::Aplicar {
                 movimiento,
                 evento,

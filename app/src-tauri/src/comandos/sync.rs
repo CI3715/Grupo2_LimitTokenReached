@@ -1,3 +1,6 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
+
 use aplicacion::puertos::{
     ClienteSocial, RepositorioColaGastos, RepositorioCuentas, RepositorioMovimientos,
     RepositorioSincronizacion,
@@ -5,9 +8,19 @@ use aplicacion::puertos::{
 use contrato::{
     CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, GastoColaDTO, ParteGrupoPendienteDTO,
 };
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use super::sesion::{borrar_token, obtener_token};
+
+static SINCRONIZANDO: AtomicBool = AtomicBool::new(false);
+
+struct GuardiaSincronizacion;
+
+impl Drop for GuardiaSincronizacion {
+    fn drop(&mut self) {
+        SINCRONIZANDO.store(false, Ordering::SeqCst);
+    }
+}
 
 fn manejar_error(app: &AppHandle, error: aplicacion::puertos::ErrorOperacion) -> String {
     if error.status == Some(401) {
@@ -17,15 +30,21 @@ fn manejar_error(app: &AppHandle, error: aplicacion::puertos::ErrorOperacion) ->
     error.mensaje
 }
 
-#[tauri::command(rename_all = "snake_case")]
-pub async fn sincronizar_grupos(
-    app: AppHandle,
-    cliente: State<'_, Box<dyn ClienteSocial>>,
-    repo_sincronizacion: State<'_, Box<dyn RepositorioSincronizacion>>,
-    repo_cuentas: State<'_, Box<dyn RepositorioCuentas>>,
-    repo_cola: State<'_, Box<dyn RepositorioColaGastos>>,
-) -> Result<u64, String> {
-    let token = obtener_token(&app)?;
+async fn ejecutar_sincronizacion(app: &AppHandle) -> Result<u64, String> {
+    if SINCRONIZANDO
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Err("Ya hay una sincronización en curso.".to_string());
+    }
+    let _guardia = GuardiaSincronizacion;
+
+    let token = obtener_token(app)?;
+
+    let cliente = app.state::<Box<dyn ClienteSocial>>();
+    let repo_sincronizacion = app.state::<Box<dyn RepositorioSincronizacion>>();
+    let repo_cuentas = app.state::<Box<dyn RepositorioCuentas>>();
+    let repo_cola = app.state::<Box<dyn RepositorioColaGastos>>();
 
     let resultado_cola = aplicacion::casos_uso::procesar_cola_gastos::ejecutar(
         cliente.inner().as_ref(),
@@ -41,9 +60,9 @@ pub async fn sincronizar_grupos(
             .inner()
             .as_ref()
             .guardar_sesion_vencida(true);
-        return Err(manejar_error(&app, error.clone()));
+        return Err(manejar_error(app, error.clone()));
     }
-    resultado_cola.map_err(|error| manejar_error(&app, error))?;
+    resultado_cola.map_err(|error| manejar_error(app, error))?;
 
     let resultado_cambios = aplicacion::casos_uso::sincronizar_cambios::ejecutar(
         cliente.inner().as_ref(),
@@ -59,6 +78,7 @@ pub async fn sincronizar_grupos(
                 .inner()
                 .as_ref()
                 .guardar_sesion_vencida(false);
+            let _ = app.emit("sincronizacion-completada", cursor);
             Ok(cursor)
         }
         Err(error) if error.status == Some(401) => {
@@ -66,16 +86,53 @@ pub async fn sincronizar_grupos(
                 .inner()
                 .as_ref()
                 .guardar_sesion_vencida(true);
-            Err(manejar_error(&app, error))
+            let mensaje = manejar_error(app, error);
+            let _ = app.emit("sesion-vencida", &mensaje);
+            Err(mensaje)
         }
-        Err(error) => Err(manejar_error(&app, error)),
+        Err(error) => Err(manejar_error(app, error)),
     }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn sincronizar_grupos(app: AppHandle) -> Result<u64, String> {
+    ejecutar_sincronizacion(&app).await
+}
+
+pub fn iniciar_sincronizacion_automatica(app: AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        // Primer tick al abrir la aplicación y luego cada 5 minutos (300 segundos)
+        let mut intervalo = tokio::time::interval(Duration::from_secs(60));
+
+        loop {
+            intervalo.tick().await;
+
+            // Si no hay sesión activa, omite el ciclo sin emitir errores
+            if obtener_token(&app).is_err() {
+                continue;
+            }
+
+            let repo_sincronizacion = app.state::<Box<dyn RepositorioSincronizacion>>();
+            if repo_sincronizacion
+                .inner()
+                .as_ref()
+                .obtener_sesion_vencida()
+                .unwrap_or(false)
+            {
+                continue;
+            }
+
+            // Los errores temporales de red (sin conexión) se ignoran y se reintentan en el siguiente ciclo
+            let _ = ejecutar_sincronizacion(&app).await;
+        }
+    });
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn elegir_cuenta_grupo(
     seleccion: CuentaGrupoSeleccionDTO,
     moneda_grupo: String,
+    nombre_grupo: Option<String>,
     repo_sincronizacion: State<'_, Box<dyn RepositorioSincronizacion>>,
     repo_movimientos: State<'_, Box<dyn RepositorioMovimientos>>,
     repo_cuentas: State<'_, Box<dyn RepositorioCuentas>>,
@@ -83,6 +140,7 @@ pub async fn elegir_cuenta_grupo(
     aplicacion::casos_uso::elegir_cuenta_grupo::ejecutar(
         seleccion,
         &moneda_grupo,
+        nombre_grupo.as_deref(),
         repo_sincronizacion.inner().as_ref(),
         repo_movimientos.inner().as_ref(),
         repo_cuentas.inner().as_ref(),

@@ -1,8 +1,9 @@
 use super::sesion::{borrar_token, guardar_token, leer_token};
+use aplicacion::puertos::RepositorioSincronizacion;
 use infraestructura::{
     ClienteAutenticacionHttp, InicioSesionHttp, RegistroUsuarioHttp, UsuarioHttp,
 };
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
 
 fn cliente_auth() -> ClienteAutenticacionHttp {
     let url = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
@@ -31,6 +32,7 @@ pub async fn registrar_usuario(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn iniciar_sesion(
     app: AppHandle,
+    repo_sincronizacion: State<'_, Box<dyn RepositorioSincronizacion>>,
     correo: String,
     contrasena: String,
 ) -> Result<UsuarioHttp, String> {
@@ -42,7 +44,13 @@ pub async fn iniciar_sesion(
 
     guardar_token(&app, &sesion.token)?;
     match cliente.obtener_perfil(&sesion.token).await {
-        Ok(usuario) => Ok(usuario),
+        Ok(usuario) => {
+            repo_sincronizacion
+                .inner()
+                .as_ref()
+                .guardar_sesion_vencida(false)?;
+            Ok(usuario)
+        }
         Err(error) if error.status().is_some_and(|s| s.as_u16() == 401) => {
             borrar_token(&app)?;
             Err("La sesión no pudo validarse. Inicia sesión de nuevo.".to_string())
