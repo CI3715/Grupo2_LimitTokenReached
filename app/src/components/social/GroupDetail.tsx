@@ -1,6 +1,7 @@
 "use client";
 
 import { GroupExpenseForm, InviteMemberForm } from "@/components/social/GroupForms";
+import { useGroupSync } from "@/features/social/useGroupSync";
 import type {
   DetalleGrupoDTO,
   ParteGastoDTO,
@@ -20,6 +21,16 @@ type Props = {
   ) => Promise<ParteGastoDTO[]>;
 };
 
+function formatSyncTimestamp(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+
+  return new Intl.DateTimeFormat("es-VE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export function GroupDetail({
   detalle,
   usuarioActual,
@@ -29,12 +40,19 @@ export function GroupDetail({
   onRegisterExpense,
   onPreview,
 }: Props) {
+  const sync = useGroupSync(detalle.id, detalle.moneda);
   const miembroActual = detalle.miembros.find(
     (miembro) => miembro.nombre_usuario === usuarioActual,
   );
   const esAdministrador = miembroActual?.rol === "administrador";
   const nombresMiembros = detalle.miembros.map(
     (miembro) => miembro.nombre_usuario,
+  );
+  const cuentasElegibles = sync.cuentas.filter(
+    (cuenta) => cuenta.activa && cuenta.moneda_codigo === detalle.moneda,
+  );
+  const cuentaVinculada = cuentasElegibles.find(
+    (cuenta) => cuenta.id === sync.seleccion,
   );
 
   return (
@@ -47,6 +65,62 @@ export function GroupDetail({
         </div>
         <span className="group-currency">{detalle.moneda}</span>
       </header>
+
+      <section className="group-account-sync" aria-label="Cuenta y sincronización del grupo">
+        <header className="group-account-sync-heading">
+          <h3>Vincular cuenta</h3>
+          {cuentaVinculada && (
+            <div className="group-linked-account">
+              <span>Cuenta vinculada</span>
+              <strong>{cuentaVinculada.nombre}</strong>
+            </div>
+          )}
+        </header>
+
+        <div className="group-account-sync-controls">
+          <select
+            value={sync.seleccion}
+            disabled={sync.guardando || cuentasElegibles.length === 0}
+            onChange={(event) => void sync.vincular(event.target.value)}
+          >
+            <option value="">Selecciona una cuenta</option>
+            {cuentasElegibles.map((cuenta) => (
+              <option key={cuenta.id} value={cuenta.id}>
+                {cuenta.nombre}
+              </option>
+            ))}
+          </select>
+          {cuentaVinculada && (
+            <button
+              className="account-primary"
+              type="button"
+              disabled={sync.sincronizando || sync.estado.sesion_vencida}
+              onClick={() => void sync.sincronizar()}
+            >
+              {sync.sincronizando ? "Sincronizando..." : "Sincronizar"}
+            </button>
+          )}
+        </div>
+
+        <div className="group-account-sync-status">
+          {sync.estado.ultima_sincronizacion && (
+            <small>
+              Última sincronización:{" "}
+              {formatSyncTimestamp(sync.estado.ultima_sincronizacion)}
+            </small>
+          )}
+          {sync.estado.sesion_vencida && (
+            <small className="group-sync-error" role="alert">
+              Tu sesión venció, inicia sesión de nuevo
+            </small>
+          )}
+          {sync.error && (
+            <small className="group-sync-error" role="alert">
+              {sync.error}
+            </small>
+          )}
+        </div>
+      </section>
 
       <section className="group-panel" aria-labelledby="group-members-title">
         <div className="group-section-heading">

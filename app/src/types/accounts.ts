@@ -13,6 +13,7 @@ export type Account = {
   moneda_codigo: CurrencyCode;
   saldo: string;
   creada_en: string;
+  activa: boolean;
 };
 export type Currency = {
   codigo: CurrencyCode;
