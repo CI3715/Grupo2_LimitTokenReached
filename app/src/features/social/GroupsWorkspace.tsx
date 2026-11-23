@@ -6,6 +6,8 @@ import type { UseFormReturn } from "react-hook-form";
 
 import { AccountsSidebar } from "@/components/accounts/accounts-sidebar";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { GroupSyncPanel } from "@/features/group-sync/GroupSyncPanel";
+import { useGroupSync } from "@/features/group-sync/GroupSyncProvider";
 import { GroupDetail } from "@/components/social/GroupDetail";
 import { CreateGroupForm } from "@/components/social/GroupForms";
 import { iniciarSesionDesdeFormulario } from "@/features/auth/login";
@@ -56,6 +58,7 @@ export function GroupsWorkspace() {
     esAplicacionTauri,
   } = useAuthSession();
   const grupos = useGroups(Boolean(usuario));
+  const syncGrupo = useGroupSync();
   const amistades = useSocial(Boolean(usuario));
   const router = useRouter();
   const [mensajeLogin, setMensajeLogin] = useState("");
@@ -91,7 +94,10 @@ export function GroupsWorkspace() {
 
   async function registrarGasto(datos: RegistrarGastoRequestDTO) {
     if (!grupos.grupoSeleccionado) return false;
-    return grupos.registrarGasto(grupos.grupoSeleccionado, datos);
+    const resultado = await grupos.registrarGasto(grupos.grupoSeleccionado, datos);
+    await syncGrupo.actualizar().catch(() => {});
+    if (resultado) void syncGrupo.sync();
+    return resultado;
   }
 
   const invitaciones = grupos.grupos.invitaciones;
@@ -127,6 +133,7 @@ export function GroupsWorkspace() {
                   <p>Inicia sesión para dividir gastos compartidos.</p>
                 </div>
               </header>
+              {syncGrupo.error.includes("Tu sesión venció") && <p role="alert">Tu sesión venció, inicia sesión de nuevo.</p>}
               <LoginForm mensaje={mensajeLogin} onSubmit={enviarLogin} />
             </section>
           ) : (
@@ -255,6 +262,8 @@ export function GroupsWorkspace() {
                       Cargando grupo…
                     </p>
                   ) : grupos.detalle ? (
+                    <>
+                    <GroupSyncPanel key={grupos.detalle.id} grupo={grupos.detalle} />
                     <GroupDetail
                       detalle={grupos.detalle}
                       usuarioActual={usuario.nombre_usuario}
@@ -269,6 +278,7 @@ export function GroupsWorkspace() {
                       }
                       onRegisterExpense={registrarGasto}
                     />
+                    </>
                   ) : (
                     <div className="group-empty">
                       <span aria-hidden="true">◎</span>

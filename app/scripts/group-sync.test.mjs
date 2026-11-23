@@ -45,3 +45,25 @@ test('sesión vencida desactiva sincronización y muestra mensaje', () => {
   assert.match(html, /Tu sesión venció/);
   assert.match(html, /disabled/);
 });
+
+test('servicios usan los comandos y contratos Tauri de sincronización', async () => {
+  const file = path.resolve(import.meta.dirname, '../src/services/groupSync.ts');
+  const js = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const mod = { exports: {} };
+  const calls = [];
+  vm.runInThisContext(`(function(require,module,exports){${js}\n})`, { filename: file })(
+    () => ({ invoke: async (name, args) => { calls.push([name, args]); return null; } }), mod, mod.exports,
+  );
+  await mod.exports.sincronizarGrupos();
+  await mod.exports.estadoSincronizacion();
+  await mod.exports.listarPendientesGrupo();
+  await mod.exports.listarColaGrupo();
+  await mod.exports.obtenerCuentaGrupo('grupo-1');
+  await mod.exports.elegirCuentaGrupo({ grupo_id: 'grupo-1', cuenta_id: 'cuenta-1', moneda: 'USD' }, 'USD');
+  assert.deepEqual(calls, [
+    ['sincronizar_grupos', undefined], ['estado_sincronizacion', undefined],
+    ['listar_partes_grupo_pendientes', undefined], ['listar_cola_gastos_grupo', undefined],
+    ['obtener_cuenta_grupo', { grupo_id: 'grupo-1' }],
+    ['elegir_cuenta_grupo', { seleccion: { grupo_id: 'grupo-1', cuenta_id: 'cuenta-1', moneda: 'USD' }, moneda_grupo: 'USD' }],
+  ]);
+});
