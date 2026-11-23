@@ -11,7 +11,6 @@ export type Account = {
   nombre: string;
   tipo: AccountType;
   moneda_codigo: CurrencyCode;
-  activa: boolean;
   saldo: string;
   creada_en: string;
 };
