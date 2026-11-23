@@ -9,8 +9,8 @@
     "lint": "eslint",
     "test:movements": "node --test scripts/movements.test.mjs",
     "test:auth": "node --test scripts/autenticacion.test.mjs",
-    "tauri": "tauri",
-    "test:group-sync": "node --test scripts/group-sync.test.mjs"
+    "test:group-sync": "node --test scripts/group-sync.test.mjs",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.3",

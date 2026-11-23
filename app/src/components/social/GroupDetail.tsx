@@ -1,7 +1,7 @@
 "use client";
 
 import { GroupExpenseForm, InviteMemberForm } from "@/components/social/GroupForms";
-import { useGroupSync } from "@/features/social/useGroupSync";
+import type { Account, SyncStatus } from "@/types/accounts";
 import type {
   DetalleGrupoDTO,
   ParteGastoDTO,
@@ -9,11 +9,23 @@ import type {
   UsuarioResumenDTO,
 } from "@/types/social";
 
+export type GroupSyncView = {
+  cuentas: Account[];
+  seleccion: string;
+  estado: SyncStatus;
+  guardando: boolean;
+  sincronizando: boolean;
+  error: string;
+  vincular: (cuentaId: string) => Promise<boolean>;
+  sincronizar: () => Promise<boolean>;
+};
+
 type Props = {
   detalle: DetalleGrupoDTO;
   usuarioActual: string;
   amigos: UsuarioResumenDTO[];
   pending: boolean;
+  sync: GroupSyncView;
   onInvite: (nombreUsuario: string) => Promise<boolean>;
   onRegisterExpense: (datos: RegistrarGastoRequestDTO) => Promise<boolean>;
   onPreview: (
@@ -36,11 +48,11 @@ export function GroupDetail({
   usuarioActual,
   amigos,
   pending,
+  sync,
   onInvite,
   onRegisterExpense,
   onPreview,
 }: Props) {
-  const sync = useGroupSync(detalle.id, detalle.moneda);
   const miembroActual = detalle.miembros.find(
     (miembro) => miembro.nombre_usuario === usuarioActual,
   );

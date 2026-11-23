@@ -10,6 +10,7 @@ import { GroupDetail } from "@/components/social/GroupDetail";
 import { CreateGroupForm } from "@/components/social/GroupForms";
 import { iniciarSesionDesdeFormulario } from "@/features/auth/login";
 import { useAuthSession } from "@/features/auth/useAuthSession";
+import { useGroupSync } from "@/features/social/useGroupSync";
 import { useGroups } from "@/features/social/useGroups";
 import { useSocial } from "@/features/social/useSocial";
 import type {
@@ -59,6 +60,10 @@ export function GroupsWorkspace() {
   const amistades = useSocial(Boolean(usuario));
   const router = useRouter();
   const [mensajeLogin, setMensajeLogin] = useState("");
+  const sync = useGroupSync(
+    grupos.detalle?.id ?? null,
+    grupos.detalle?.moneda ?? "",
+  );
   const gruposActivos = grupos.grupos.miembros;
   const grupoSeleccionado = grupos.grupoSeleccionado;
   const cargarDetalle = grupos.cargarDetalle;
@@ -260,6 +265,7 @@ export function GroupsWorkspace() {
                       usuarioActual={usuario.nombre_usuario}
                       amigos={amistades.amistades.amigos}
                       pending={grupos.guardando}
+                      sync={sync}
                       onPreview={grupos.previsualizar}
                       onInvite={(nombreUsuario) =>
                         grupos.invitar(

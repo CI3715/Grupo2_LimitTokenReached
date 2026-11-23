@@ -1,15 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { SyncStatus } from "@/types/accounts";
+
+export type { SyncStatus } from "@/types/accounts";
 
 export type GroupAccountSelection = {
   grupo_id: string;
   cuenta_id: string;
   moneda: string;
-};
-
-export type SyncStatus = {
-  cursor: number;
-  ultima_sincronizacion: string | null;
-  sesion_vencida: boolean;
 };
 
 export function obtenerCuentaGrupo(grupoId: string) {

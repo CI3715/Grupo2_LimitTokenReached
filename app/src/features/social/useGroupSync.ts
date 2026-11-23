@@ -48,7 +48,7 @@ export function useGroupSync(grupoId: string | null, moneda: string) {
   }, [grupoId]);
 
   useEffect(() => {
-    void cargar();
+    void Promise.resolve().then(cargar);
   }, [cargar]);
 
   async function vincular(cuentaId: string) {
