@@ -187,7 +187,7 @@ export function AccountDetail({
                         <strong className={`movement-amount ${isExpense ? "expense" : "income"}`}>
                           {amount(signedValue, currency)}
                         </strong>
-                        {!movement.es_correccion && (
+                        {!movement.es_correccion && !movement.gasto_grupo && (
                           <button
                             type="button"
                             className="account-secondary movement-correct-button"
