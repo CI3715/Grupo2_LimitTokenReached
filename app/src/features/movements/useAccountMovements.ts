@@ -43,6 +43,9 @@ export function useAccountMovements(accountId: string | null) {
     }
 
     void loadMovements();
+    const actualizar = () => { void loadMovements(); };
+    window.addEventListener("group-sync-updated", actualizar);
+    return () => window.removeEventListener("group-sync-updated", actualizar);
   }, [accountId]);
 
   return {

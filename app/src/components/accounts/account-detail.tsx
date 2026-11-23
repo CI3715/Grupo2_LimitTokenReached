@@ -1,5 +1,7 @@
 "use client";
 
+import { GroupMovementLabel } from "@/components/group-sync/GroupSyncIndicators";
+
 import Link from "next/link";
 import { useState } from "react";
 import Decimal from "decimal.js";
@@ -181,13 +183,14 @@ export function AccountDetail({
                         <div className="movement-description">
                           <strong>{movement.es_correccion ? "Corrección" : movement.tipo}</strong>
                           <span>{movement.nota || "Sin nota"}</span>
+                          {movement.gasto_grupo && <GroupMovementLabel />}
                           <span className="movement-date">{movement.fecha}</span>
                           {!movement.es_correccion && isCorrected && <small className="movement-corrected-label">Corregido</small>}
                         </div>
                         <strong className={`movement-amount ${isExpense ? "expense" : "income"}`}>
                           {amount(signedValue, currency)}
                         </strong>
-                        {!movement.es_correccion && (
+                        {!movement.es_correccion && !movement.gasto_grupo && (
                           <button
                             type="button"
                             className="account-secondary movement-correct-button"
