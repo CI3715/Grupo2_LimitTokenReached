@@ -33,6 +33,7 @@ serde_json = {workspace = true}
 serde = { workspace = true}
 uuid = { version = "1", features = ["v4"] }
 chrono = "0.4"
+tokio = { version = "1", features = ["time"] }
 
 # Inclusión de los crates internos del workspace
 dominio = { workspace = true }
