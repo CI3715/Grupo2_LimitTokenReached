@@ -82,6 +82,9 @@ pub fn run() {
                 Box::new(ClienteSocialHttp::new(url_servidor));
             app.manage(cliente_social);
 
+            // Iniciar sincronización automática al arrancar y cada 5 minutos
+            comandos::sync::iniciar_sincronizacion_automatica(app.handle().clone());
+            
             Ok(())
         })
         .plugin(tauri_plugin_log::Builder::new().build())

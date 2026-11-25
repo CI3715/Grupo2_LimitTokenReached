@@ -130,10 +130,6 @@ export function useGroups(activo: boolean) {
       await cargarDetalle(grupoId);
       return true;
     } catch (cause: unknown) {
-      if (cause === "Gasto guardado pendiente de envío.") {
-        setError(cause);
-        return true;
-      }
       setError(mensajeDeError(cause, "No se pudo registrar el gasto."));
       return false;
     } finally {

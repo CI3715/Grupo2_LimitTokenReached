@@ -37,10 +37,7 @@
         }
       }
 
-      void loadAccounts();
-     const actualizar = () => { void loadAccounts(); };
-     window.addEventListener("group-sync-updated", actualizar);
-     return () => window.removeEventListener("group-sync-updated", actualizar);
+      void loadAccounts()
     }, [])
 
     async function create(input: CreateAccountInput) {

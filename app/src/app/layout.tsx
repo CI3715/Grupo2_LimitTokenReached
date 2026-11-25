@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 
 import type { ReactNode } from "react";
-import { GroupSyncProvider } from "@/features/group-sync/GroupSyncProvider";
 import { AuthSessionProvider } from "@/features/auth/useAuthSession";
 
 import "./globals.css";
@@ -22,7 +21,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="es" suppressHydrationWarning>
       <body>
         <AuthSessionProvider>
-          <GroupSyncProvider>{children}</GroupSyncProvider>
+          {children}
         </AuthSessionProvider>
       </body>
     </html>

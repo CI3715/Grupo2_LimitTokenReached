@@ -414,7 +414,8 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     m.nota AS nota,
                     0 AS es_correccion,
                     NULL AS movimiento_original_id,
-                    0 AS orden_evento
+                    0 AS orden_evento,
+                    m.rowid AS orden_movimiento
                 FROM movimiento m
                 WHERE m.cuenta_id = ?1
 
@@ -430,18 +431,22 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     NULL AS nota,
                     1 AS es_correccion,
                     a.movimiento_original_id AS movimiento_original_id,
-                    a.orden AS orden_evento
+                    a.orden AS orden_evento,
+                    m.rowid AS orden_movimiento
                 FROM ajuste a
                 INNER JOIN movimiento m
                     ON m.id = a.movimiento_original_id
                 WHERE a.cuenta_id = ?1
             )
-            ORDER BY fecha DESC, es_correccion ASC, movimiento_original_id ASC,
+            ORDER BY fecha DESC,
+                     orden_movimiento DESC,
+                     es_correccion ASC,
+                     movimiento_original_id ASC,
                      orden_evento DESC
             ",
             )
             .map_err(|e| format!("No se pudo preparar el historial: {e}"))?;
-
+        
         let filas = stmt
             .query_map(params![cuenta_id.to_string()], |row| {
                 Ok((
