@@ -209,7 +209,10 @@ fn cursor_en_cero_no_duplica_movimientos_ni_altera_el_saldo() {
     e.repo.guardar_cursor(0).unwrap();
     for _ in 0..3 {
         let plan = plan_de(&eventos, 2, &e.repo);
-        assert!(plan.movimientos.is_empty(), "Lo ya aplicado no debe repetirse");
+        assert!(
+            plan.movimientos.is_empty(),
+            "Lo ya aplicado no debe repetirse"
+        );
         assert!(e.repo.aplicar_lote_transaccional(&plan).unwrap().is_empty());
     }
 
@@ -250,11 +253,7 @@ fn lote_interrumpido_no_deja_nada_a_medias_y_el_siguiente_lo_completa() {
 
     // El segundo movimiento apunta a una cuenta que no existe en la base:
     // falla a mitad del lote, después de haber procesado el primero.
-    let mut plan = plan_de(
-        &[evento("evento-1", "grupo-viaje", 1, "10.00")],
-        2,
-        &e.repo,
-    );
+    let mut plan = plan_de(&[evento("evento-1", "grupo-viaje", 1, "10.00")], 2, &e.repo);
     let mut segundo = plan.movimientos[0].clone();
     segundo.movimiento.id = uuid::Uuid::new_v4();
     segundo.movimiento.cuenta_id = uuid::Uuid::parse_str(CUENTA_B).unwrap();

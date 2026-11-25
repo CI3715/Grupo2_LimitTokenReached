@@ -14,7 +14,7 @@ mod tests {
 
         // se verifica que el encabezado contiene la metadata exacta que nos exigen
         // esto permite que herramientas externas lean el archivo y reconstruyan los saldos
-        // sin depender de la aplicacion 
+        // sin depender de la aplicacion
         assert_eq!(encabezado.version_formato, "1.0.0");
         assert_eq!(encabezado.cantidad_eventos, 42);
     }
@@ -36,7 +36,10 @@ mod tests {
         assert_eq!(reporte.eventos_nuevos, 2);
         assert_eq!(reporte.eventos_ya_existentes, 40);
         assert_eq!(reporte.eventos_rechazados.len(), 1);
-        assert_eq!(reporte.eventos_rechazados[0].motivo, "Contenido distinto para el mismo ID");
+        assert_eq!(
+            reporte.eventos_rechazados[0].motivo,
+            "Contenido distinto para el mismo ID"
+        );
     }
 
     #[test]

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::respaldo_sincronizacion::{EventoRechazadoDTO, ReporteSincronizacionDTO};
+use serde::{Deserialize, Serialize};
 
 /// request para exportar el libro a un archivo
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,15 +31,15 @@ pub struct ImportarLibroResponse {
     pub reporte: ReporteSincronizacionDTO,
 }
 
-/// configuración del destino de sincronización 
+/// configuración del destino de sincronización
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigDestinoSyncDTO {
     pub tipo: String, // "git" o "carpeta"
     pub ruta_o_url: String,
-    pub credenciales: Option<String>, // token o usuario:pass 
+    pub credenciales: Option<String>, // token o usuario:pass
 }
 
-/// resultado de una operación de sincronización 
+/// resultado de una operación de sincronización
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResultadoSyncDTO {
     pub exitoso: bool,
