@@ -30,8 +30,11 @@ Cópialo desde `.env.example` y genera un secreto para `JWT_SECRET` con:
 
     python -c "import secrets; print(secrets.token_hex(32))"
 
-Configura `DATABASE_PATH` con una ruta relativa a la raíz del repositorio para
-la SQLite **del servidor**. `JWT_SECRET` debe ser privado y nunca se sube a Git.
+Para desarrollo local, configura `DATABASE_PATH` con una ruta relativa a la raíz
+del repositorio para la SQLite **del servidor**. Para PostgreSQL, configura
+`DATABASE_URL` con la URI privada de conexión; si está definida, prevalece sobre
+`DATABASE_PATH`. En redes IPv4, usa la URI Session pooler de Supabase. No pongas
+esa URI en el frontend ni la subas a Git. `JWT_SECRET` también debe ser privado.
 `JWT_ISSUER` identifica al emisor del token. `SERVER_HOST_IP` configura la URL
 para el cliente Tauri y debe estar en el entorno al compilarlo o ejecutarlo;
 Tauri no lee automáticamente el `.env` del servidor.

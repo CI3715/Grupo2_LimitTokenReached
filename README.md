@@ -288,7 +288,7 @@ La autenticación es opcional: solo identifica la cuenta ante el servidor. Las c
 - **Almacenamiento del token:** en el almacén de secretos del sistema (`keyring`); en Android se usa un archivo privado registrado como deuda técnica (ver `docs/deuda-tecnica.md`).
 - **Autonomía:** sin conexión o con el servidor apagado, las funciones personales siguen funcionando; solo el registro y el inicio de sesión muestran que no hay conexión (RNF-17).
 
-Para desarrollo, copia `.env.example` como `.env` en la raíz y configura `JWT_SECRET` y `DATABASE_URL` (ej. `sqlite:///./servidor.db`). No subas `.env` al repositorio.
+Para desarrollo, copia `.env.example` como `.env` en la raíz y configura `JWT_SECRET` y `DATABASE_URL` (ej. `sqlite:///./servidor.db`). Para el backend remoto, `DATABASE_URL` puede ser la URI PostgreSQL privada de Supabase y prevalece sobre `DATABASE_PATH`; no la incluyas en el frontend ni subas `.env` al repositorio.
 
 ### Decisiones Arquitectónicas (ADRs)
 - **ADR-014 (Autenticación local-servidor):** JWT, Argon2 y almacenamiento seguro del token.
