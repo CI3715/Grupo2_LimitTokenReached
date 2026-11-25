@@ -10,6 +10,8 @@ pub mod sincronizacion;
 pub mod social;
 pub mod tasa;
 pub mod respaldo_sincronizacion;
+pub mod comandos_sync;
+pub mod errores_sync;
 
 
 // Re-exportaciones para uso cómodo desde otros crates
@@ -40,6 +42,11 @@ pub use social::{
 };
 pub use tasa::{EliminarTasaRequest, RegistrarTasaRequest, TasaDTO};
 pub use respaldo_sincronizacion::{EncabezadoExportacionDTO, EventoRechazadoDTO, ReporteSincronizacionDTO};
+pub use comandos_sync::{
+    ConfigDestinoSyncDTO, ExportarLibroRequest, ExportarLibroResponse,
+    ImportarLibroRequest, ImportarLibroResponse, ResultadoSyncDTO,
+};
+pub use errores_sync::ErrorSincronizacion;
 
 // Módulos de pruebas
 #[cfg(test)]
@@ -65,3 +72,6 @@ mod sincronizacion_tests;
 
 #[cfg(test)]
 mod respaldo_sincronizacion_tests;
+
+#[cfg(test)]
+mod errores_sync_tests;
