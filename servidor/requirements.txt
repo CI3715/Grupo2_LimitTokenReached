@@ -8,7 +8,7 @@ pyyaml
 fastapi
 uvicorn
 sqlalchemy
-psycopg2-binary
+psycopg[binary]>=3.2
 argon2-cffi>=23.1
 PyJWT>=2.8
 types-PyYAML
