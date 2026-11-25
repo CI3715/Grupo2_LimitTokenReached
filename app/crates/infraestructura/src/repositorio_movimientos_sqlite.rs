@@ -1,10 +1,11 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use chrono::NaiveDate;
 use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::json;
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use aplicacion::puertos::RepositorioMovimientos;
@@ -12,7 +13,24 @@ use contrato::movimiento::{MovimientoDTO, TipoMovimientoDTO};
 use dominio::categoria::{Categoria, TipoCategoria};
 use dominio::movimiento::{Ajuste, Movimiento, TipoMovimiento};
 
-//funciones auxiliares
+const ESCALA_MONTOS: i64 = 100_000_000; // 10^8
+
+fn decimal_a_escalado(monto: Decimal) -> Result<i64, String> {
+    let escalado = monto
+        .checked_mul(Decimal::from(ESCALA_MONTOS))
+        .ok_or_else(|| "Desbordamiento al escalar el monto".to_string())?;
+
+    escalado
+        .trunc()
+        .to_i64()
+        .ok_or_else(|| "El monto excede el rango permitido por SQLite (i64)".to_string())
+}
+
+fn escalado_a_decimal(valor: i64) -> Decimal {
+    Decimal::new(valor, 8).normalize()
+}
+
+// funciones auxiliares
 
 fn tipo_a_texto(tipo: TipoMovimiento) -> &'static str {
     match tipo {
@@ -43,7 +61,7 @@ fn cargar_movimiento_desde(conn: &Connection, id: &Uuid) -> Result<Movimiento, S
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
-                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(3)?,
                     row.get::<_, String>(4)?,
                     row.get::<_, String>(5)?,
                     row.get::<_, Option<String>>(6)?,
@@ -56,7 +74,7 @@ fn cargar_movimiento_desde(conn: &Connection, id: &Uuid) -> Result<Movimiento, S
         id: Uuid::parse_str(&fila.0).map_err(|e| e.to_string())?,
         cuenta_id: Uuid::parse_str(&fila.1).map_err(|e| e.to_string())?,
         tipo: texto_a_tipo(&fila.2)?,
-        monto: Decimal::from_str_exact(&fila.3).map_err(|e| e.to_string())?,
+        monto: escalado_a_decimal(fila.3),
         fecha: NaiveDate::parse_from_str(&fila.4, "%Y-%m-%d").map_err(|e| e.to_string())?,
         categoria_id: Uuid::parse_str(&fila.5).map_err(|e| e.to_string())?,
         nota: fila.6,
@@ -68,15 +86,15 @@ fn calcular_monto_resultante_ajuste(
     movimiento_original_id: &Uuid,
     ajuste_id: &Uuid,
 ) -> Result<Decimal, String> {
-    let monto_original: String = conn
+    let monto_original_raw: i64 = conn
         .query_row(
             "SELECT monto FROM movimiento WHERE id = ?1",
             params![movimiento_original_id.to_string()],
             |row| row.get(0),
         )
         .map_err(|e| format!("No se pudo obtener el monto original: {e}"))?;
-    let mut monto_resultante = Decimal::from_str_exact(&monto_original)
-        .map_err(|e| format!("Monto original inválido: {e}"))?;
+    let mut monto_resultante = escalado_a_decimal(monto_original_raw);
+
     let orden: i64 = conn
         .query_row(
             "SELECT orden FROM ajuste WHERE id = ?1",
@@ -94,17 +112,16 @@ fn calcular_monto_resultante_ajuste(
         .map_err(|e| format!("No se pudieron consultar las correcciones: {e}"))?;
     let variaciones = stmt
         .query_map(params![movimiento_original_id.to_string(), orden], |row| {
-            row.get::<_, String>(0)
+            row.get::<_, i64>(0)
         })
         .map_err(|e| format!("No se pudieron leer las correcciones: {e}"))?;
 
     for variacion in variaciones {
-        let variacion = Decimal::from_str_exact(&variacion.map_err(|e| e.to_string())?)
-            .map_err(|e| format!("Variación inválida: {e}"))?;
-        monto_resultante += variacion;
+        let variacion_raw = variacion.map_err(|e| e.to_string())?;
+        monto_resultante += escalado_a_decimal(variacion_raw);
     }
 
-    Ok(monto_resultante)
+    Ok(monto_resultante.normalize())
 }
 
 pub struct RepositorioMovimientosSqlite {
@@ -129,6 +146,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             TipoMovimiento::Ingreso => movimiento.monto,
             TipoMovimiento::Gasto => -movimiento.monto,
         };
+        let monto_escalado = decimal_a_escalado(movimiento.monto)?;
 
         tx.execute(
             "
@@ -140,7 +158,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 movimiento.id.to_string(),
                 movimiento.cuenta_id.to_string(),
                 tipo_a_texto(movimiento.tipo),
-                movimiento.monto.to_string(),
+                monto_escalado,
                 movimiento.fecha.to_string(),
                 movimiento.categoria_id.to_string(),
                 movimiento.nota,
@@ -161,7 +179,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         crate::bd::insertar_evento(&tx, "MovimientoRegistrado", &datos_evento)
             .map_err(|e| e.to_string())?;
 
-        let saldo_actual: String = tx
+        let saldo_actual_raw: i64 = tx
             .query_row(
                 "SELECT saldo FROM cuenta WHERE id = ?1",
                 params![movimiento.cuenta_id.to_string()],
@@ -169,14 +187,13 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             )
             .map_err(|e| format!("No se pudo obtener el saldo: {e}"))?;
 
-        let saldo =
-            Decimal::from_str_exact(&saldo_actual).map_err(|e| format!("Saldo inválido: {e}"))?;
-
+        let saldo = escalado_a_decimal(saldo_actual_raw);
         let nuevo_saldo = saldo + efecto;
+        let nuevo_saldo_escalado = decimal_a_escalado(nuevo_saldo)?;
 
         tx.execute(
             "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-            params![nuevo_saldo.to_string(), movimiento.cuenta_id.to_string()],
+            params![nuevo_saldo_escalado, movimiento.cuenta_id.to_string()],
         )
         .map_err(|e| format!("No se pudo actualizar el saldo: {e}"))?;
 
@@ -213,6 +230,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             TipoMovimiento::Ingreso => ajuste.variacion_monto,
             TipoMovimiento::Gasto => -ajuste.variacion_monto,
         };
+        let variacion_escalada = decimal_a_escalado(ajuste.variacion_monto)?;
 
         tx.execute(
             "
@@ -233,7 +251,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                 ajuste.movimiento_original_id.to_string(),
                 ajuste.cuenta_id.to_string(),
                 tipo_a_texto(ajuste.tipo_original),
-                ajuste.variacion_monto.to_string(),
+                variacion_escalada,
                 fecha_ajuste,
             ],
         )
@@ -250,7 +268,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
         crate::bd::insertar_evento(&tx, "MovimientoCorregido", &datos_evento)
             .map_err(|e| e.to_string())?;
 
-        let saldo_actual: String = tx
+        let saldo_actual_raw: i64 = tx
             .query_row(
                 "SELECT saldo FROM cuenta WHERE id = ?1",
                 params![ajuste.cuenta_id.to_string()],
@@ -258,14 +276,13 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             )
             .map_err(|e| format!("No se pudo obtener el saldo: {e}"))?;
 
-        let saldo =
-            Decimal::from_str_exact(&saldo_actual).map_err(|e| format!("Saldo inválido: {e}"))?;
-
+        let saldo = escalado_a_decimal(saldo_actual_raw);
         let nuevo_saldo = saldo + efecto;
+        let nuevo_saldo_escalado = decimal_a_escalado(nuevo_saldo)?;
 
         tx.execute(
             "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-            params![nuevo_saldo.to_string(), ajuste.cuenta_id.to_string()],
+            params![nuevo_saldo_escalado, ajuste.cuenta_id.to_string()],
         )
         .map_err(|e| format!("No se pudo actualizar el saldo: {e}"))?;
 
@@ -323,14 +340,14 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
                     row.get::<_, String>(3)?,
-                    row.get::<_, String>(4)?,
+                    row.get::<_, i64>(4)?,
                 ))
             })
             .map_err(|e| e.to_string())?;
 
         filas
             .map(|fila| {
-                let (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto) =
+                let (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto_raw) =
                     fila.map_err(|e| e.to_string())?;
 
                 Ok(Ajuste {
@@ -339,8 +356,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                         .map_err(|e| e.to_string())?,
                     cuenta_id: Uuid::parse_str(&cuenta_id).map_err(|e| e.to_string())?,
                     tipo_original: texto_a_tipo(&tipo_original)?,
-                    variacion_monto: Decimal::from_str_exact(&variacion_monto)
-                        .map_err(|e| e.to_string())?,
+                    variacion_monto: escalado_a_decimal(variacion_monto_raw),
                 })
             })
             .collect()
@@ -446,14 +462,14 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             ",
             )
             .map_err(|e| format!("No se pudo preparar el historial: {e}"))?;
-        
+
         let filas = stmt
             .query_map(params![cuenta_id.to_string()], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
-                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(3)?,
                     row.get::<_, String>(4)?,
                     row.get::<_, String>(5)?,
                     row.get::<_, Option<String>>(6)?,
@@ -473,16 +489,15 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             HashMap::new();
         for fila in &filas {
             if fila.7 {
-                if let (Some(original_id), Ok(variacion)) =
-                    (fila.8.clone(), Decimal::from_str_exact(&fila.3))
-                {
+                if let Some(original_id) = fila.8.clone() {
+                    let variacion = escalado_a_decimal(fila.3);
                     correcciones_por_original
                         .entry(original_id)
                         .or_default()
                         .push((fila.0.clone(), variacion, fila.9));
                 }
-            } else if let Ok(monto) = Decimal::from_str_exact(&fila.3) {
-                montos_originales.insert(fila.0.clone(), monto);
+            } else {
+                montos_originales.insert(fila.0.clone(), escalado_a_decimal(fila.3));
             }
         }
 
@@ -494,7 +509,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             correcciones.sort_by_key(|(_, _, orden)| *orden);
             for (id, variacion, _) in correcciones {
                 monto_actual += variacion;
-                montos_resultantes.insert(id, monto_actual.to_string());
+                montos_resultantes.insert(id, monto_actual.normalize().to_string());
             }
         }
 
@@ -505,7 +520,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     id,
                     cuenta_id,
                     tipo,
-                    monto,
+                    monto_raw,
                     fecha,
                     categoria_id,
                     nota,
@@ -522,6 +537,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                             ));
                         }
                     };
+                    let monto = escalado_a_decimal(monto_raw).to_string();
                     let marcador_grupo: Option<(String, String)> = conn
                         .query_row(
                             "SELECT grupo_id, gasto_id
@@ -587,6 +603,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
             .map_err(|e| e.to_string())?;
         let filas = stmt
             .query_map([], |row| {
+                let monto_parte_raw: i64 = row.get(6)?;
                 Ok(contrato::ParteGrupoPendienteDTO {
                     id_evento: row.get(0)?,
                     grupo_id: row.get(1)?,
@@ -594,7 +611,7 @@ impl RepositorioMovimientos for RepositorioMovimientosSqlite {
                     concepto: row.get(3)?,
                     fecha: row.get(4)?,
                     moneda: row.get(5)?,
-                    monto_parte: row.get(6)?,
+                    monto_parte: escalado_a_decimal(monto_parte_raw).to_string(),
                     incluye_redondeo: row.get::<_, i64>(7)? != 0,
                     posicion_cursor: row.get::<_, i64>(8)? as u64,
                 })

@@ -1,8 +1,26 @@
 use aplicacion::puertos::RepositorioSincronizacion;
 use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::json;
 use std::sync::Mutex;
+
+const ESCALA_MONTOS: i64 = 100_000_000; // 10^8
+
+fn decimal_a_escalado(monto: Decimal) -> Result<i64, String> {
+    let escalado = monto
+        .checked_mul(Decimal::from(ESCALA_MONTOS))
+        .ok_or_else(|| "Desbordamiento al escalar el monto".to_string())?;
+
+    escalado
+        .trunc()
+        .to_i64()
+        .ok_or_else(|| "El monto excede el rango permitido por SQLite (i64)".to_string())
+}
+
+fn escalado_a_decimal(valor: i64) -> Decimal {
+    Decimal::new(valor, 8).normalize()
+}
 
 pub struct RepositorioSincronizacionSqlite {
     conexion: Mutex<Connection>,
@@ -175,6 +193,13 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
 
         for pendiente in &plan.pendientes {
             let evento = &pendiente.evento;
+            let monto_parte_decimal = evento
+                .monto_parte
+                .trim()
+                .parse::<Decimal>()
+                .map_err(|error| format!("Monto de parte inválido: {error}"))?;
+            let monto_parte_escalado = decimal_a_escalado(monto_parte_decimal)?;
+
             tx.execute(
                 "INSERT INTO partes_grupo_pendientes
                  (id_evento, grupo_id, gasto_id, concepto, fecha, moneda,
@@ -188,7 +213,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                     evento.concepto,
                     evento.fecha,
                     evento.moneda,
-                    evento.monto_parte,
+                    monto_parte_escalado,
                     evento.incluye_redondeo as i64,
                     evento.posicion_cursor as i64,
                 ],
@@ -218,6 +243,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
             let concepto_movimiento = movimiento.nota.clone();
             let fecha = movimiento.fecha.to_string();
             let monto = movimiento.monto;
+            let monto_escalado = decimal_a_escalado(monto)?;
             let efecto_saldo = aplicacion.efecto_saldo;
 
             tx.execute(
@@ -227,7 +253,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 params![
                     movimiento_id,
                     cuenta_id,
-                    monto.to_string(),
+                    monto_escalado,
                     fecha,
                     categoria_id,
                     concepto_movimiento,
@@ -235,18 +261,19 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
             )
             .map_err(|error| format!("No se pudo guardar el gasto de grupo: {error}"))?;
 
-            let saldo: String = tx
+            let saldo_raw: i64 = tx
                 .query_row(
                     "SELECT saldo FROM cuenta WHERE id = ?1",
                     params![cuenta_id],
                     |row| row.get(0),
                 )
                 .map_err(|error| format!("No se pudo obtener el saldo: {error}"))?;
-            let saldo_actual = Decimal::from_str_exact(&saldo)
-                .map_err(|error| format!("Saldo invalido: {error}"))?;
+            let saldo_actual = escalado_a_decimal(saldo_raw);
+            let nuevo_saldo_escalado = decimal_a_escalado(saldo_actual + efecto_saldo)?;
+
             tx.execute(
                 "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-                params![(saldo_actual + efecto_saldo).to_string(), cuenta_id],
+                params![nuevo_saldo_escalado, cuenta_id],
             )
             .map_err(|error| format!("No se pudo actualizar el saldo: {error}"))?;
 

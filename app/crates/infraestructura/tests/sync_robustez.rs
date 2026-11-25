@@ -10,10 +10,12 @@ use contrato::{CuentaGrupoSeleccionDTO, EventoCambioDTO};
 use infraestructura::{RepositorioSincronizacionSqlite, bd};
 use rusqlite::{Connection, params};
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use std::path::{Path, PathBuf};
 
 const CUENTA_A: &str = "00000000-0000-4000-8000-000000000010";
 const CUENTA_B: &str = "00000000-0000-4000-8000-000000000011";
+const ESCALA_MONTOS: i64 = 100_000_000; // 10^8
 
 fn d(texto: &str) -> Decimal {
     texto.parse().unwrap()
@@ -57,12 +59,16 @@ impl Entorno {
     }
 
     fn crear_cuenta(&self, id: &str, saldo: &str) {
+        let saldo_escalado = (d(saldo) * Decimal::from(ESCALA_MONTOS))
+            .trunc()
+            .to_i64()
+            .unwrap();
         self.conn
             .execute(
                 "INSERT INTO cuenta
                  (id, nombre, tipo, moneda_codigo, saldo, creada_en, activa)
                  VALUES (?1, 'Cuenta USD', 'Banco', 'USD', ?2, '2026-11-16', 1)",
-                params![id, saldo],
+                params![id, saldo_escalado],
             )
             .unwrap();
     }
@@ -78,7 +84,7 @@ impl Entorno {
     }
 
     fn saldo(&self, cuenta: &str) -> Decimal {
-        let texto: String = self
+        let saldo_raw: i64 = self
             .conn
             .query_row(
                 "SELECT saldo FROM cuenta WHERE id = ?1",
@@ -86,7 +92,7 @@ impl Entorno {
                 |fila| fila.get(0),
             )
             .unwrap();
-        d(&texto)
+        Decimal::new(saldo_raw, 8).normalize()
     }
 
     fn contar(&self, tabla: &str) -> i64 {
@@ -203,7 +209,10 @@ fn cursor_en_cero_no_duplica_movimientos_ni_altera_el_saldo() {
     e.repo.guardar_cursor(0).unwrap();
     for _ in 0..3 {
         let plan = plan_de(&eventos, 2, &e.repo);
-        assert!(plan.movimientos.is_empty(), "Lo ya aplicado no debe repetirse");
+        assert!(
+            plan.movimientos.is_empty(),
+            "Lo ya aplicado no debe repetirse"
+        );
         assert!(e.repo.aplicar_lote_transaccional(&plan).unwrap().is_empty());
     }
 
@@ -244,11 +253,7 @@ fn lote_interrumpido_no_deja_nada_a_medias_y_el_siguiente_lo_completa() {
 
     // El segundo movimiento apunta a una cuenta que no existe en la base:
     // falla a mitad del lote, después de haber procesado el primero.
-    let mut plan = plan_de(
-        &[evento("evento-1", "grupo-viaje", 1, "10.00")],
-        2,
-        &e.repo,
-    );
+    let mut plan = plan_de(&[evento("evento-1", "grupo-viaje", 1, "10.00")], 2, &e.repo);
     let mut segundo = plan.movimientos[0].clone();
     segundo.movimiento.id = uuid::Uuid::new_v4();
     segundo.movimiento.cuenta_id = uuid::Uuid::parse_str(CUENTA_B).unwrap();

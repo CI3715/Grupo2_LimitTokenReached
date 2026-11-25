@@ -19,6 +19,7 @@ const MIGRACIONES: &[&str] = &[
     include_str!("../migrations/010_corregir_direccion_tasas.sql"),
     include_str!("../migrations/011_orden_ajustes.sql"),
     include_str!("../migrations/012_sincronizacion_grupos.sql"),
+    include_str!("../migrations/013_montos_enteros_escalados.sql"),
 ];
 
 pub struct BaseDatos(pub Mutex<Connection>);
@@ -57,7 +58,7 @@ pub fn insertar_evento(
     conn.execute(
         "INSERT INTO eventos (id, tipo, registrado_en, dispositivo, datos)
          VALUES (?1, ?2, ?3, ?4, ?5)",
-        (&id, tipo, &registrado_en, &dispositivo, datos.to_string()),
+        (&id, tipo, registrado_en, &dispositivo, datos.to_string()),
     )?;
     Ok(id)
 }
@@ -75,8 +76,9 @@ pub fn migrar(conn: &mut Connection) -> Result<(), rusqlite::Error> {
 
     for (i, sql) in MIGRACIONES.iter().enumerate().skip(aplicadas as usize) {
         // SQLite solo permite cambiar foreign_keys fuera de una transacción.
-        let es_migracion_008 = i == 7;
-        if es_migracion_008 {
+        // Aplica para 008 (índice 7) y 013 (índice 12), que recrean tablas padre con DROP TABLE.
+        let recrea_tablas = matches!(i, 7 | 12);
+        if recrea_tablas {
             conn.pragma_update(None, "foreign_keys", "OFF")?;
         }
 
@@ -87,7 +89,7 @@ pub fn migrar(conn: &mut Connection) -> Result<(), rusqlite::Error> {
             tx.commit()
         })();
 
-        if es_migracion_008 {
+        if recrea_tablas {
             conn.pragma_update(None, "foreign_keys", "ON")?;
 
             let mut verificacion = conn.prepare("PRAGMA foreign_key_check")?;

@@ -26,18 +26,18 @@ pub async fn ejecutar(
         let mut pendientes = Vec::new();
         for evento in &lote.eventos {
             if !nombres_grupo.contains_key(&evento.grupo_id) {
-    let nombre_grupo = match cliente
-        .obtener_detalle_grupo(evento.grupo_id.clone(), token.clone())
-        .await
-    {
-        Ok(detalle) => Some(detalle.nombre),
-        Err(_) => None,
-    };
-    nombres_grupo.insert(evento.grupo_id.clone(), nombre_grupo);
-}
-let nombre_grupo = nombres_grupo
-    .get(&evento.grupo_id)
-    .and_then(|n| n.as_deref());
+                let nombre_grupo = match cliente
+                    .obtener_detalle_grupo(evento.grupo_id.clone(), token.clone())
+                    .await
+                {
+                    Ok(detalle) => Some(detalle.nombre),
+                    Err(_) => None,
+                };
+                nombres_grupo.insert(evento.grupo_id.clone(), nombre_grupo);
+            }
+            let nombre_grupo = nombres_grupo
+                .get(&evento.grupo_id)
+                .and_then(|n| n.as_deref());
             match preparar_evento(evento, nombre_grupo, repo_sincronizacion, repo_cuentas).map_err(
                 |mensaje| crate::puertos::ErrorOperacion {
                     status: None,
