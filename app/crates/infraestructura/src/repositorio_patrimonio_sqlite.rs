@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use std::sync::Mutex;
 
 use aplicacion::puertos::RepositorioPatrimonio;
@@ -6,6 +5,10 @@ use chrono::NaiveDate;
 use contrato::patrimonio::SaldoCuentaDTO;
 use rusqlite::Connection;
 use rust_decimal::Decimal;
+
+fn escalado_a_decimal(valor: i64) -> Decimal {
+    Decimal::new(valor, 8).normalize()
+}
 
 pub struct RepositorioPatrimonioSqlite {
     conexion: Mutex<Connection>,
@@ -35,7 +38,7 @@ impl RepositorioPatrimonio for RepositorioPatrimonioSqlite {
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
                     row.get::<_, String>(2)?,
-                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(3)?,
                     row.get::<_, String>(4)?,
                 ))
             })
@@ -46,7 +49,7 @@ impl RepositorioPatrimonio for RepositorioPatrimonioSqlite {
 
         let fecha_texto = fecha.to_string();
         let mut saldos = Vec::new();
-        for (id, nombre, moneda, saldo_actual, creada_en) in cuentas {
+        for (id, nombre, moneda, saldo_actual_raw, creada_en) in cuentas {
             if creada_en > fecha_texto {
                 continue;
             }
@@ -55,7 +58,7 @@ impl RepositorioPatrimonio for RepositorioPatrimonioSqlite {
                 &id,
                 &nombre,
                 &moneda,
-                &saldo_actual,
+                saldo_actual_raw,
                 fecha,
             )?);
         }
@@ -69,11 +72,10 @@ fn calcular_saldo(
     cuenta_id: &str,
     nombre: &str,
     moneda: &str,
-    saldo_actual: &str,
+    saldo_actual_raw: i64,
     fecha_consulta: NaiveDate,
 ) -> Result<SaldoCuentaDTO, String> {
-    let saldo_actual = Decimal::from_str(saldo_actual)
-        .map_err(|e| format!("Saldo inválido en la cuenta {cuenta_id}: {e}"))?;
+    let saldo_actual = escalado_a_decimal(saldo_actual_raw);
     let mut actividad_total = Decimal::ZERO;
     let mut actividad_hasta_fecha = Decimal::ZERO;
 
@@ -84,14 +86,14 @@ fn calcular_saldo(
         .query_map([cuenta_id], |row| {
             Ok((
                 row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
+                row.get::<_, i64>(1)?,
                 row.get::<_, String>(2)?,
             ))
         })
         .map_err(|e| e.to_string())?;
     for fila in filas {
-        let (tipo, monto, fecha) = fila.map_err(|e| e.to_string())?;
-        let efecto = efecto(&tipo, &monto)?;
+        let (tipo, monto_raw, fecha) = fila.map_err(|e| e.to_string())?;
+        let efecto = efecto(&tipo, monto_raw)?;
         actividad_total += efecto;
         if parsear_fecha(&fecha)? <= fecha_consulta {
             actividad_hasta_fecha += efecto;
@@ -105,14 +107,14 @@ fn calcular_saldo(
         .query_map([cuenta_id], |row| {
             Ok((
                 row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
+                row.get::<_, i64>(1)?,
                 row.get::<_, String>(2)?,
             ))
         })
         .map_err(|e| e.to_string())?;
     for fila in filas {
-        let (tipo, variacion, fecha) = fila.map_err(|e| e.to_string())?;
-        let efecto = efecto(&tipo, &variacion)?;
+        let (tipo, variacion_raw, fecha) = fila.map_err(|e| e.to_string())?;
+        let efecto = efecto(&tipo, variacion_raw)?;
         actividad_total += efecto;
         if parsear_fecha(&fecha)? <= fecha_consulta {
             actividad_hasta_fecha += efecto;
@@ -130,8 +132,8 @@ fn calcular_saldo(
     })
 }
 
-fn efecto(tipo: &str, monto: &str) -> Result<Decimal, String> {
-    let monto = Decimal::from_str(monto).map_err(|e| format!("Monto inválido: {e}"))?;
+fn efecto(tipo: &str, monto_raw: i64) -> Result<Decimal, String> {
+    let monto = escalado_a_decimal(monto_raw);
     match tipo {
         "Ingreso" => Ok(monto),
         "Gasto" => Ok(-monto),

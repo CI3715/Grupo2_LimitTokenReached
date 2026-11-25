@@ -10,10 +10,12 @@ use contrato::{CuentaGrupoSeleccionDTO, EventoCambioDTO};
 use infraestructura::{RepositorioSincronizacionSqlite, bd};
 use rusqlite::{Connection, params};
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use std::path::{Path, PathBuf};
 
 const CUENTA_A: &str = "00000000-0000-4000-8000-000000000010";
 const CUENTA_B: &str = "00000000-0000-4000-8000-000000000011";
+const ESCALA_MONTOS: i64 = 100_000_000; // 10^8
 
 fn d(texto: &str) -> Decimal {
     texto.parse().unwrap()
@@ -57,12 +59,16 @@ impl Entorno {
     }
 
     fn crear_cuenta(&self, id: &str, saldo: &str) {
+        let saldo_escalado = (d(saldo) * Decimal::from(ESCALA_MONTOS))
+            .trunc()
+            .to_i64()
+            .unwrap();
         self.conn
             .execute(
                 "INSERT INTO cuenta
                  (id, nombre, tipo, moneda_codigo, saldo, creada_en, activa)
                  VALUES (?1, 'Cuenta USD', 'Banco', 'USD', ?2, '2026-11-16', 1)",
-                params![id, saldo],
+                params![id, saldo_escalado],
             )
             .unwrap();
     }
@@ -78,7 +84,7 @@ impl Entorno {
     }
 
     fn saldo(&self, cuenta: &str) -> Decimal {
-        let texto: String = self
+        let saldo_raw: i64 = self
             .conn
             .query_row(
                 "SELECT saldo FROM cuenta WHERE id = ?1",
@@ -86,7 +92,7 @@ impl Entorno {
                 |fila| fila.get(0),
             )
             .unwrap();
-        d(&texto)
+        Decimal::new(saldo_raw, 8).normalize()
     }
 
     fn contar(&self, tabla: &str) -> i64 {

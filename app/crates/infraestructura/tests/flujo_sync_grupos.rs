@@ -27,7 +27,7 @@ fn flujo_general_sync_grupos_aplica_sin_duplicar_cursor_y_cola() {
     conn.execute(
         "INSERT INTO cuenta
          (id, nombre, tipo, moneda_codigo, saldo, creada_en, activa)
-         VALUES ('00000000-0000-4000-8000-000000000010', 'Cuenta USD', 'Banco', 'USD', '100.00',
+         VALUES ('00000000-0000-4000-8000-000000000010', 'Cuenta USD', 'Banco', 'USD', 10000000000,
                  '2026-11-16', 1)",
         [],
     )
@@ -100,14 +100,18 @@ fn flujo_general_sync_grupos_aplica_sin_duplicar_cursor_y_cola() {
     let segundo = repo_sync.aplicar_lote_transaccional(&plan).unwrap();
     assert!(segundo.is_empty());
 
-    let saldo: String = conn
+    let saldo_escalado: i64 = conn
         .query_row(
             "SELECT saldo FROM cuenta WHERE id = '00000000-0000-4000-8000-000000000010'",
             [],
             |row| row.get(0),
         )
         .unwrap();
-    assert_eq!(saldo.parse::<Decimal>().unwrap(), Decimal::new(6666, 2));
+    assert_eq!(saldo_escalado, 6_666_000_000);
+    assert_eq!(
+        Decimal::new(saldo_escalado, 8).normalize(),
+        Decimal::new(6666, 2)
+    );
 
     repo_cola
         .guardar_pendiente(&OperacionGastoOfflineDTO {

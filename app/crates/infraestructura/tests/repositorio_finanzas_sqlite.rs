@@ -38,16 +38,16 @@ fn consulta_saldo_historico_aplica_movimientos_y_ajustes_por_fecha() {
     let conn = conexion_migrada();
     conn.execute(
         "INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo, creada_en)
-         VALUES ('cuenta-1', 'Ahorros', 'Banco', 'USD', '135.00', '2026-01-01')",
+         VALUES ('cuenta-1', 'Ahorros', 'Banco', 'USD', 13500000000, '2026-01-01')",
         [],
     )
     .unwrap();
     conn.execute(
         "INSERT INTO movimiento (id, cuenta_id, tipo, monto, fecha, categoria_id)
          VALUES
-            ('mov-ingreso', 'cuenta-1', 'Ingreso', '50.00', '2026-01-05',
+            ('mov-ingreso', 'cuenta-1', 'Ingreso', 5000000000, '2026-01-05',
              '00000000-0000-0000-0000-000000000008'),
-            ('mov-gasto', 'cuenta-1', 'Gasto', '20.00', '2026-01-07',
+            ('mov-gasto', 'cuenta-1', 'Gasto', 2000000000, '2026-01-07',
              '00000000-0000-0000-0000-000000000001')",
         [],
     )
@@ -55,13 +55,13 @@ fn consulta_saldo_historico_aplica_movimientos_y_ajustes_por_fecha() {
     conn.execute(
         "INSERT INTO ajuste
              (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto, fecha)
-         VALUES ('ajuste-1', 'mov-gasto', 'cuenta-1', 'Gasto', '-5.00', '2026-01-10')",
+         VALUES ('ajuste-1', 'mov-gasto', 'cuenta-1', 'Gasto', -500000000, '2026-01-10')",
         [],
     )
     .unwrap();
     conn.execute(
         "INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo, creada_en)
-         VALUES ('cuenta-futura', 'Futura', 'Banco', 'USD', '10.00', '2026-02-01')",
+         VALUES ('cuenta-futura', 'Futura', 'Banco', 'USD', 1000000000, '2026-02-01')",
         [],
     )
     .unwrap();

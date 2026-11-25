@@ -27,7 +27,7 @@ fn crear_repositorio() -> RepositorioMovimientosSqlite {
                 "Cuenta de prueba",
                 "Efectivo",
                 "USD",
-                "100.00",
+                10_000_000_000_i64,
             ],
         )
         .expect("No se pudo crear la cuenta de prueba");
@@ -36,22 +36,17 @@ fn crear_repositorio() -> RepositorioMovimientosSqlite {
 }
 
 fn consultar_saldo(repo: &RepositorioMovimientosSqlite, cuenta_id: &Uuid) -> Decimal {
-    let conexion = repo
-        .conexion
-        .lock()
-        .expect("No se pudo bloquear la conexión");
-
-    let saldo: String = conexion
+    let conn = repo.conexion.lock().unwrap();
+    let saldo_raw: i64 = conn
         .query_row(
             "SELECT saldo FROM cuenta WHERE id = ?1",
-            params![cuenta_id.to_string()],
-            |fila| fila.get(0),
+            rusqlite::params![cuenta_id.to_string()],
+            |row| row.get(0),
         )
-        .expect("No se pudo consultar el saldo");
+        .map_err(|e| format!("No se pudo consultar el saldo: {e}"))
+        .unwrap();
 
-    saldo
-        .parse::<Decimal>()
-        .expect("El saldo almacenado no es un decimal válido")
+    Decimal::new(saldo_raw, 8).normalize()
 }
 
 #[test]
