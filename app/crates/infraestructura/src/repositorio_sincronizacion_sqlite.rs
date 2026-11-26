@@ -286,8 +286,19 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 "categoria_id": categoria_id,
                 "nota": concepto_movimiento,
             });
-            crate::bd::insertar_evento(&tx, "MovimientoRegistrado", &datos_movimiento)
-                .map_err(|error| error.to_string())?;
+            let id_evento_movimiento =
+                aplicacion::casos_uso::aplicar_eventos_grupo::id_evento_movimiento_desde_servidor(
+                    &evento.id_evento,
+                );
+            crate::bd::insertar_evento_con_id(
+                &tx,
+                &id_evento_movimiento,
+                "MovimientoRegistrado",
+                &evento.fecha,
+                "servidor",
+                &datos_movimiento,
+            )
+            .map_err(|error| error.to_string())?;
 
             let datos_aplicado = json!({
                 "id_evento": evento.id_evento,
@@ -295,8 +306,19 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 "grupo_id": evento.grupo_id,
                 "gasto_id": evento.gasto_id,
             });
-            crate::bd::insertar_evento(&tx, "GastoDeGrupoAplicado", &datos_aplicado)
-                .map_err(|error| error.to_string())?;
+            let id_evento_aplicado =
+                aplicacion::casos_uso::aplicar_eventos_grupo::id_evento_aplicado_desde_servidor(
+                    &evento.id_evento,
+                );
+            crate::bd::insertar_evento_con_id(
+                &tx,
+                &id_evento_aplicado,
+                "GastoDeGrupoAplicado",
+                &evento.fecha,
+                "servidor",
+                &datos_aplicado,
+            )
+            .map_err(|error| error.to_string())?;
 
             tx.execute(
                 "INSERT INTO movimiento_grupo

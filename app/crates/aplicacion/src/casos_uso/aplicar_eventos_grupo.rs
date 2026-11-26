@@ -9,6 +9,38 @@ use crate::puertos::{RepositorioCuentas, RepositorioSincronizacion};
 use contrato::EventoCambioDTO;
 use dominio::movimiento::{Movimiento, TipoMovimiento};
 
+/// Espacio de nombres fijo de Cuentas Claras para derivar UUID v5 determinísticos.
+const NAMESPACE_CUENTAS_CLARAS: Uuid = Uuid::from_bytes([
+    0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1,
+    0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8,
+]);
+
+/// Genera un `movimiento.id` determinístico a partir del `id_evento` del servidor.
+pub fn id_movimiento_desde_evento_servidor(id_evento_servidor: &str) -> Uuid {
+    Uuid::new_v5(
+        &NAMESPACE_CUENTAS_CLARAS,
+        format!("movimiento-grupo:{id_evento_servidor}").as_bytes(),
+    )
+}
+
+/// Genera un `event_id` determinístico para `MovimientoRegistrado` derivado de un grupo.
+pub fn id_evento_movimiento_desde_servidor(id_evento_servidor: &str) -> String {
+    Uuid::new_v5(
+        &NAMESPACE_CUENTAS_CLARAS,
+        format!("MovimientoRegistrado:{id_evento_servidor}").as_bytes(),
+    )
+    .to_string()
+}
+
+/// Genera un `event_id` determinístico para `GastoDeGrupoAplicado` a partir del `id_evento` del servidor.
+pub fn id_evento_aplicado_desde_servidor(id_evento_servidor: &str) -> String {
+    Uuid::new_v5(
+        &NAMESPACE_CUENTAS_CLARAS,
+        format!("GastoDeGrupoAplicado:{id_evento_servidor}").as_bytes(),
+    )
+    .to_string()
+}
+
 pub enum ResultadoPreparacion {
     YaAplicado,
     Pendiente(EventoGrupoPreparado),
@@ -64,7 +96,7 @@ pub fn preparar_evento(
         .map_err(|_| "La categoría de gastos de grupo no es válida.".to_string())?;
 
     let movimiento = Movimiento {
-        id: Uuid::new_v4(),
+        id: id_movimiento_desde_evento_servidor(&evento.id_evento),
         cuenta_id: Uuid::parse_str(&cuenta.id)
             .map_err(|_| "La cuenta seleccionada no tiene un ID válido.".to_string())?,
         tipo: TipoMovimiento::Gasto,
