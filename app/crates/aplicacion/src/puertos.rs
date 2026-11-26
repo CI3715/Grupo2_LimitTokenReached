@@ -6,6 +6,7 @@ use contrato::movimiento::MovimientoDTO;
 use contrato::patrimonio::SaldoCuentaDTO;
 use contrato::tasa::{RegistrarTasaRequest, TasaDTO};
 use dominio::categoria::Categoria;
+use dominio::libro::{EventoLibro, EventoRechazado, ResumenFusion};
 use dominio::movimiento::Movimiento;
 use std::future::Future;
 use std::pin::Pin;
@@ -258,6 +259,60 @@ pub trait RepositorioColaGastos: Send + Sync {
 
     fn eliminar(&self, idempotency_key: &str) -> Result<(), String>;
 }
+
+// =========================================================================
+// Puertos Entrega 8: Motor de Eventos, Fusión, Serialización y Cifrado
+// =========================================================================
+
+/// Resultado de leer y validar un archivo de exportación en formato plano (NDJSON).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LibroDeserializado {
+    pub device_id_origen: String,
+    pub exportado_en: String,
+    pub eventos: Vec<EventoLibro>,
+    pub lineas_invalidas: Vec<EventoRechazado>,
+}
+
+/// Puerto de almacenamiento del libro de eventos inmutables y reconstrucción de saldos.
+pub trait RepositorioEventos: Send + Sync {
+    /// Devuelve el UUID único de esta instalación.
+    fn obtener_device_id(&self) -> Result<String, String>;
+
+    /// Devuelve todos los eventos del libro ordenados por `(registrado_en, dispositivo, id)`.
+    fn listar_eventos_ordenados(&self) -> Result<Vec<EventoLibro>, String>;
+
+    /// Ejecuta la unión de conjuntos por `id` dentro de una única transacción SQLite:
+    /// ignora idénticos, rechaza con motivo los conflictivos sin abortar el lote
+    /// y reconstruye las proyecciones/saldos si hubo inserciones.
+    fn fusionar_lote_transaccional(
+        &self,
+        eventos: &[EventoLibro],
+    ) -> Result<ResumenFusion, String>;
+
+    /// Recalcula todas las proyecciones (cuentas, movimientos, ajustes, tasas)
+    /// recorriendo los eventos en orden determinista `(registrado_en, dispositivo, id)`.
+    fn reconstruir_proyecciones_desde_eventos(&self) -> Result<(), String>;
+}
+
+/// Puerto para lectura/escritura del formato plano (1 línea cabecera + 1 evento por línea),
+/// filtrando cualquier credencial o token de sesión.
+pub trait SerializadorLibro: Send + Sync {
+    fn serializar_plano(
+        &self,
+        device_id: &str,
+        exportado_en: &str,
+        eventos: &[EventoLibro],
+    ) -> Result<Vec<u8>, String>;
+
+    fn deserializar_plano(&self, contenido: &[u8]) -> Result<LibroDeserializado, String>;
+}
+
+/// Puerto criptográfico para derivación Argon2id y cifrado autenticado (AES-256-GCM / XChaCha20-Poly1305).
+pub trait CifradorRespaldo: Send + Sync {
+    fn cifrar(&self, datos_planos: &[u8], frase_paso: &str) -> Result<Vec<u8>, String>;
+    fn descifrar(&self, paquete_cifrado: &[u8], frase_paso: &str) -> Result<Vec<u8>, String>;
+}
+
 // Adaptadores Fake
 
 #[cfg(test)]

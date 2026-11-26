@@ -3,3 +3,4 @@ pub mod errores;
 pub mod movimiento;
 pub mod saldo;
 pub mod tasas;
+pub mod libro;
