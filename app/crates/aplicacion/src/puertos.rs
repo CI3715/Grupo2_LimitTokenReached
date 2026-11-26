@@ -273,6 +273,15 @@ pub struct LibroDeserializado {
     pub lineas_invalidas: Vec<EventoRechazado>,
 }
 
+/// Resultado de comprobar la consistencia entre el historial de eventos y los saldos actuales.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReporteIntegridad {
+    pub integro: bool,
+    pub total_eventos_verificados: usize,
+    pub cuentas_verificadas: usize,
+    pub discrepancias: Vec<String>,
+}
+
 /// Puerto de almacenamiento del libro de eventos inmutables y reconstrucción de saldos.
 pub trait RepositorioEventos: Send + Sync {
     /// Devuelve el UUID único de esta instalación.
@@ -292,6 +301,10 @@ pub trait RepositorioEventos: Send + Sync {
     /// Recalcula todas las proyecciones (cuentas, movimientos, ajustes, tasas)
     /// recorriendo los eventos en orden determinista `(registrado_en, dispositivo, id)`.
     fn reconstruir_proyecciones_desde_eventos(&self) -> Result<(), String>;
+
+    /// Comprueba en memoria que los eventos sean consistentes y coincidan con los saldos
+    /// actuales en SQLite sin modificar ningún dato
+    fn verificar_integridad(&self) -> Result<ReporteIntegridad, String>;
 }
 
 /// Puerto para lectura/escritura del formato plano (1 línea cabecera + 1 evento por línea),

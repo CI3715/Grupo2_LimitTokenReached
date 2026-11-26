@@ -19,3 +19,7 @@ pub mod registrar_tasa;
 pub mod sincronizar_cambios;
 pub mod social;
 pub mod verificar_conexion;
+pub mod exportar_respaldo_cifrado;
+pub mod importar_respaldo_cifrado;
+pub mod sincronizar_carpeta_libro;
+pub mod verificar_integridad_libro;

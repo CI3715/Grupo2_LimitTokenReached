@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Mutex;
 
-use aplicacion::puertos::RepositorioEventos;
+use aplicacion::puertos::{RepositorioEventos, ReporteIntegridad};
 use dominio::libro::{EventoLibro, EventoRechazado, ResumenFusion, evaluar_fusion_lote};
 use rusqlite::{Connection, Transaction, params};
 use rust_decimal::Decimal;
@@ -367,5 +367,137 @@ impl RepositorioEventos for RepositorioEventosSqlite {
         let tx = conn.transaction().map_err(|e| e.to_string())?;
         Self::reconstruir_en_tx(&tx)?;
         tx.commit().map_err(|e| e.to_string())
+    }
+
+
+    fn verificar_integridad(&self) -> Result<aplicacion::puertos::ReporteIntegridad, String> {
+        let conn = self.conexion.lock().map_err(|e| e.to_string())?;
+        let eventos = Self::leer_eventos_ordenados_tx(&conn)?;
+
+        let mut saldos_esperados: HashMap<String, i64> = HashMap::new();
+        let mut nombres_cuenta: HashMap<String, String> = HashMap::new();
+        let mut cuenta_por_movimiento: HashMap<String, String> = HashMap::new();
+        let mut discrepancias = Vec::new();
+
+        for ev in &eventos {
+            let datos: Value = match serde_json::from_str(&ev.datos_canonicos) {
+                Ok(v) => v,
+                Err(e) => {
+                    discrepancias.push(format!("Evento {} con JSON inválido: {e}", ev.id));
+                    continue;
+                }
+            };
+
+            match ev.tipo.as_str() {
+                "CuentaCreada" => {
+                    let id = datos["id"].as_str().unwrap_or(&ev.id).to_string();
+                    let nombre = datos["nombre"].as_str().unwrap_or(&id).to_string();
+                    let saldo_str = datos["saldo_inicial"]
+                        .as_str()
+                        .or_else(|| datos["saldo"].as_str())
+                        .unwrap_or("0");
+                    match decimal_str_a_escalado(saldo_str) {
+                        Ok(s) => {
+                            saldos_esperados.insert(id.clone(), s);
+                            nombres_cuenta.insert(id, nombre);
+                        }
+                        Err(e) => discrepancias.push(format!("Evento {}: {e}", ev.id)),
+                    }
+                }
+                "MovimientoRegistrado" => {
+                    if let (Some(mov_id), Some(cta_id), Some(tipo), Some(monto_str)) = (
+                        datos["id"].as_str(),
+                        datos["cuenta_id"].as_str(),
+                        datos["tipo"].as_str(),
+                        datos["monto"].as_str(),
+                    ) {
+                        match decimal_str_a_escalado(monto_str) {
+                            Ok(monto) => {
+                                let delta = if tipo.eq_ignore_ascii_case("Ingreso") {
+                                    monto
+                                } else {
+                                    -monto
+                                };
+                                *saldos_esperados.entry(cta_id.to_string()).or_insert(0) += delta;
+                                cuenta_por_movimiento
+                                    .insert(mov_id.to_string(), cta_id.to_string());
+                            }
+                            Err(e) => discrepancias.push(format!("Evento {}: {e}", ev.id)),
+                        }
+                    } else {
+                        discrepancias.push(format!(
+                            "MovimientoRegistrado {} tiene campos incompletos",
+                            ev.id
+                        ));
+                    }
+                }
+                "MovimientoCorregido" => {
+                    if let (Some(mov_id), Some(var_str)) = (
+                        datos["movimiento_id"].as_str(),
+                        datos["variacion_monto"].as_str(),
+                    ) {
+                        match (
+                            cuenta_por_movimiento.get(mov_id),
+                            decimal_str_a_escalado(var_str),
+                        ) {
+                            (Some(cta_id), Ok(variacion)) => {
+                                *saldos_esperados.entry(cta_id.clone()).or_insert(0) += variacion;
+                            }
+                            (None, _) => discrepancias.push(format!(
+                                "Ajuste {} referencia movimiento inexistente {}",
+                                ev.id, mov_id
+                            )),
+                            (_, Err(e)) => discrepancias.push(format!("Evento {}: {e}", ev.id)),
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        let mut stmt = conn
+            .prepare("SELECT id, nombre, saldo FROM cuenta")
+            .map_err(|e| e.to_string())?;
+        let filas = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut cuentas_bd: HashMap<String, (String, i64)> = HashMap::new();
+        for fila in filas {
+            let (id, nombre, saldo) = fila.map_err(|e| e.to_string())?;
+            cuentas_bd.insert(id, (nombre, saldo));
+        }
+
+        for (id, saldo_evento) in &saldos_esperados {
+            match cuentas_bd.get(id) {
+                Some((nombre, saldo_actual)) if saldo_actual != saldo_evento => {
+                    discrepancias.push(format!(
+                        "Saldo inconsistente en cuenta '{}' ({}): en SQLite es {} pero los eventos suman {}",
+                        nombre, id, saldo_actual, saldo_evento
+                    ));
+                }
+                None => {
+                    let nombre = nombres_cuenta.get(id).map(String::as_str).unwrap_or(id);
+                    discrepancias.push(format!(
+                        "La cuenta '{}' ({}) existe en los eventos pero falta en la proyección",
+                        nombre, id
+                    ));
+                }
+                _ => {}
+            }
+        }
+
+        Ok(aplicacion::puertos::ReporteIntegridad {
+            integro: discrepancias.is_empty(),
+            total_eventos_verificados: eventos.len(),
+            cuentas_verificadas: cuentas_bd.len(),
+            discrepancias,
+        })
     }
 }
