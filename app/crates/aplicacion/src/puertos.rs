@@ -264,13 +264,28 @@ pub trait RepositorioColaGastos: Send + Sync {
 // Puertos Entrega 8: Motor de Eventos, Fusión, Serialización y Cifrado
 // =========================================================================
 
-/// Resultado de leer y validar un archivo de exportación en formato plano (NDJSON).
+/// Identificador en claro del archivo cifrado. No revela ningún dato del libro.
+pub const MAGIA_RESPALDO_CIFRADO: &str = "CUENTASCLARAS-BACKUP";
+
+/// Resultado de leer y validar un archivo de exportación en formato plano.
+///
+/// Un archivo con cualquier línea inválida se rechaza completo; los conflictos
+/// por ID repetido se informan después, durante la fusión.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibroDeserializado {
-    pub device_id_origen: String,
+    pub version: String,
     pub exportado_en: String,
     pub eventos: Vec<EventoLibro>,
-    pub lineas_invalidas: Vec<EventoRechazado>,
+}
+
+/// Resultado de una sincronización con una carpeta compartida.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ReporteSincronizacionLibro {
+    pub eventos_enviados: usize,
+    pub eventos_recibidos: usize,
+    pub eventos_ya_existentes: usize,
+    pub rechazados: Vec<EventoRechazado>,
+    pub fecha_ultima_sincronizacion: String,
 }
 
 /// Resultado de comprobar la consistencia entre el historial de eventos y los saldos actuales.
@@ -293,10 +308,8 @@ pub trait RepositorioEventos: Send + Sync {
     /// Ejecuta la unión de conjuntos por `id` dentro de una única transacción SQLite:
     /// ignora idénticos, rechaza con motivo los conflictivos sin abortar el lote
     /// y reconstruye las proyecciones/saldos si hubo inserciones.
-    fn fusionar_lote_transaccional(
-        &self,
-        eventos: &[EventoLibro],
-    ) -> Result<ResumenFusion, String>;
+    fn fusionar_lote_transaccional(&self, eventos: &[EventoLibro])
+    -> Result<ResumenFusion, String>;
 
     /// Recalcula todas las proyecciones (cuentas, movimientos, ajustes, tasas)
     /// recorriendo los eventos en orden determinista `(registrado_en, dispositivo, id)`.
@@ -307,7 +320,7 @@ pub trait RepositorioEventos: Send + Sync {
     fn verificar_integridad(&self) -> Result<ReporteIntegridad, String>;
 }
 
-/// Puerto para lectura/escritura del formato plano (1 línea cabecera + 1 evento por línea),
+/// Puerto para lectura/escritura del formato plano (cabecera de 3 líneas + 1 evento por línea),
 /// filtrando cualquier credencial o token de sesión.
 pub trait SerializadorLibro: Send + Sync {
     fn serializar_plano(

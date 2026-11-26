@@ -7,7 +7,7 @@ mod tests {
     #[test]
     fn encabezado_exportacion_registra_version_y_cantidad() {
         let encabezado = EncabezadoExportacionDTO {
-            version_formato: "1.0.0".to_string(),
+            version_formato: "1.0".to_string(),
             fecha_exportacion: "2026-11-25T10:00:00Z".to_string(),
             cantidad_eventos: 42,
         };
@@ -15,7 +15,7 @@ mod tests {
         // se verifica que el encabezado contiene la metadata exacta que nos exigen
         // esto permite que herramientas externas lean el archivo y reconstruyan los saldos
         // sin depender de la aplicacion
-        assert_eq!(encabezado.version_formato, "1.0.0");
+        assert_eq!(encabezado.version_formato, "1.0");
         assert_eq!(encabezado.cantidad_eventos, 42);
     }
 

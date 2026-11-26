@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Mutex;
 
-use aplicacion::puertos::{RepositorioEventos, ReporteIntegridad};
+use aplicacion::puertos::{ReporteIntegridad, RepositorioEventos};
 use dominio::libro::{EventoLibro, EventoRechazado, ResumenFusion, evaluar_fusion_lote};
 use rusqlite::{Connection, Transaction, params};
 use rust_decimal::Decimal;
@@ -116,15 +116,112 @@ impl RepositorioEventosSqlite {
         tx.execute("DELETE FROM cuenta", [])
             .map_err(|e| e.to_string())?;
 
+        // Los catálogos sembrados por las migraciones (monedas, categorías y
+        // tasas iniciales) no se borran: los eventos solo los complementan o
+        // sobrescriben por identificador. Así una fusión no vacía el catálogo.
+        // 1. Catálogos primero: monedas y categorías deben existir antes de
+        //    proyectar tasas, cuentas y movimientos que las referencian.
+        let mut eventos_tasa: Vec<(&EventoLibro, Value)> = Vec::new();
+        for ev in &eventos {
+            let datos: Value = serde_json::from_str(&ev.datos_canonicos)
+                .map_err(|e| format!("Evento {} corrupto: {e}", ev.id))?;
+
+            match ev.tipo.as_str() {
+                "MonedaCreada" => {
+                    if let (Some(codigo), Some(nombre), Some(simbolo), Some(decimales)) = (
+                        datos["codigo"].as_str(),
+                        datos["nombre"].as_str(),
+                        datos["simbolo"].as_str(),
+                        datos["decimales"].as_i64(),
+                    ) {
+                        tx.execute(
+                            "INSERT OR REPLACE INTO moneda (codigo, nombre, simbolo, decimales)
+                             VALUES (?1, ?2, ?3, ?4)",
+                            params![codigo, nombre, simbolo, decimales],
+                        )
+                        .map_err(|e| format!("Error proyectando MonedaCreada {}: {e}", ev.id))?;
+                    }
+                }
+                "MonedaEliminada" => {
+                    if let Some(codigo) = datos["codigo"].as_str() {
+                        tx.execute("DELETE FROM moneda WHERE codigo = ?1", params![codigo])
+                            .map_err(|e| {
+                                format!("Error proyectando MonedaEliminada {}: {e}", ev.id)
+                            })?;
+                    }
+                }
+                "CategoriaCreada" => {
+                    if let (Some(id), Some(nombre), Some(tipo)) = (
+                        datos["id"].as_str(),
+                        datos["nombre"].as_str(),
+                        datos["tipo"].as_str(),
+                    ) {
+                        tx.execute(
+                            "INSERT OR REPLACE INTO categoria (id, nombre, tipo, archivada)
+                             VALUES (?1, ?2, ?3, 0)",
+                            params![id, nombre, tipo],
+                        )
+                        .map_err(|e| format!("Error proyectando CategoriaCreada {}: {e}", ev.id))?;
+                    }
+                }
+                "TasaRegistrada" | "TasaEliminada" => {
+                    eventos_tasa.push((ev, datos));
+                }
+                _ => {}
+            }
+        }
+
+        for (ev, datos) in eventos_tasa {
+            let tasa_id = datos["tasa_id"]
+                .as_str()
+                .ok_or_else(|| format!("{} {} sin tasa_id", ev.tipo, ev.id))?
+                .parse::<i64>()
+                .map_err(|_| format!("{} {} con tasa_id inválido", ev.tipo, ev.id))?;
+            match ev.tipo.as_str() {
+                "TasaRegistrada" => {
+                    let entrada = datos["moneda_origen"]
+                        .as_str()
+                        .ok_or_else(|| format!("TasaRegistrada {} sin moneda_origen", ev.id))?;
+                    let salida = datos["moneda_destino"]
+                        .as_str()
+                        .ok_or_else(|| format!("TasaRegistrada {} sin moneda_destino", ev.id))?;
+                    let valor = datos["valor"]
+                        .as_str()
+                        .ok_or_else(|| format!("TasaRegistrada {} sin valor", ev.id))?;
+                    let fecha = datos["fecha"]
+                        .as_str()
+                        .ok_or_else(|| format!("TasaRegistrada {} sin fecha", ev.id))?;
+                    let fuente = datos["fuente"]
+                        .as_str()
+                        .ok_or_else(|| format!("TasaRegistrada {} sin fuente", ev.id))?;
+
+                    tx.execute(
+                        "INSERT OR REPLACE INTO tasas
+                         (tasa_id, moneda_entrada, moneda_salida, valor, fecha, fuente, eliminada)
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0)",
+                        params![tasa_id, entrada, salida, valor, fecha, fuente],
+                    )
+                    .map_err(|e| format!("Error proyectando TasaRegistrada {}: {e}", ev.id))?;
+                }
+                "TasaEliminada" => {
+                    tx.execute(
+                        "UPDATE tasas SET eliminada = 1 WHERE tasa_id = ?1",
+                        params![tasa_id],
+                    )
+                    .map_err(|e| format!("Error proyectando TasaEliminada {}: {e}", ev.id))?;
+                }
+                _ => {}
+            }
+        }
+
+        // 2. Cuentas, movimientos, ajustes y gastos de grupo.
         for ev in &eventos {
             let datos: Value = serde_json::from_str(&ev.datos_canonicos)
                 .map_err(|e| format!("Evento {} corrupto: {e}", ev.id))?;
 
             match ev.tipo.as_str() {
                 "CuentaCreada" => {
-                    let id = datos["id"]
-                        .as_str()
-                        .unwrap_or(&ev.id);
+                    let id = datos["id"].as_str().unwrap_or(&ev.id);
                     let nombre = datos["nombre"]
                         .as_str()
                         .ok_or_else(|| format!("CuentaCreada {} sin nombre", ev.id))?;
@@ -137,9 +234,7 @@ impl RepositorioEventosSqlite {
                         .or_else(|| datos["saldo"].as_str())
                         .unwrap_or("0");
                     let saldo_escalado = decimal_str_a_escalado(saldo_str)?;
-                    let creada_en = datos["creada_en"]
-                        .as_str()
-                        .unwrap_or(&ev.registrado_en);
+                    let creada_en = datos["creada_en"].as_str().unwrap_or(&ev.registrado_en);
 
                     tx.execute(
                         "INSERT OR REPLACE INTO cuenta
@@ -183,9 +278,7 @@ impl RepositorioEventosSqlite {
                         .as_str()
                         .ok_or_else(|| format!("MovimientoRegistrado {} sin monto", ev.id))?;
                     let monto_escalado = decimal_str_a_escalado(monto_str)?;
-                    let fecha = datos["fecha"]
-                        .as_str()
-                        .unwrap_or(&ev.registrado_en);
+                    let fecha = datos["fecha"].as_str().unwrap_or(&ev.registrado_en);
                     let categoria_id = datos["categoria_id"]
                         .as_str()
                         .unwrap_or("00000000-0000-0000-0000-000000000001");
@@ -195,9 +288,19 @@ impl RepositorioEventosSqlite {
                         "INSERT INTO movimiento
                          (id, cuenta_id, tipo, monto, fecha, categoria_id, nota)
                          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                        params![id, cuenta_id, tipo, monto_escalado, fecha, categoria_id, nota],
+                        params![
+                            id,
+                            cuenta_id,
+                            tipo,
+                            monto_escalado,
+                            fecha,
+                            categoria_id,
+                            nota
+                        ],
                     )
-                    .map_err(|e| format!("Error proyectando MovimientoRegistrado {}: {e}", ev.id))?;
+                    .map_err(|e| {
+                        format!("Error proyectando MovimientoRegistrado {}: {e}", ev.id)
+                    })?;
 
                     let delta = if tipo.eq_ignore_ascii_case("Ingreso") {
                         monto_escalado
@@ -214,17 +317,16 @@ impl RepositorioEventosSqlite {
 
                 "MovimientoCorregido" => {
                     let id = datos["id"].as_str().unwrap_or(&ev.id);
-                    let movimiento_id = datos["movimiento_id"]
-                        .as_str()
-                        .ok_or_else(|| format!("MovimientoCorregido {} sin movimiento_id", ev.id))?;
-                    let variacion_str = datos["variacion_monto"]
-                        .as_str()
-                        .ok_or_else(|| format!("MovimientoCorregido {} sin variacion_monto", ev.id))?;
+                    let movimiento_id = datos["movimiento_id"].as_str().ok_or_else(|| {
+                        format!("MovimientoCorregido {} sin movimiento_id", ev.id)
+                    })?;
+                    let variacion_str = datos["variacion_monto"].as_str().ok_or_else(|| {
+                        format!("MovimientoCorregido {} sin variacion_monto", ev.id)
+                    })?;
                     let variacion_escalada = decimal_str_a_escalado(variacion_str)?;
                     let motivo = datos["motivo"].as_str().unwrap_or("");
-                    let registrado_en = datos["registrado_en"]
-                        .as_str()
-                        .unwrap_or(&ev.registrado_en);
+                    let registrado_en =
+                        datos["registrado_en"].as_str().unwrap_or(&ev.registrado_en);
 
                     tx.execute(
                         "INSERT INTO ajuste
@@ -271,8 +373,8 @@ impl RepositorioEventosSqlite {
                     }
                 }
 
-                // Eventos de catálogo/tasas o tipos futuros desconocidos se preservan
-                // en la tabla `eventos` sin romper la reconstrucción.
+                // Los tipos futuros desconocidos se conservan en `eventos` sin
+                // romper la reconstrucción de las proyecciones conocidas.
                 _ => {}
             }
         }
@@ -301,7 +403,8 @@ impl RepositorioEventos for RepositorioEventosSqlite {
 
         // 1. Cargar eventos existentes indexados por `id`
         let existentes_lista = Self::leer_eventos_ordenados_tx(&tx)?;
-        let mut existentes_mapa: HashMap<String, EventoLibro> = HashMap::with_capacity(existentes_lista.len());
+        let mut existentes_mapa: HashMap<String, EventoLibro> =
+            HashMap::with_capacity(existentes_lista.len());
         for ev in existentes_lista {
             existentes_mapa.insert(ev.id.clone(), ev);
         }
@@ -311,10 +414,15 @@ impl RepositorioEventos for RepositorioEventosSqlite {
         let mut rechazos_previos = Vec::new();
 
         for ev in eventos {
-            if ev.id.trim().is_empty() || ev.tipo.trim().is_empty() || ev.registrado_en.trim().is_empty() {
+            if ev.id.trim().is_empty()
+                || ev.tipo.trim().is_empty()
+                || ev.registrado_en.trim().is_empty()
+            {
                 rechazos_previos.push(EventoRechazado {
                     id: ev.id.clone(),
-                    motivo: "Evento inválido: faltan campos obligatorios (id, tipo o registrado_en)".to_string(),
+                    motivo:
+                        "Evento inválido: faltan campos obligatorios (id, tipo o registrado_en)"
+                            .to_string(),
                 });
                 continue;
             }
@@ -369,8 +477,7 @@ impl RepositorioEventos for RepositorioEventosSqlite {
         tx.commit().map_err(|e| e.to_string())
     }
 
-
-    fn verificar_integridad(&self) -> Result<aplicacion::puertos::ReporteIntegridad, String> {
+    fn verificar_integridad(&self) -> Result<ReporteIntegridad, String> {
         let conn = self.conexion.lock().map_err(|e| e.to_string())?;
         let eventos = Self::leer_eventos_ordenados_tx(&conn)?;
 
@@ -493,11 +600,67 @@ impl RepositorioEventos for RepositorioEventosSqlite {
             }
         }
 
-        Ok(aplicacion::puertos::ReporteIntegridad {
+        Ok(ReporteIntegridad {
             integro: discrepancias.is_empty(),
             total_eventos_verificados: eventos.len(),
             cuentas_verificadas: cuentas_bd.len(),
             discrepancias,
         })
+    }
+}
+
+#[cfg(test)]
+mod pruebas {
+    use super::*;
+    use crate::bd::migrar;
+    use rusqlite::Connection;
+    use serde_json::json;
+
+    #[test]
+    fn reconstruye_tasas_registradas_y_eliminadas_desde_eventos() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        migrar(&mut conn).unwrap();
+
+        crate::bd::insertar_evento_con_id(
+            &conn,
+            "ev-tasa-alta",
+            "TasaRegistrada",
+            "2026-11-20T10:00:00Z",
+            "servidor",
+            &json!({
+                "tasa_id": "99",
+                "moneda_origen": "VES",
+                "moneda_destino": "USD",
+                "valor": "887.96",
+                "fecha": "2026-11-20",
+                "fuente": "QA"
+            }),
+        )
+        .unwrap();
+        crate::bd::insertar_evento_con_id(
+            &conn,
+            "ev-tasa-baja",
+            "TasaEliminada",
+            "2026-11-21T10:00:00Z",
+            "servidor",
+            &json!({ "tasa_id": "99" }),
+        )
+        .unwrap();
+
+        let repositorio = RepositorioEventosSqlite::new(conn);
+        repositorio
+            .reconstruir_proyecciones_desde_eventos()
+            .unwrap();
+
+        let conexion = repositorio.conexion.lock().unwrap();
+        let (valor, eliminada): (String, i64) = conexion
+            .query_row(
+                "SELECT valor, eliminada FROM tasas WHERE tasa_id = 99",
+                [],
+                |fila| Ok((fila.get(0)?, fila.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(valor, "887.96");
+        assert_eq!(eliminada, 1);
     }
 }

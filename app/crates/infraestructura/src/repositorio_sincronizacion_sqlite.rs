@@ -22,6 +22,16 @@ fn escalado_a_decimal(valor: i64) -> Decimal {
     Decimal::new(valor, 8).normalize()
 }
 
+/// Normaliza la fecha del gasto del servidor a RFC 3339 UTC para que el
+/// recorrido determinista `(timestamp, device_id, event_id)` sea estable.
+fn registrado_en_servidor(fecha: &str) -> String {
+    if fecha.len() >= 20 && fecha.contains('T') {
+        fecha.to_string()
+    } else {
+        format!("{}T00:00:00Z", fecha.get(..10).unwrap_or(fecha))
+    }
+}
+
 pub struct RepositorioSincronizacionSqlite {
     conexion: Mutex<Connection>,
 }
@@ -294,7 +304,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 &tx,
                 &id_evento_movimiento,
                 "MovimientoRegistrado",
-                &evento.fecha,
+                &registrado_en_servidor(&evento.fecha),
                 "servidor",
                 &datos_movimiento,
             )
@@ -314,7 +324,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 &tx,
                 &id_evento_aplicado,
                 "GastoDeGrupoAplicado",
-                &evento.fecha,
+                &registrado_en_servidor(&evento.fecha),
                 "servidor",
                 &datos_aplicado,
             )

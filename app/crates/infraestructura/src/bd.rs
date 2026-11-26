@@ -171,10 +171,8 @@ mod pruebas {
 
     #[test]
     fn abrir_genera_y_persiste_device_id_unico() {
-        let ruta = std::env::temp_dir().join(format!(
-            "cuentas-claras-device-id-{}.db",
-            Uuid::new_v4()
-        ));
+        let ruta =
+            std::env::temp_dir().join(format!("cuentas-claras-device-id-{}.db", Uuid::new_v4()));
 
         let id_primera_vez = {
             let conn = abrir(&ruta).unwrap();

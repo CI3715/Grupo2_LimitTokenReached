@@ -107,10 +107,8 @@ pub fn evaluar_fusion_lote(
         ..Default::default()
     };
 
-    let mut conocidos: HashMap<&str, &EventoLibro> = existentes
-        .iter()
-        .map(|(k, v)| (k.as_str(), v))
-        .collect();
+    let mut conocidos: HashMap<&str, &EventoLibro> =
+        existentes.iter().map(|(k, v)| (k.as_str(), v)).collect();
     let mut nuevos = Vec::new();
 
     for evento in entrantes {

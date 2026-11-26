@@ -1,227 +1,209 @@
-use std::io::{BufRead, BufReader};
+//! Formato plano del libro: cabecera de 3 líneas y un evento por línea.
+//!
+//! ```text
+//! VERSION=1.0
+//! FECHA_EXPORTACION=...
+//! TOTAL_EVENTOS=...
+//! TIPO|ID_EVENTO|TIMESTAMP|DEVICE_ID|DATOS_JSON
+//! ```
+//!
+//! El archivo se valida por completo antes de importarse. Antes de escribir se
+//! eliminan credenciales/tokens y se enmascaran los JWT que aparezcan como texto.
 
+use crate::repositorio_eventos_sqlite::canonizar_json;
 use aplicacion::puertos::{LibroDeserializado, SerializadorLibro};
-use dominio::libro::{EventoLibro, EventoRechazado};
-use serde::{Deserialize, Serialize};
+use dominio::libro::EventoLibro;
 use serde_json::Value;
 
-use crate::repositorio_eventos_sqlite::{canonizar_json, canonizar_json_str};
+/// Versión del formato plano documentado en `docs/formato-exportacion.md`.
+pub const VERSION_LIBRO: &str = "1.0";
 
-const FORMATO_LIBRO: &str = "cuentas-claras-libro";
-const VERSION_LIBRO: u32 = 1;
-
-/// Claves sensibles que jamás deben exportarse en un respaldo o carpeta sincronizada.
 const CLAVES_SENSIBLES: &[&str] = &[
-    "token",
-    "refresh_token",
-    "access_token",
-    "contrasena",
     "password",
+    "password_hash",
+    "contrasena",
+    "contraseña",
+    "passphrase",
+    "frase",
+    "token",
     "secret",
     "secreto",
+    "credencial",
+    "credenciales",
+    "credential",
+    "credentials",
     "clave_privada",
     "authorization",
     "api_key",
+    "apikey",
+    "jwt",
+    "session",
+    "sesion",
 ];
 
-#[derive(Debug, Serialize, Deserialize)]
-struct CabeceraLibroNdjson {
-    formato: String,
-    version: u32,
-    exportado_en: String,
-    device_id: String,
-    total_eventos: usize,
+fn es_clave_sensible(clave: &str) -> bool {
+    let normalizada = clave.trim().to_ascii_lowercase().replace(['-', ' '], "_");
+    CLAVES_SENSIBLES
+        .iter()
+        .any(|sensible| normalizada.contains(sensible))
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct LineaEventoNdjson {
-    id: String,
-    tipo: String,
-    registrado_en: String,
-    dispositivo: String,
-    datos: Value,
+/// Enmascara tokens JWT y cabeceras `Bearer` que aparezcan dentro de un valor de texto.
+fn mascarar_texto(texto: &str) -> String {
+    const FILTRADO: &str = "[FILTRADO]";
+    let minusculas = texto.to_ascii_lowercase();
+    if minusculas.starts_with("bearer ")
+        || (texto.starts_with("eyJ") && texto.matches('.').count() == 2)
+    {
+        FILTRADO.to_string()
+    } else {
+        texto.to_string()
+    }
 }
 
-/// Elimina recursivamente cualquier campo que coincida con credenciales o tokens.
+/// Elimina de forma recursiva credenciales, tokens y JWT de cualquier payload.
 fn filtrar_credenciales(valor: &Value) -> Value {
     match valor {
-        Value::Object(mapa) => {
-            let mut limpio = serde_json::Map::new();
-            for (k, v) in mapa {
-                let clave_normalizada = k.trim().to_ascii_lowercase();
-                if CLAVES_SENSIBLES.contains(&clave_normalizada.as_str()) {
-                    continue;
-                }
-                limpio.insert(k.clone(), filtrar_credenciales(v));
-            }
-            Value::Object(limpio)
-        }
+        Value::Object(mapa) => Value::Object(
+            mapa.iter()
+                .filter(|(clave, _)| !es_clave_sensible(clave))
+                .map(|(clave, valor)| (clave.clone(), filtrar_credenciales(valor)))
+                .collect(),
+        ),
         Value::Array(items) => Value::Array(items.iter().map(filtrar_credenciales).collect()),
+        Value::String(texto) => Value::String(mascarar_texto(texto)),
         otro => otro.clone(),
     }
 }
 
-pub struct SerializadorLibroNdjson;
+fn valor_de_linea<'a>(linea: &'a str, clave: &str) -> Result<&'a str, String> {
+    linea
+        .strip_prefix(&format!("{clave}="))
+        .filter(|valor| !valor.is_empty())
+        .ok_or_else(|| format!("Falta {clave} en el encabezado del libro."))
+}
 
-impl SerializadorLibroNdjson {
+pub struct SerializadorLibroPlano;
+
+impl SerializadorLibroPlano {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl Default for SerializadorLibroNdjson {
+impl Default for SerializadorLibroPlano {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl SerializadorLibro for SerializadorLibroNdjson {
+impl SerializadorLibro for SerializadorLibroPlano {
     fn serializar_plano(
         &self,
         device_id: &str,
         exportado_en: &str,
         eventos: &[EventoLibro],
     ) -> Result<Vec<u8>, String> {
-        let mut salida = String::new();
+        let mut lineas = Vec::with_capacity(eventos.len() + 3);
+        lineas.push(format!("VERSION={VERSION_LIBRO}"));
+        lineas.push(format!("FECHA_EXPORTACION={exportado_en}"));
+        lineas.push(format!("TOTAL_EVENTOS={}", eventos.len()));
 
-        // Línea 1: Cabecera del archivo
-        let cabecera = CabeceraLibroNdjson {
-            formato: FORMATO_LIBRO.to_string(),
-            version: VERSION_LIBRO,
-            exportado_en: exportado_en.to_string(),
-            device_id: device_id.to_string(),
-            total_eventos: eventos.len(),
-        };
-        let linea_cabecera = serde_json::to_string(&cabecera)
-            .map_err(|e| format!("Error al serializar cabecera del libro: {e}"))?;
-        salida.push_str(&linea_cabecera);
-        salida.push('\n');
+        for evento in eventos {
+            for campo in [
+                &evento.tipo,
+                &evento.id,
+                &evento.registrado_en,
+                &evento.dispositivo,
+            ] {
+                if campo.is_empty()
+                    || campo.contains('|')
+                    || campo.contains('\n')
+                    || campo.contains('\r')
+                {
+                    return Err(format!(
+                        "El evento {} tiene un campo con formato inválido.",
+                        evento.id
+                    ));
+                }
+            }
 
-        // Líneas 2..N+1: 1 evento compacto por línea, filtrado y canonizado
-        for ev in eventos {
-            let valor_crudo: Value = serde_json::from_str(&ev.datos_canonicos)
-                .map_err(|e| format!("Evento {} contiene JSON inválido: {e}", ev.id))?;
-            let datos_limpios = canonizar_json(&filtrar_credenciales(&valor_crudo));
+            let crudo: Value = serde_json::from_str(&evento.datos_canonicos)
+                .map_err(|_| format!("JSON inválido en el evento {}.", evento.id))?;
+            let datos_limpios = canonizar_json(&filtrar_credenciales(&crudo));
+            let datos_json = serde_json::to_string(&datos_limpios)
+                .map_err(|_| format!("No se pudo serializar el evento {}.", evento.id))?;
 
-            let registro = LineaEventoNdjson {
-                id: ev.id.clone(),
-                tipo: ev.tipo.clone(),
-                registrado_en: ev.registrado_en.clone(),
-                dispositivo: ev.dispositivo.clone(),
-                datos: datos_limpios,
-            };
-
-            let linea = serde_json::to_string(&registro)
-                .map_err(|e| format!("Error al serializar evento {}: {e}", ev.id))?;
-            salida.push_str(&linea);
-            salida.push('\n');
+            lineas.push(format!(
+                "{}|{}|{}|{}|{}",
+                evento.tipo, evento.id, evento.registrado_en, evento.dispositivo, datos_json
+            ));
         }
 
-        Ok(salida.into_bytes())
+        // `device_id` se conserva como parametro de la API para quien exporta,
+        // pero el encabezado obligatorio tiene exactamente 3 lineas.
+        let _ = device_id;
+        Ok(format!("{}\n", lineas.join("\n")).into_bytes())
     }
 
     fn deserializar_plano(&self, contenido: &[u8]) -> Result<LibroDeserializado, String> {
-        let lector = BufReader::new(contenido);
-        let mut lineas = lector.lines();
+        let texto = std::str::from_utf8(contenido)
+            .map_err(|_| "El archivo del libro no es texto UTF-8 válido.".to_string())?;
+        let lineas: Vec<&str> = texto.lines().collect();
 
-        // 1. Leer y validar la cabecera obligatoria en la línea 1
-        let primera_linea = lineas
-            .next()
-            .ok_or_else(|| "El archivo del libro está vacío.".to_string())?
-            .map_err(|e| format!("No se pudo leer la cabecera del libro: {e}"))?;
-
-        let cabecera: CabeceraLibroNdjson = serde_json::from_str(primera_linea.trim())
-            .map_err(|e| format!("Cabecera de respaldo inválida: {e}"))?;
-
-        if cabecera.formato != FORMATO_LIBRO {
-            return Err(format!(
-                "Formato de archivo no reconocido: '{}'",
-                cabecera.formato
-            ));
-        }
-        if cabecera.version != VERSION_LIBRO {
-            return Err(format!(
-                "Versión de formato no soportada: {}",
-                cabecera.version
-            ));
+        if lineas.len() < 3 {
+            return Err("Faltan las líneas del encabezado del libro.".to_string());
         }
 
-        // 2. Leer cada evento línea por línea sin abortar ante líneas corruptas individuales
-        let mut eventos = Vec::new();
-        let mut lineas_invalidas = Vec::new();
+        let version = valor_de_linea(lineas[0], "VERSION")?;
+        if version != VERSION_LIBRO {
+            return Err(format!(
+                "Versión de formato no soportada: {version}. La aplicación soporta la versión {VERSION_LIBRO}."
+            ));
+        }
+        let exportado_en = valor_de_linea(lineas[1], "FECHA_EXPORTACION")?.to_string();
+        let total_eventos = valor_de_linea(lineas[2], "TOTAL_EVENTOS")?
+            .parse::<usize>()
+            .map_err(|_| "TOTAL_EVENTOS no es un número válido.".to_string())?;
 
-        for (indice, resultado_linea) in lineas.enumerate() {
-            let numero_linea = indice + 2;
-            let linea = match resultado_linea {
-                Ok(texto) => texto,
-                Err(e) => {
-                    lineas_invalidas.push(EventoRechazado {
-                        id: format!("linea-{numero_linea}"),
-                        motivo: format!("Error de lectura UTF-8 en línea {numero_linea}: {e}"),
-                    });
-                    continue;
-                }
-            };
+        let cuerpo = &lineas[3..];
+        if cuerpo.len() != total_eventos {
+            return Err(format!(
+                "El encabezado anuncia {total_eventos} eventos pero hay {}.",
+                cuerpo.len()
+            ));
+        }
 
-            let recortada = linea.trim();
-            if recortada.is_empty() {
-                continue;
+        let mut eventos = Vec::with_capacity(total_eventos);
+        for (indice, linea) in cuerpo.iter().enumerate() {
+            let partes: Vec<&str> = linea.splitn(5, '|').collect();
+            if partes.len() != 5 || partes[..4].iter().any(|parte| parte.is_empty()) {
+                return Err(format!(
+                    "El evento {} de la línea {} no tiene 5 campos.",
+                    indice + 1,
+                    indice + 4
+                ));
             }
 
-            let registro: LineaEventoNdjson = match serde_json::from_str(recortada) {
-                Ok(parsed) => parsed,
-                Err(e) => {
-                    lineas_invalidas.push(EventoRechazado {
-                        id: format!("linea-{numero_linea}"),
-                        motivo: format!("JSON inválido en línea {numero_linea}: {e}"),
-                    });
-                    continue;
-                }
-            };
-
-            if registro.id.trim().is_empty()
-                || registro.tipo.trim().is_empty()
-                || registro.registrado_en.trim().is_empty()
-            {
-                lineas_invalidas.push(EventoRechazado {
-                    id: if registro.id.trim().is_empty() {
-                        format!("linea-{numero_linea}")
-                    } else {
-                        registro.id
-                    },
-                    motivo: format!("Faltan campos obligatorios en línea {numero_linea}"),
-                });
-                continue;
-            }
-
-            let datos_limpios = canonizar_json(&filtrar_credenciales(&registro.datos));
-            let datos_canonicos = match serde_json::to_string(&datos_limpios)
-                .and_then(|s| canonizar_json_str(&s).map_err(serde::ser::Error::custom))
-            {
-                Ok(s) => s,
-                Err(e) => {
-                    lineas_invalidas.push(EventoRechazado {
-                        id: registro.id,
-                        motivo: format!("Payload inválido en línea {numero_linea}: {e}"),
-                    });
-                    continue;
-                }
-            };
+            let crudo: Value = serde_json::from_str(partes[4])
+                .map_err(|_| format!("JSON inválido en el evento {}.", indice + 1))?;
+            let datos_limpios = canonizar_json(&filtrar_credenciales(&crudo));
+            let datos_canonicos = serde_json::to_string(&datos_limpios)
+                .map_err(|_| format!("No se pudo serializar el evento {}.", indice + 1))?;
 
             eventos.push(EventoLibro {
-                id: registro.id,
-                tipo: registro.tipo,
-                registrado_en: registro.registrado_en,
-                dispositivo: registro.dispositivo,
+                tipo: partes[0].to_string(),
+                id: partes[1].to_string(),
+                registrado_en: partes[2].to_string(),
+                dispositivo: partes[3].to_string(),
                 datos_canonicos,
             });
         }
 
         Ok(LibroDeserializado {
-            device_id_origen: cabecera.device_id,
-            exportado_en: cabecera.exportado_en,
+            version: version.to_string(),
+            exportado_en,
             eventos,
-            lineas_invalidas,
         })
     }
 }
@@ -230,31 +212,62 @@ impl SerializadorLibro for SerializadorLibroNdjson {
 mod pruebas {
     use super::*;
 
-    #[test]
-    fn serializa_filtra_credenciales_y_deserializa_ndjson() {
-        let serializador = SerializadorLibroNdjson::new();
-        let ev = EventoLibro {
+    fn evento() -> EventoLibro {
+        EventoLibro {
             id: "ev-1".to_string(),
             tipo: "CuentaCreada".to_string(),
             registrado_en: "2026-11-26T12:00:00Z".to_string(),
             dispositivo: "disp-1".to_string(),
             datos_canonicos: r#"{"nombre":"Efectivo","token":"secreto-jwt","contrasena":"123"}"#
                 .to_string(),
-        };
+        }
+    }
+
+    #[test]
+    fn serializa_tres_lineas_de_cabecera_y_filtra_credenciales_y_jwt() {
+        let serializador = SerializadorLibroPlano::new();
+        let mut ev = evento();
+        ev.datos_canonicos = r#"{"nota":"Bearer abc.def.ghi","password":"123"}"#.to_string();
 
         let bytes = serializador
             .serializar_plano("disp-1", "2026-11-26T12:05:00Z", &[ev])
             .unwrap();
         let texto = String::from_utf8(bytes.clone()).unwrap();
+        let lineas: Vec<&str> = texto.lines().collect();
 
-        assert_eq!(texto.lines().count(), 2);
-        assert!(!texto.contains("secreto-jwt"));
-        assert!(!texto.contains("contrasena"));
+        assert_eq!(lineas.len(), 4);
+        assert_eq!(lineas[0], "VERSION=1.0");
+        assert_eq!(lineas[1], "FECHA_EXPORTACION=2026-11-26T12:05:00Z");
+        assert_eq!(lineas[2], "TOTAL_EVENTOS=1");
+        assert_eq!(lineas[3].splitn(5, '|').count(), 5);
+        assert!(!texto.contains("123"));
+        assert!(!texto.contains("abc.def.ghi"));
+        assert!(texto.contains("[FILTRADO]"));
 
         let leido = serializador.deserializar_plano(&bytes).unwrap();
-        assert_eq!(leido.device_id_origen, "disp-1");
+        assert_eq!(leido.version, "1.0");
         assert_eq!(leido.eventos.len(), 1);
-        assert_eq!(leido.eventos[0].datos_canonicos, r#"{"nombre":"Efectivo"}"#);
-        assert!(leido.lineas_invalidas.is_empty());
+        assert_eq!(leido.eventos[0].id, "ev-1");
+    }
+
+    #[test]
+    fn rechaza_version_no_soportada_y_archivo_invalido_completo() {
+        let serializador = SerializadorLibroPlano::new();
+        let bytes = serializador
+            .serializar_plano("disp-1", "2026-11-26T12:05:00Z", &[evento()])
+            .unwrap();
+
+        let mut texto = String::from_utf8(bytes).unwrap();
+        let error_version = serializador
+            .deserializar_plano(texto.replace("VERSION=1.0", "VERSION=9.9.9").as_bytes())
+            .unwrap_err();
+        assert!(error_version.contains("Versión de formato no soportada: 9.9.9"));
+        assert!(error_version.contains("1.0"));
+
+        texto = texto.replace("CuentaCreada|ev-1", "CuentaCreada|");
+        let error_linea = serializador
+            .deserializar_plano(texto.as_bytes())
+            .unwrap_err();
+        assert!(error_linea.contains("no tiene 5 campos"));
     }
 }

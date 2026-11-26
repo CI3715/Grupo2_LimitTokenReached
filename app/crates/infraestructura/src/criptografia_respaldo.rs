@@ -1,44 +1,66 @@
+//! Cifrado autenticado del respaldo con frase de paso (Entrega 8).
+//!
+//! * KDF: Argon2id (m=64 MiB, t=3, p=4), sal aleatoria de 32 bytes por exportación.
+//! * AEAD: AES-256-GCM, nonce aleatorio de 12 bytes y etiqueta de 16 bytes.
+//! * La cabecera en claro solo contiene formato, versión y parámetros públicos;
+//!   se autentica completa como AAD para detectar cualquier modificación.
+
+use std::collections::HashMap;
+
 use aes_gcm::{
     Aes256Gcm, KeyInit, Nonce,
     aead::{Aead, Payload},
 };
-use aplicacion::puertos::CifradorRespaldo;
+use aplicacion::puertos::{CifradorRespaldo, MAGIA_RESPALDO_CIFRADO};
 use argon2::{Algorithm, Argon2, Params, Version};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use rand::{RngCore, rngs::OsRng};
 use zeroize::Zeroizing;
 
-/// Identificador mágico y versión del contenedor binario cifrado (.ccbak).
-/// No contiene ningún dato del libro personal (RF-INT-06).
-const MAGIC_RESPALDO: &[u8; 6] = b"CCBAK\x01";
-const LONGITUD_SALT: usize = 16;
+pub const VERSION_FORMATO: &str = "1.0";
+
+const FORMATO: &str = "1";
+const ALGORITMO: &str = "AES-256-GCM";
+const KDF: &str = "ARGON2ID";
+const PARAMETROS: &str = "M=65536,T=3,P=4";
+const LONGITUD_SAL: usize = 32;
 const LONGITUD_NONCE: usize = 12;
-const LONGITUD_CABECERA: usize = 6 + 4 + 4 + 4 + LONGITUD_SALT + LONGITUD_NONCE; // 46 bytes
+const LONGITUD_CLAVE: usize = 32;
 const LONGITUD_MINIMA_FRASE: usize = 12;
 
-// Parámetros Argon2id (64 MiB de memoria, 3 iteraciones, 4 carriles)
-const ARGON2_MEMORIA_KIB: u32 = 65_536;
-const ARGON2_ITERACIONES: u32 = 3;
-const ARGON2_PARALELISMO: u32 = 4;
+const ERROR_DESCIFRADO: &str = "Frase de paso incorrecta o archivo dañado.";
 
-const ERROR_DESCIFRADO: &str = "Frase de paso incorrecta o archivo dañado";
+fn error_version(version: &str) -> String {
+    format!(
+        "Versión de formato no soportada: {version}. La aplicación soporta la versión {VERSION_FORMATO}."
+    )
+}
 
 fn derivar_clave_argon2id(
     frase_paso: &str,
     salt: &[u8],
-    memoria_kib: u32,
-    iteraciones: u32,
-    paralelismo: u32,
-) -> Result<Zeroizing<[u8; 32]>, String> {
-    let params = Params::new(memoria_kib, iteraciones, paralelismo, Some(32))
+) -> Result<Zeroizing<[u8; LONGITUD_CLAVE]>, String> {
+    let params = Params::new(65_536, 3, 4, Some(LONGITUD_CLAVE))
         .map_err(|_| ERROR_DESCIFRADO.to_string())?;
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
-    let mut clave = Zeroizing::new([0u8; 32]);
+    let mut clave = Zeroizing::new([0u8; LONGITUD_CLAVE]);
     argon2
         .hash_password_into(frase_paso.as_bytes(), salt, &mut *clave)
         .map_err(|_| ERROR_DESCIFRADO.to_string())?;
 
     Ok(clave)
+}
+
+fn leer_campos(cabecera: &str) -> Result<HashMap<&str, &str>, String> {
+    let mut campos = HashMap::new();
+    for linea in cabecera.lines().skip(1) {
+        let (clave, valor) = linea
+            .split_once('=')
+            .ok_or_else(|| ERROR_DESCIFRADO.to_string())?;
+        campos.insert(clave.trim(), valor.trim());
+    }
+    Ok(campos)
 }
 
 pub struct CifradorRespaldoAesGcm;
@@ -63,96 +85,97 @@ impl CifradorRespaldo for CifradorRespaldoAesGcm {
             ));
         }
 
-        // 1. Generar sal y nonce criptográficamente aleatorios nuevos en cada exportación
-        let mut salt = [0u8; LONGITUD_SALT];
+        let mut salt = [0u8; LONGITUD_SAL];
         let mut nonce_bytes = [0u8; LONGITUD_NONCE];
         OsRng.fill_bytes(&mut salt);
         OsRng.fill_bytes(&mut nonce_bytes);
 
-        // 2. Derivar clave de 256 bits con Argon2id (limpiada automáticamente con Zeroizing)
-        let clave = derivar_clave_argon2id(
-            frase_paso,
-            &salt,
-            ARGON2_MEMORIA_KIB,
-            ARGON2_ITERACIONES,
-            ARGON2_PARALELISMO,
-        )?;
+        let clave = derivar_clave_argon2id(frase_paso, &salt)?;
+        let cabecera = format!(
+            "{MAGIA_RESPALDO_CIFRADO}\nFORMATO={FORMATO}\nVERSION={VERSION_FORMATO}\nCIFRADO={ALGORITMO}\nKDF={KDF}\nPARAMETROS={PARAMETROS}\nSALT={}\nNONCE={}\n",
+            STANDARD.encode(salt),
+            STANDARD.encode(nonce_bytes)
+        );
 
-        // 3. Construir cabecera en claro (sin datos del libro) que actuará como AAD
-        let mut cabecera = Vec::with_capacity(LONGITUD_CABECERA);
-        cabecera.extend_from_slice(MAGIC_RESPALDO);
-        cabecera.extend_from_slice(&ARGON2_MEMORIA_KIB.to_be_bytes());
-        cabecera.extend_from_slice(&ARGON2_ITERACIONES.to_be_bytes());
-        cabecera.extend_from_slice(&ARGON2_PARALELISMO.to_be_bytes());
-        cabecera.extend_from_slice(&salt);
-        cabecera.extend_from_slice(&nonce_bytes);
-
-        // 4. Cifrado autenticado AES-256-GCM vinculando la cabecera como AAD
-        let cipher = Aes256Gcm::new_from_slice(&*clave)
+        let cifrador = Aes256Gcm::new_from_slice(&*clave)
             .map_err(|_| "No se pudo inicializar el cifrador AES-256-GCM.".to_string())?;
-        let nonce = Nonce::from(nonce_bytes);
-        let texto_cifrado = cipher
+        let texto_cifrado = cifrador
             .encrypt(
-                &nonce,
+                &Nonce::from(nonce_bytes),
                 Payload {
                     msg: datos_planos,
-                    aad: &cabecera,
+                    aad: cabecera.as_bytes(),
                 },
             )
             .map_err(|_| "Error al cifrar el respaldo.".to_string())?;
 
-        let mut paquete = cabecera;
-        paquete.extend_from_slice(&texto_cifrado);
-        Ok(paquete)
+        Ok(format!("{cabecera}DATOS={}\n", STANDARD.encode(texto_cifrado)).into_bytes())
     }
 
     fn descifrar(&self, paquete_cifrado: &[u8], frase_paso: &str) -> Result<Vec<u8>, String> {
-        if frase_paso.is_empty() || paquete_cifrado.len() <= LONGITUD_CABECERA {
+        if frase_paso.is_empty() {
+            return Err(ERROR_DESCIFRADO.to_string());
+        }
+        let archivo =
+            std::str::from_utf8(paquete_cifrado).map_err(|_| ERROR_DESCIFRADO.to_string())?;
+        let inicio_datos = archivo
+            .find("\nDATOS=")
+            .ok_or_else(|| ERROR_DESCIFRADO.to_string())?;
+        let cabecera = &archivo[..inicio_datos + 1];
+        let datos = archivo[inicio_datos + "\nDATOS=".len()..].trim();
+
+        let mut lineas = cabecera.lines();
+        if lineas.next() != Some(MAGIA_RESPALDO_CIFRADO) {
+            return Err(ERROR_DESCIFRADO.to_string());
+        }
+        let campos = leer_campos(cabecera)?;
+
+        match campos.get("VERSION").copied() {
+            Some(version) if version == VERSION_FORMATO => {}
+            Some(version) => return Err(error_version(version)),
+            None => return Err(ERROR_DESCIFRADO.to_string()),
+        }
+        if campos.get("FORMATO").copied() != Some(FORMATO)
+            || campos.get("CIFRADO").copied() != Some(ALGORITMO)
+            || campos.get("KDF").copied() != Some(KDF)
+            || campos.get("PARAMETROS").copied() != Some(PARAMETROS)
+        {
             return Err(ERROR_DESCIFRADO.to_string());
         }
 
-        // 1. Verificar identificador mágico y versión
-        if &paquete_cifrado[0..6] != MAGIC_RESPALDO {
-            return Err(ERROR_DESCIFRADO.to_string());
-        }
-
-        // 2. Extraer parámetros de derivación, sal, nonce y texto cifrado
-        let memoria_kib = u32::from_be_bytes(
-            paquete_cifrado[6..10]
-                .try_into()
-                .map_err(|_| ERROR_DESCIFRADO.to_string())?,
-        );
-        let iteraciones = u32::from_be_bytes(
-            paquete_cifrado[10..14]
-                .try_into()
-                .map_err(|_| ERROR_DESCIFRADO.to_string())?,
-        );
-        let paralelismo = u32::from_be_bytes(
-            paquete_cifrado[14..18]
-                .try_into()
-                .map_err(|_| ERROR_DESCIFRADO.to_string())?,
-        );
-        let salt = &paquete_cifrado[18..34];
-        let nonce_bytes: [u8; LONGITUD_NONCE] = paquete_cifrado[34..46]
-            .try_into()
+        let salt = STANDARD
+            .decode(
+                campos
+                    .get("SALT")
+                    .ok_or_else(|| ERROR_DESCIFRADO.to_string())?,
+            )
             .map_err(|_| ERROR_DESCIFRADO.to_string())?;
+        let nonce = STANDARD
+            .decode(
+                campos
+                    .get("NONCE")
+                    .ok_or_else(|| ERROR_DESCIFRADO.to_string())?,
+            )
+            .map_err(|_| ERROR_DESCIFRADO.to_string())?;
+        let contenido = STANDARD
+            .decode(datos)
+            .map_err(|_| ERROR_DESCIFRADO.to_string())?;
+        if salt.len() != LONGITUD_SAL || nonce.len() != LONGITUD_NONCE {
+            return Err(ERROR_DESCIFRADO.to_string());
+        }
 
-        let cabecera_aad = &paquete_cifrado[0..LONGITUD_CABECERA];
-        let ciphertext = &paquete_cifrado[LONGITUD_CABECERA..];
-
-        // 3. Re-derivar clave con Argon2id y verificar etiqueta de autenticación AES-256-GCM
-        let clave =
-            derivar_clave_argon2id(frase_paso, salt, memoria_kib, iteraciones, paralelismo)?;
-        let cipher =
+        let clave = derivar_clave_argon2id(frase_paso, &salt)?;
+        let cifrador =
             Aes256Gcm::new_from_slice(&*clave).map_err(|_| ERROR_DESCIFRADO.to_string())?;
-        let nonce = Nonce::from(nonce_bytes);
+        let nonce: [u8; LONGITUD_NONCE] =
+            nonce.try_into().map_err(|_| ERROR_DESCIFRADO.to_string())?;
 
-        cipher
+        cifrador
             .decrypt(
-                &nonce,
+                &Nonce::from(nonce),
                 Payload {
-                    msg: ciphertext,
-                    aad: cabecera_aad,
+                    msg: &contenido,
+                    aad: cabecera.as_bytes(),
                 },
             )
             .map_err(|_| ERROR_DESCIFRADO.to_string())
@@ -163,46 +186,66 @@ impl CifradorRespaldo for CifradorRespaldoAesGcm {
 mod pruebas {
     use super::*;
 
+    fn valor_de(paquete: &str, clave: &str) -> String {
+        paquete
+            .lines()
+            .find_map(|linea| linea.strip_prefix(&format!("{clave}=")))
+            .unwrap()
+            .to_string()
+    }
+
     #[test]
     fn cifra_y_descifra_con_sal_y_nonce_unicos_por_exportacion() {
         let cifrador = CifradorRespaldoAesGcm::new();
         let plano = b"contenido secreto del libro personal";
         let frase = "frase-de-paso-segura-2026";
 
-        let exp1 = cifrador.cifrar(plano, frase).unwrap();
-        let exp2 = cifrador.cifrar(plano, frase).unwrap();
+        let exp1 = String::from_utf8(cifrador.cifrar(plano, frase).unwrap()).unwrap();
+        let exp2 = String::from_utf8(cifrador.cifrar(plano, frase).unwrap()).unwrap();
 
-        // Cada exportación usa sal y nonce distintos
-        assert_ne!(&exp1[18..34], &exp2[18..34]);
-        assert_ne!(&exp1[34..46], &exp2[34..46]);
+        assert_ne!(valor_de(&exp1, "SALT"), valor_de(&exp2, "SALT"));
+        assert_ne!(valor_de(&exp1, "NONCE"), valor_de(&exp2, "NONCE"));
         assert_ne!(exp1, exp2);
+        assert!(exp1.starts_with(MAGIA_RESPALDO_CIFRADO));
 
-        let descifrado1 = cifrador.descifrar(&exp1, frase).unwrap();
-        let descifrado2 = cifrador.descifrar(&exp2, frase).unwrap();
-        assert_eq!(descifrado1, plano);
-        assert_eq!(descifrado2, plano);
+        assert_eq!(cifrador.descifrar(exp1.as_bytes(), frase).unwrap(), plano);
+        assert_eq!(cifrador.descifrar(exp2.as_bytes(), frase).unwrap(), plano);
     }
 
     #[test]
-    fn rechaza_frase_corta_frase_incorrecta_o_archivo_alterado() {
+    fn rechaza_frase_corta_frase_incorrecta_archivo_alterado_y_version() {
         let cifrador = CifradorRespaldoAesGcm::new();
         assert!(cifrador.cifrar(b"datos", "corta").is_err());
 
-        let mut paquete = cifrador
-            .cifrar(b"datos del libro", "frase-valida-1234")
-            .unwrap();
+        let paquete = String::from_utf8(
+            cifrador
+                .cifrar(b"datos del libro", "frase-valida-1234")
+                .unwrap(),
+        )
+        .unwrap();
 
         assert_eq!(
-            cifrador.descifrar(&paquete, "frase-equivocada-999").unwrap_err(),
+            cifrador
+                .descifrar(paquete.as_bytes(), "frase-equivocada-999")
+                .unwrap_err(),
             ERROR_DESCIFRADO
         );
 
-        // Alterar 1 bit del ciphertext
-        let ultimo = paquete.len() - 1;
-        paquete[ultimo] ^= 0x01;
+        let mut alterado = paquete.clone();
+        let datos = valor_de(&paquete, "DATOS");
+        alterado = alterado.replace(&format!("DATOS={datos}"), "DATOS=YmFk");
         assert_eq!(
-            cifrador.descifrar(&paquete, "frase-valida-1234").unwrap_err(),
+            cifrador
+                .descifrar(alterado.as_bytes(), "frase-valida-1234")
+                .unwrap_err(),
             ERROR_DESCIFRADO
         );
+
+        let otra_version = paquete.replace("VERSION=1.0", "VERSION=9.9.9");
+        let error = cifrador
+            .descifrar(otra_version.as_bytes(), "frase-valida-1234")
+            .unwrap_err();
+        assert!(error.contains("Versión de formato no soportada: 9.9.9"));
+        assert!(error.contains(VERSION_FORMATO));
     }
 }
