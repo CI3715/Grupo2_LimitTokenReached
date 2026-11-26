@@ -20,12 +20,13 @@ const MIGRACIONES: &[&str] = &[
     include_str!("../migrations/011_orden_ajustes.sql"),
     include_str!("../migrations/012_sincronizacion_grupos.sql"),
     include_str!("../migrations/013_montos_enteros_escalados.sql"),
+    include_str!("../migrations/014_eventos_y_dispositivo.sql"),
 ];
 
 pub struct BaseDatos(pub Mutex<Connection>);
 
-/// Devuelve el id de este dispositivo; lo crea en `meta` la primera vez.
-fn id_dispositivo(conn: &Connection) -> Result<String, rusqlite::Error> {
+/// Devuelve el id único de este dispositivo; lo crea en `meta` la primera vez.
+pub fn obtener_o_crear_dispositivo_id(conn: &Connection) -> Result<String, rusqlite::Error> {
     let existente: Option<String> = conn
         .query_row(
             "SELECT valor FROM meta WHERE clave = 'dispositivo'",
@@ -45,7 +46,11 @@ fn id_dispositivo(conn: &Connection) -> Result<String, rusqlite::Error> {
     Ok(nuevo)
 }
 
-/// Registra un evento y devuelve su id.
+fn id_dispositivo(conn: &Connection) -> Result<String, rusqlite::Error> {
+    obtener_o_crear_dispositivo_id(conn)
+}
+
+/// Registra un evento nuevo generado localmente y devuelve su id.
 pub fn insertar_evento(
     conn: &Connection,
     tipo: &str,
@@ -63,11 +68,30 @@ pub fn insertar_evento(
     Ok(id)
 }
 
+/// Inserta un evento conservando su `id`, `registrado_en` y `dispositivo` explícitos
+/// (usado para eventos determinísticos de grupos y fusión de respaldos).
+pub fn insertar_evento_con_id(
+    conn: &Connection,
+    id: &str,
+    tipo: &str,
+    registrado_en: &str,
+    dispositivo: &str,
+    datos: &serde_json::Value,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO eventos (id, tipo, registrado_en, dispositivo, datos)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        (id, tipo, registrado_en, dispositivo, datos.to_string()),
+    )?;
+    Ok(())
+}
+
 pub fn abrir(ruta: &Path) -> Result<Connection, rusqlite::Error> {
     let mut conn = Connection::open(ruta)?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "foreign_keys", "ON")?;
     migrar(&mut conn)?;
+    obtener_o_crear_dispositivo_id(&conn)?;
     Ok(conn)
 }
 
@@ -143,5 +167,28 @@ mod pruebas {
 
         assert!(conn.execute("UPDATE eventos SET tipo = 'X'", []).is_err());
         assert!(conn.execute("DELETE FROM eventos", []).is_err());
+    }
+
+    #[test]
+    fn abrir_genera_y_persiste_device_id_unico() {
+        let ruta = std::env::temp_dir().join(format!(
+            "cuentas-claras-device-id-{}.db",
+            Uuid::new_v4()
+        ));
+
+        let id_primera_vez = {
+            let conn = abrir(&ruta).unwrap();
+            obtener_o_crear_dispositivo_id(&conn).unwrap()
+        };
+
+        assert!(Uuid::parse_str(&id_primera_vez).is_ok());
+
+        let id_segunda_vez = {
+            let conn = abrir(&ruta).unwrap();
+            obtener_o_crear_dispositivo_id(&conn).unwrap()
+        };
+
+        assert_eq!(id_primera_vez, id_segunda_vez);
+        let _ = std::fs::remove_file(&ruta);
     }
 }
