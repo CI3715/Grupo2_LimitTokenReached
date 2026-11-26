@@ -32,6 +32,8 @@ pub fn run() {
             let conn_preferencias = bd::abrir(&ruta_db)?;
             let conn_sincronizacion = bd::abrir(&ruta_db)?;
             let conn_cola = bd::abrir(&ruta_db)?;
+            let id_dispositivo = bd::id_dispositivo(&conn_sincronizacion)?;
+            app.manage(comandos::respaldo::IdentificadorDispositivo(id_dispositivo));
 
             // Registrar repositorios
             let repo_cuentas_sqlite = RepositorioCuentasSqlite::new(conn_cuentas);
@@ -127,6 +129,10 @@ pub fn run() {
             comandos::categorias::listar_categorias,
             comandos::moneda::eliminar_moneda,
             comandos::previsualizacion::previsualizar_division,
+            comandos::respaldo::guardar_configuracion_sincronizacion,
+            comandos::respaldo::obtener_configuracion_sincronizacion,
+            comandos::respaldo::guardar_frase_sincronizacion,
+            comandos::respaldo::contar_lotes_sincronizacion,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");

@@ -25,7 +25,7 @@ const MIGRACIONES: &[&str] = &[
 pub struct BaseDatos(pub Mutex<Connection>);
 
 /// Devuelve el id de este dispositivo; lo crea en `meta` la primera vez.
-fn id_dispositivo(conn: &Connection) -> Result<String, rusqlite::Error> {
+pub fn id_dispositivo(conn: &Connection) -> Result<String, rusqlite::Error> {
     let existente: Option<String> = conn
         .query_row(
             "SELECT valor FROM meta WHERE clave = 'dispositivo'",

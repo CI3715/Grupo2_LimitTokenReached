@@ -36,7 +36,8 @@ pub struct ImportarLibroResponse {
 pub struct ConfigDestinoSyncDTO {
     pub tipo: String, // "git" o "carpeta"
     pub ruta_o_url: String,
-    pub credenciales: Option<String>, // token o usuario:pass
+    // Token o usuario:contraseña; solo entrada transitoria al keyring.
+    pub credenciales: Option<String>,
 }
 
 /// resultado de una operación de sincronización

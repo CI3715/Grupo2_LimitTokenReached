@@ -16,6 +16,7 @@ pub mod repositorio_preferencias_sqlite;
 pub mod repositorio_sincronizacion_sqlite;
 pub mod repositorio_tasas_sqlite;
 pub mod social_http;
+pub mod transporte_sincronizacion;
 
 pub use autenticacion_http::{
     ClienteAutenticacionHttp, ErrorApi, InicioSesionHttp, RegistroUsuarioHttp, SesionHttp,
@@ -31,6 +32,9 @@ pub use repositorio_patrimonio_sqlite::RepositorioPatrimonioSqlite;
 pub use repositorio_preferencias_sqlite::RepositorioPreferenciasSqlite;
 pub use repositorio_sincronizacion_sqlite::RepositorioSincronizacionSqlite;
 pub use repositorio_tasas_sqlite::RepositorioTasasSqlite;
+pub use transporte_sincronizacion::{
+    CredencialesGit, TransporteCarpeta, TransporteGit, TransporteMemoria,
+};
 pub use social_http::{ClienteSocialHttp, PingRespuesta, SocialError};
 
 // Adaptador Real del Reloj del Sistema

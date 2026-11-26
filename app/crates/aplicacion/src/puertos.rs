@@ -43,6 +43,19 @@ pub struct LoteSincronizacionPlan {
     pub pendientes: Vec<PartePendientePlan>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoteCifrado {
+    pub id: String,
+    pub dispositivo: String,
+    pub contenido: Vec<u8>,
+}
+
+pub trait TransporteSincronizacion: Send + Sync {
+    fn leer_lotes_nuevos(&self) -> Result<Vec<LoteCifrado>, String>;
+    fn marcar_lotes_leidos(&self, ids: &[String]) -> Result<(), String>;
+    fn escribir_lote(&self, lote: &LoteCifrado) -> Result<(), String>;
+}
+
 pub trait Reloj: Send + Sync {
     fn ahora(&self) -> String;
 }
