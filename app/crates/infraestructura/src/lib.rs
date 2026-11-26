@@ -17,6 +17,8 @@ pub mod repositorio_sincronizacion_sqlite;
 pub mod repositorio_tasas_sqlite;
 pub mod repositorio_eventos_sqlite;
 pub mod social_http;
+pub mod criptografia_respaldo;
+pub mod serializador_libro;
 
 pub use autenticacion_http::{
     ClienteAutenticacionHttp, ErrorApi, InicioSesionHttp, RegistroUsuarioHttp, SesionHttp,
@@ -33,6 +35,8 @@ pub use repositorio_preferencias_sqlite::RepositorioPreferenciasSqlite;
 pub use repositorio_sincronizacion_sqlite::RepositorioSincronizacionSqlite;
 pub use repositorio_tasas_sqlite::RepositorioTasasSqlite;
 pub use repositorio_eventos_sqlite::RepositorioEventosSqlite;
+pub use criptografia_respaldo::CifradorRespaldoAesGcm;
+pub use serializador_libro::SerializadorLibroNdjson;
 pub use social_http::{ClienteSocialHttp, PingRespuesta, SocialError};
 
 // Adaptador Real del Reloj del Sistema

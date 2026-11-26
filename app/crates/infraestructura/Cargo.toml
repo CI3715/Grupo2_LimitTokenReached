@@ -8,6 +8,10 @@ edition = "2024"
 dominio = { workspace = true }
 aplicacion = { workspace = true }
 contrato = { workspace = true }
+argon2 = "0.5"
+aes-gcm = "0.10"
+rand = "0.8"
+zeroize = "1.8"
 
 # Adaptadores I/O, Red y Persistencia SQLite
 reqwest = { workspace = true }
