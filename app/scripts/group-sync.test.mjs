@@ -29,7 +29,12 @@ vm.runInThisContext(`(function(require,module,exports){${source}\n})`, {
   if (name === 'react/jsx-runtime') return resolveDependency(name);
   if (name === '@/components/social/GroupForms') {
     return {
-      GroupExpenseForm: () => null,
+      GroupExpenseForm: ({ feedback }) =>
+        feedback ? React.createElement(
+          'p',
+          { className: 'group-success', role: 'status' },
+          feedback,
+        ) : null,
       InviteMemberForm: () => null,
     };
   }
@@ -91,6 +96,7 @@ function detalleProps(sync) {
     usuarioActual: 'carlos',
     amigos: [],
     pending: false,
+    gastoFeedback: '',
     sync,
     onInvite: async () => true,
     onRegisterExpense: async () => true,
@@ -139,4 +145,16 @@ test('muestra la última sincronización cuando existe', () => {
 
   assert.match(html, /Última sincronización:/);
   assert.doesNotMatch(html, /Tu sesión venció/);
+});
+
+test('aviso de gasto en cola aparece junto al formulario como éxito', () => {
+  const props = detalleProps(syncProps());
+  props.gastoFeedback = 'Gasto guardado pendiente de envío.';
+  const html = renderToStaticMarkup(
+    React.createElement(GroupDetail, props),
+  );
+
+  assert.match(html, /Gasto guardado pendiente de envío\./);
+  assert.match(html, /class="group-success"/);
+  assert.doesNotMatch(html, /class="group-page-error"/);
 });

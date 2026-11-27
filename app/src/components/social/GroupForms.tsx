@@ -172,6 +172,7 @@ type ExpenseFormProps = {
   miembros: MiembroGrupoDTO[];
   moneda: string;
   pending: boolean;
+  feedback: string;
   onSubmit: (datos: RegistrarGastoRequestDTO) => Promise<boolean>;
   onPreview: (
     datos: RegistrarGastoRequestDTO,
@@ -292,6 +293,7 @@ export function GroupExpenseForm({
   miembros,
   moneda,
   pending,
+  feedback,
   onSubmit,
   onPreview,
 }: ExpenseFormProps) {
@@ -406,6 +408,11 @@ export function GroupExpenseForm({
         <h2 id="new-group-expense-title">Registrar gasto</h2>
         <p>El servidor volverá a calcular y validar la división.</p>
       </div>
+      {feedback && (
+        <p className="group-success" role="status">
+          {feedback}
+        </p>
+      )}
       <form className="group-form" onSubmit={(event) => void submit(event)}>
         <label>
           Concepto

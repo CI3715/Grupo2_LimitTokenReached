@@ -265,6 +265,7 @@ export function GroupsWorkspace() {
                       usuarioActual={usuario.nombre_usuario}
                       amigos={amistades.amistades.amigos}
                       pending={grupos.guardando}
+                      gastoFeedback={grupos.gastoFeedback}
                       sync={sync}
                       onPreview={grupos.previsualizar}
                       onInvite={(nombreUsuario) =>

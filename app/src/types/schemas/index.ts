@@ -5,3 +5,4 @@ export * from "./currencies";
 export * from "./rates";
 export * from "./movements";
 export * from "./categories";
+export * from "./backup";
