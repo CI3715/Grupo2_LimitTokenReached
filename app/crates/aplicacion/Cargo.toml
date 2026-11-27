@@ -13,7 +13,7 @@ division = { workspace = true }
 rust_decimal = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
-uuid = { workspace = true }
+uuid = { workspace = true, features = ["v5"] }
 serde = { workspace = true }
 
 [dev-dependencies]
