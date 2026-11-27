@@ -489,7 +489,8 @@ mod pruebas {
         )
         .unwrap();
         assert_eq!(segundo.eventos_recibidos, 1);
-        assert_eq!(segundo.eventos_enviados, 1);
+        // El evento recibido ya está en el destino: no se publica otra vez.
+        assert_eq!(segundo.eventos_enviados, 0);
 
         let tercero = sincronizar_carpeta_libro_impl(
             carpeta.clone(),
