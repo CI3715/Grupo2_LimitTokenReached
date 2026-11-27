@@ -19,6 +19,7 @@ pub mod repositorio_sincronizacion_sqlite;
 pub mod repositorio_tasas_sqlite;
 pub mod serializador_libro;
 pub mod social_http;
+pub mod transporte_carpeta;
 pub mod transporte_git;
 
 pub use autenticacion_http::{
@@ -39,6 +40,7 @@ pub use repositorio_sincronizacion_sqlite::RepositorioSincronizacionSqlite;
 pub use repositorio_tasas_sqlite::RepositorioTasasSqlite;
 pub use serializador_libro::SerializadorLibroPlano;
 pub use social_http::{ClienteSocialHttp, PingRespuesta, SocialError};
+pub use transporte_carpeta::TransporteCarpeta;
 pub use transporte_git::TransporteGit;
 
 // Adaptador Real del Reloj del Sistema

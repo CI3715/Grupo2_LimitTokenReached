@@ -1,4 +1,4 @@
-//! Comandos Tauri del respaldo cifrado y de la sincronización por carpeta compartida.
+//! Comandos Tauri del respaldo cifrado y de la sincronización del libro por carpeta y Git.
 //!
 //! Solo exponen los casos de uso de la Entrega 8. La interfaz (doble entrada de la
 //! frase, advertencia de irrecuperabilidad y botón “Sincronizar ahora”) queda fuera
@@ -15,7 +15,7 @@ use contrato::{
     ImportarLibroResponse, ResultadoSyncDTO,
 };
 use dominio::libro::{EventoRechazado, ResumenFusion};
-use infraestructura::TransporteGit;
+use infraestructura::{TransporteCarpeta, TransporteGit};
 use tauri::{AppHandle, Manager, State};
 
 fn mapear_rechazados(rechazados: &[EventoRechazado]) -> Vec<EventoRechazadoDTO> {
@@ -168,8 +168,9 @@ fn sincronizar_carpeta_libro_impl(
         return Err("La ruta de la carpeta compartida no puede estar vacía.".to_string());
     }
 
-    let reporte = aplicacion::casos_uso::sincronizar_carpeta_libro::ejecutar(
-        &PathBuf::from(&ruta_carpeta),
+    let transporte = TransporteCarpeta::new(PathBuf::from(&ruta_carpeta));
+    let reporte = aplicacion::casos_uso::sincronizar_libro::ejecutar(
+        &transporte,
         &frase_de_paso,
         repo_eventos,
         serializador,

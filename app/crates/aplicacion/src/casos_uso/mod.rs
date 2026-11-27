@@ -19,7 +19,6 @@ pub mod procesar_cola_gastos;
 pub mod registrar_movimiento;
 pub mod registrar_tasa;
 pub mod sincronizar_cambios;
-pub mod sincronizar_carpeta_libro;
 pub mod sincronizar_libro;
 pub mod social;
 pub mod verificar_conexion;

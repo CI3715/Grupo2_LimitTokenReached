@@ -278,7 +278,7 @@ pub struct LibroDeserializado {
     pub eventos: Vec<EventoLibro>,
 }
 
-/// Resultado de una sincronización con una carpeta compartida.
+/// Resultado de una sincronización del libro con cualquier transporte.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ReporteSincronizacionLibro {
     pub eventos_enviados: usize,
