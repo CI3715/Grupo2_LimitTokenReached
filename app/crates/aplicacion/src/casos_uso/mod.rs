@@ -1,5 +1,6 @@
 pub mod aplicar_eventos_grupo;
 pub mod cambiar_moneda_base;
+pub mod configurar_destino_sync;
 pub mod consultar_patrimonio;
 pub mod corregir_movimiento;
 pub mod crear_categoria;

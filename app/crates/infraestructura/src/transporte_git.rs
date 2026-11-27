@@ -1,8 +1,9 @@
 //! Adaptador de `TransporteSincronizacion` basado en el CLI de Git.
 //!
 //! Los lotes cifrados viven en la carpeta del dispositivo dentro del repositorio.
-//! Las credenciales se resuelven con el helper de credenciales del sistema, así que
-//! nunca se escriben en el libro, en el destino ni en la exportación.
+//! Las credenciales llegan desde el almacén de secretos del sistema operativo y
+//! se inyectan solo en cada proceso `git`: nunca se escriben en el libro, en el
+//! destino ni en la exportación.
 
 use std::{
     fs,
@@ -23,6 +24,7 @@ const ERROR_CREDENCIALES: &str = "Las credenciales fueron rechazadas; cómo actu
 pub struct TransporteGit {
     url: String,
     directorio: PathBuf,
+    credenciales: Option<String>,
 }
 
 impl TransporteGit {
@@ -30,7 +32,23 @@ impl TransporteGit {
         Self {
             url: url.into(),
             directorio: directorio.into(),
+            credenciales: None,
         }
+    }
+
+    /// Configura el token leído del almacén de secretos para esta sincronización.
+    /// No se guarda en el repositorio ni persiste en el adaptador.
+    pub fn con_credenciales(mut self, credenciales: Option<String>) -> Self {
+        self.credenciales = credenciales;
+        self
+    }
+
+    fn cabecera(&self) -> Option<String> {
+        let credenciales = self.credenciales.as_deref()?;
+        if !es_http(&self.url) {
+            return None;
+        }
+        Some(cabecera_autorizacion(credenciales))
     }
 
     /// Clona el repositorio si todavía no existe un clon local.
@@ -56,12 +74,17 @@ impl TransporteGit {
         ejecutar_git(
             None,
             &["clone", "--quiet", self.url.as_str(), destino.as_str()],
+            self.cabecera().as_deref(),
         )?;
         Ok(())
     }
 
     fn git(&self, argumentos: &[&str]) -> Result<String, String> {
-        ejecutar_git(Some(&self.directorio), argumentos)
+        ejecutar_git(
+            Some(&self.directorio),
+            argumentos,
+            self.cabecera().as_deref(),
+        )
     }
 
     fn rama_actual(&self) -> Result<String, String> {
@@ -150,10 +173,21 @@ impl TransporteSincronizacion for TransporteGit {
     }
 }
 
-fn ejecutar_git(directorio: Option<&Path>, argumentos: &[&str]) -> Result<String, String> {
+fn ejecutar_git(
+    directorio: Option<&Path>,
+    argumentos: &[&str],
+    cabecera: Option<&str>,
+) -> Result<String, String> {
     let mut comando = Command::new("git");
     if let Some(directorio) = directorio {
         comando.arg("-C").arg(directorio);
+    }
+    if let Some(cabecera) = cabecera {
+        // GIT_CONFIG_* evita que el token aparezca en la lista de argumentos.
+        comando
+            .env("GIT_CONFIG_COUNT", "1")
+            .env("GIT_CONFIG_KEY_0", "http.extraheader")
+            .env("GIT_CONFIG_VALUE_0", cabecera);
     }
 
     let salida = comando
@@ -167,6 +201,22 @@ fn ejecutar_git(directorio: Option<&Path>, argumentos: &[&str]) -> Result<String
     } else {
         Err(clasificar_error(&String::from_utf8_lossy(&salida.stderr)))
     }
+}
+
+fn es_http(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://")
+}
+
+/// GitHub acepta `x-access-token:<token>`; si el usuario guardó `usuario:token`,
+/// se respeta tal cual. El valor resultante viaja solo dentro del proceso Git.
+fn cabecera_autorizacion(credenciales: &str) -> String {
+    let usuario_token = match credenciales.split_once(':') {
+        Some((usuario, token)) if !usuario.is_empty() && !token.is_empty() => {
+            credenciales.to_string()
+        }
+        _ => format!("x-access-token:{credenciales}"),
+    };
+    format!("Authorization: Basic {}", STANDARD.encode(usuario_token))
 }
 
 fn clasificar_error(stderr: &str) -> String {
@@ -360,5 +410,34 @@ mod pruebas {
         assert_eq!(lotes.len(), 1);
         assert_eq!(lotes[0].dispositivo, "disp-a");
         assert_eq!(lotes[0].contenido, b"lote-a");
+    }
+
+    #[test]
+    fn la_cabecera_acepta_token_y_usuario_token() {
+        assert_eq!(
+            cabecera_autorizacion("ghp_token"),
+            format!(
+                "Authorization: Basic {}",
+                STANDARD.encode("x-access-token:ghp_token")
+            )
+        );
+        assert_eq!(
+            cabecera_autorizacion("usuario:ghp_token"),
+            format!(
+                "Authorization: Basic {}",
+                STANDARD.encode("usuario:ghp_token")
+            )
+        );
+    }
+
+    #[test]
+    fn las_credenciales_solo_se_inyectan_en_urls_http() {
+        let ssh = TransporteGit::new("git@github.com:usuario/libro.git", "/tmp/clon")
+            .con_credenciales(Some("ghp_token".to_string()));
+        assert!(ssh.cabecera().is_none());
+
+        let https = TransporteGit::new("https://github.com/usuario/libro.git", "/tmp/clon")
+            .con_credenciales(Some("ghp_token".to_string()));
+        assert!(https.cabecera().is_some());
     }
 }

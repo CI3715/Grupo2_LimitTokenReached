@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::process::Command;
 
 use aplicacion::puertos::TransporteSincronizacion;
@@ -15,9 +14,16 @@ fn contrato_publicar_y_leer(transporte: &dyn TransporteSincronizacion) {
 
     let lotes = transporte.leer_lotes().unwrap();
     let lote_encontrado = lotes.iter().find(|l| l.dispositivo == "test-device");
-    
-    assert!(lote_encontrado.is_some(), "debe existir el lote del dispositivo de prueba");
-    assert_eq!(lote_encontrado.unwrap().contenido, contenido, "el contenido no debe corromperse");
+
+    assert!(
+        lote_encontrado.is_some(),
+        "debe existir el lote del dispositivo de prueba"
+    );
+    assert_eq!(
+        lote_encontrado.unwrap().contenido,
+        contenido,
+        "el contenido no debe corromperse"
+    );
 }
 
 /// Prueba de contrato: múltiples dispositivos pueden publicar lotes independientes
@@ -26,7 +32,16 @@ fn contrato_multiples_dispositivos(transporte: &dyn TransporteSincronizacion) {
     transporte.publicar_lote("disp-b", b"lote-b").unwrap();
 
     let lotes = transporte.leer_lotes().unwrap();
-    assert_eq!(lotes.len(), 2, "debe haber dos lotes de diferentes dispositivos");
+    let lote_a = lotes
+        .iter()
+        .find(|lote| lote.dispositivo == "disp-a")
+        .expect("debe existir el lote de disp-a");
+    let lote_b = lotes
+        .iter()
+        .find(|lote| lote.dispositivo == "disp-b")
+        .expect("debe existir el lote de disp-b");
+    assert_eq!(lote_a.contenido, b"lote-a");
+    assert_eq!(lote_b.contenido, b"lote-b");
 }
 
 // Tests para los 3 Adaptadores
@@ -71,7 +86,7 @@ fn adaptador_git_cumple_el_contrato() {
 
     let url_remoto = ruta_remoto.to_string_lossy().into_owned();
     let transporte = TransporteGit::new(&url_remoto, &ruta_clon);
-    
+
     // El adaptador de Git necesita clonar el remoto antes de operar
     transporte.asegurar_clon().unwrap();
 
@@ -95,5 +110,4 @@ fn adaptador_git_cumple_el_contrato() {
 
     // Limpiamos la carpeta temporal
     let _ = std::fs::remove_dir_all(&ruta_temp);
-});
 }
