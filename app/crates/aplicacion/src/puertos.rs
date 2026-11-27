@@ -317,6 +317,17 @@ pub trait TransporteSincronizacion: Send + Sync {
     fn publicar_lote(&self, dispositivo: &str, contenido: &[u8]) -> Result<(), String>;
 }
 
+/// Almacén de secretos del sistema operativo.
+///
+/// La configuración no secreta y los secretos comparten claves estables, pero
+/// solo las credenciales de Git y la frase de paso se escriben aquí. Ningún
+/// valor se copia al libro, al destino ni a la exportación.
+pub trait AlmacenSecretos: Send + Sync {
+    fn guardar(&self, clave: &str, valor: &str) -> Result<(), String>;
+    fn leer(&self, clave: &str) -> Result<Option<String>, String>;
+    fn borrar(&self, clave: &str) -> Result<(), String>;
+}
+
 /// Puerto de almacenamiento del libro de eventos inmutables y reconstrucción de saldos.
 pub trait RepositorioEventos: Send + Sync {
     /// Devuelve el UUID único de esta instalación.
