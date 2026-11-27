@@ -1,10 +1,12 @@
 pub mod comandos;
 
+mod secretos;
+
 use aplicacion::puertos::{
-    CifradorRespaldo, ClienteSocial, Reloj, RepositorioCategorias, RepositorioColaGastos,
-    RepositorioCuentas, RepositorioEventos, RepositorioMonedas, RepositorioMovimientos,
-    RepositorioPatrimonio, RepositorioPreferencias, RepositorioSincronizacion, RepositorioTasas,
-    SerializadorLibro,
+    AlmacenSecretos, CifradorRespaldo, ClienteSocial, Reloj, RepositorioCategorias,
+    RepositorioColaGastos, RepositorioCuentas, RepositorioEventos, RepositorioMonedas,
+    RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias,
+    RepositorioSincronizacion, RepositorioTasas, SerializadorLibro,
 };
 use infraestructura::{
     CifradorRespaldoAesGcm, ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite,
@@ -92,6 +94,11 @@ pub fn run() {
             let state_cifrador: Box<dyn CifradorRespaldo> = Box::new(CifradorRespaldoAesGcm::new());
             app.manage(state_cifrador);
 
+            // Entrega 8: credenciales de Git y frase de paso del destino configurado.
+            let state_secretos: Box<dyn AlmacenSecretos> =
+                Box::new(secretos::AlmacenSecretosSistema);
+            app.manage(state_secretos);
+
             let url_servidor = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
             let cliente_social: Box<dyn ClienteSocial> =
                 Box::new(ClienteSocialHttp::new(url_servidor));
@@ -146,6 +153,10 @@ pub fn run() {
             comandos::respaldo::importar_libro,
             comandos::respaldo::sincronizar_carpeta_libro,
             comandos::respaldo::sincronizar_git_libro,
+            comandos::respaldo::configurar_destino_sync,
+            comandos::respaldo::obtener_destino_sync,
+            comandos::respaldo::desconfigurar_destino_sync,
+            comandos::respaldo::sincronizar_destino_configurado,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");

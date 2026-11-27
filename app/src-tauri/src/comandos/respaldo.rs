@@ -7,7 +7,8 @@
 use std::path::{Path, PathBuf};
 
 use aplicacion::puertos::{
-    CifradorRespaldo, Reloj, ReporteSincronizacionLibro, RepositorioEventos, SerializadorLibro,
+    AlmacenSecretos, CifradorRespaldo, Reloj, ReporteSincronizacionLibro, RepositorioEventos,
+    SerializadorLibro,
 };
 use contrato::respaldo_sincronizacion::{EventoRechazadoDTO, ReporteSincronizacionDTO};
 use contrato::{
@@ -45,6 +46,24 @@ fn mapear_sincronizacion(reporte: &ReporteSincronizacionLibro) -> ResultadoSyncD
         eventos_rechazados: mapear_rechazados(&reporte.rechazados),
         fecha_ultima_sync: reporte.fecha_ultima_sincronizacion.clone(),
     }
+}
+
+fn sin_secretos(mut configuracion: ConfigDestinoSyncDTO) -> ConfigDestinoSyncDTO {
+    configuracion.credenciales = None;
+    configuracion.frase_de_paso = None;
+    configuracion
+}
+
+fn leer_configuracion(almacen: &dyn AlmacenSecretos) -> Result<ConfigDestinoSyncDTO, String> {
+    aplicacion::casos_uso::configurar_destino_sync::leer(almacen)?
+        .ok_or_else(|| "No hay un destino de sincronización configurado.".to_string())
+}
+
+fn frase_guardada(configuracion: &ConfigDestinoSyncDTO) -> Result<String, String> {
+    configuracion
+        .frase_de_paso
+        .clone()
+        .ok_or_else(|| "La frase de paso guardada no existe.".to_string())
 }
 
 /// Exporta el libro filtrado. Si `cifrar` es `false`, escribe el formato plano;
@@ -181,23 +200,34 @@ fn sincronizar_carpeta_libro_impl(
     Ok(mapear_sincronizacion(&reporte))
 }
 
+/// Guarda el destino elegido y sus secretos en el almacén del sistema operativo.
 #[tauri::command]
-pub fn sincronizar_carpeta_libro(
-    ruta_carpeta: String,
-    frase_de_paso: String,
-    repo_eventos: State<'_, Box<dyn RepositorioEventos>>,
-    serializador: State<'_, Box<dyn SerializadorLibro>>,
-    cifrador: State<'_, Box<dyn CifradorRespaldo>>,
-    reloj: State<'_, Box<dyn Reloj>>,
-) -> Result<ResultadoSyncDTO, String> {
-    sincronizar_carpeta_libro_impl(
-        ruta_carpeta,
-        frase_de_paso,
-        repo_eventos.inner().as_ref(),
-        serializador.inner().as_ref(),
-        cifrador.inner().as_ref(),
-        reloj.inner().as_ref(),
+pub fn configurar_destino_sync(
+    configuracion: ConfigDestinoSyncDTO,
+    almacen_secretos: State<'_, Box<dyn AlmacenSecretos>>,
+) -> Result<(), String> {
+    aplicacion::casos_uso::configurar_destino_sync::guardar(
+        configuracion,
+        almacen_secretos.inner().as_ref(),
     )
+}
+
+/// Devuelve el destino configurado sin credenciales ni frase de paso.
+#[tauri::command]
+pub fn obtener_destino_sync(
+    almacen_secretos: State<'_, Box<dyn AlmacenSecretos>>,
+) -> Result<Option<ConfigDestinoSyncDTO>, String> {
+    Ok(
+        aplicacion::casos_uso::configurar_destino_sync::leer(almacen_secretos.inner().as_ref())?
+            .map(sin_secretos),
+    )
+}
+
+#[tauri::command]
+pub fn desconfigurar_destino_sync(
+    almacen_secretos: State<'_, Box<dyn AlmacenSecretos>>,
+) -> Result<(), String> {
+    aplicacion::casos_uso::configurar_destino_sync::borrar(almacen_secretos.inner().as_ref())
 }
 
 /// Sincroniza el libro con un repositorio Git propio del usuario.
@@ -216,14 +246,10 @@ fn sincronizar_git_libro_impl(
     if configuracion.ruta_o_url.trim().is_empty() {
         return Err("La URL del repositorio no puede estar vacía.".to_string());
     }
-    if configuracion.credenciales.is_some() {
-        return Err(
-            "Las credenciales se gestionan con el helper de Git; no se envían en la configuración."
-                .to_string(),
-        );
-    }
 
-    let transporte = TransporteGit::new(configuracion.ruta_o_url.clone(), ruta_clon);
+    // Las credenciales vienen del almacén de secretos y solo viven durante esta llamada.
+    let transporte = TransporteGit::new(configuracion.ruta_o_url.clone(), ruta_clon)
+        .con_credenciales(configuracion.credenciales.clone());
     let reporte = aplicacion::casos_uso::sincronizar_libro::ejecutar(
         &transporte,
         frase_de_paso,
@@ -236,27 +262,110 @@ fn sincronizar_git_libro_impl(
     Ok(mapear_sincronizacion(&reporte))
 }
 
-#[tauri::command]
-pub fn sincronizar_git_libro(
-    configuracion: ConfigDestinoSyncDTO,
-    frase_de_paso: String,
-    repo_eventos: State<'_, Box<dyn RepositorioEventos>>,
-    serializador: State<'_, Box<dyn SerializadorLibro>>,
-    cifrador: State<'_, Box<dyn CifradorRespaldo>>,
-    reloj: State<'_, Box<dyn Reloj>>,
-    app: AppHandle,
-) -> Result<ResultadoSyncDTO, String> {
+fn ruta_clon(app: &AppHandle) -> Result<PathBuf, String> {
     const ERROR_REPOSITORIO: &str = "No se pudo llegar al repositorio; se reintentará.";
     let directorio = app
         .path()
         .app_data_dir()
         .map_err(|_| ERROR_REPOSITORIO.to_string())?;
     std::fs::create_dir_all(&directorio).map_err(|_| ERROR_REPOSITORIO.to_string())?;
+    Ok(directorio.join("git"))
+}
 
-    sincronizar_git_libro_impl(
+/// Despacha el destino guardado, sin que el frontend reenvíe secretos.
+fn sincronizar_configurado_impl(
+    configuracion: ConfigDestinoSyncDTO,
+    ruta_clon: &Path,
+    repo_eventos: &dyn RepositorioEventos,
+    serializador: &dyn SerializadorLibro,
+    cifrador: &dyn CifradorRespaldo,
+    reloj: &dyn Reloj,
+) -> Result<ResultadoSyncDTO, String> {
+    let frase = frase_guardada(&configuracion)?;
+    let tipo = configuracion.tipo.clone();
+    match tipo.as_str() {
+        "carpeta" => sincronizar_carpeta_libro_impl(
+            configuracion.ruta_o_url.clone(),
+            frase,
+            repo_eventos,
+            serializador,
+            cifrador,
+            reloj,
+        ),
+        "git" => sincronizar_git_libro_impl(
+            configuracion,
+            &frase,
+            ruta_clon,
+            repo_eventos,
+            serializador,
+            cifrador,
+            reloj,
+        ),
+        _ => Err("El tipo de destino debe ser \"git\" o \"carpeta\".".to_string()),
+    }
+}
+
+#[tauri::command]
+pub fn sincronizar_carpeta_libro(
+    repo_eventos: State<'_, Box<dyn RepositorioEventos>>,
+    serializador: State<'_, Box<dyn SerializadorLibro>>,
+    cifrador: State<'_, Box<dyn CifradorRespaldo>>,
+    reloj: State<'_, Box<dyn Reloj>>,
+    almacen_secretos: State<'_, Box<dyn AlmacenSecretos>>,
+) -> Result<ResultadoSyncDTO, String> {
+    let configuracion = leer_configuracion(almacen_secretos.inner().as_ref())?;
+    if configuracion.tipo != "carpeta" {
+        return Err("El destino configurado no es una carpeta compartida.".to_string());
+    }
+
+    sincronizar_configurado_impl(
         configuracion,
-        &frase_de_paso,
-        &directorio.join("git"),
+        Path::new(""),
+        repo_eventos.inner().as_ref(),
+        serializador.inner().as_ref(),
+        cifrador.inner().as_ref(),
+        reloj.inner().as_ref(),
+    )
+}
+
+#[tauri::command]
+pub fn sincronizar_git_libro(
+    repo_eventos: State<'_, Box<dyn RepositorioEventos>>,
+    serializador: State<'_, Box<dyn SerializadorLibro>>,
+    cifrador: State<'_, Box<dyn CifradorRespaldo>>,
+    reloj: State<'_, Box<dyn Reloj>>,
+    almacen_secretos: State<'_, Box<dyn AlmacenSecretos>>,
+    app: AppHandle,
+) -> Result<ResultadoSyncDTO, String> {
+    let configuracion = leer_configuracion(almacen_secretos.inner().as_ref())?;
+    if configuracion.tipo != "git" {
+        return Err("El destino configurado no es un repositorio Git.".to_string());
+    }
+
+    sincronizar_configurado_impl(
+        configuracion,
+        &ruta_clon(&app)?,
+        repo_eventos.inner().as_ref(),
+        serializador.inner().as_ref(),
+        cifrador.inner().as_ref(),
+        reloj.inner().as_ref(),
+    )
+}
+
+/// Comando único para el botón “Sincronizar ahora” y para la apertura de la app.
+#[tauri::command]
+pub fn sincronizar_destino_configurado(
+    repo_eventos: State<'_, Box<dyn RepositorioEventos>>,
+    serializador: State<'_, Box<dyn SerializadorLibro>>,
+    cifrador: State<'_, Box<dyn CifradorRespaldo>>,
+    reloj: State<'_, Box<dyn Reloj>>,
+    almacen_secretos: State<'_, Box<dyn AlmacenSecretos>>,
+    app: AppHandle,
+) -> Result<ResultadoSyncDTO, String> {
+    let configuracion = leer_configuracion(almacen_secretos.inner().as_ref())?;
+    sincronizar_configurado_impl(
+        configuracion,
+        &ruta_clon(&app)?,
         repo_eventos.inner().as_ref(),
         serializador.inner().as_ref(),
         cifrador.inner().as_ref(),
@@ -636,6 +745,7 @@ mod pruebas {
             tipo: "git".to_string(),
             ruta_o_url: remoto_texto,
             credenciales: None,
+            frase_de_paso: None,
         };
 
         assert_eq!(
@@ -670,23 +780,6 @@ mod pruebas {
             .unwrap_err(),
             "La URL del repositorio no puede estar vacía."
         );
-        assert_eq!(
-            sincronizar_git_libro_impl(
-                ConfigDestinoSyncDTO {
-                    credenciales: Some("usuario:clave".to_string()),
-                    ..configuracion.clone()
-                },
-                frase,
-                &clon_a,
-                &origen,
-                &serializador,
-                &cifrador,
-                &reloj,
-            )
-            .unwrap_err(),
-            "Las credenciales se gestionan con el helper de Git; no se envían en la configuración."
-        );
-
         let primero = sincronizar_git_libro_impl(
             configuracion.clone(),
             frase,
@@ -744,5 +837,77 @@ mod pruebas {
             origen.listar_eventos_ordenados().unwrap(),
             destino.listar_eventos_ordenados().unwrap()
         );
+    }
+
+    #[test]
+    fn la_configuracion_devuelta_al_frontend_no_expone_secretos() {
+        let visible = sin_secretos(ConfigDestinoSyncDTO {
+            tipo: "git".to_string(),
+            ruta_o_url: "https://github.com/usuario/libro.git".to_string(),
+            credenciales: Some("ghp_secreto".to_string()),
+            frase_de_paso: Some("frase-segura-123".to_string()),
+        });
+
+        assert_eq!(visible.tipo, "git");
+        assert_eq!(visible.ruta_o_url, "https://github.com/usuario/libro.git");
+        assert!(visible.credenciales.is_none());
+        assert!(visible.frase_de_paso.is_none());
+    }
+
+    fn recoger_archivos(directorio: &Path, archivos: &mut Vec<PathBuf>) {
+        for entrada in std::fs::read_dir(directorio).unwrap() {
+            let ruta = entrada.unwrap().path();
+            if ruta.is_dir() {
+                recoger_archivos(&ruta, archivos);
+            } else {
+                archivos.push(ruta);
+            }
+        }
+    }
+
+    #[test]
+    fn sincronizar_git_acepta_credenciales_sin_escribirlas_en_el_destino() {
+        let dir = DirTemporal::nueva();
+        let remoto = dir.ruta("remoto.git");
+        git_en(
+            &dir.0,
+            &["init", "--bare", "--quiet", remoto.to_str().unwrap()],
+        );
+        let clon = clon_configurado(&dir, &remoto.to_string_lossy(), "clon");
+        let origen = repositorio_con_un_evento(&dir.ruta("origen.db"));
+        let serializador = SerializadorLibroPlano::new();
+        let cifrador = CifradorRespaldoAesGcm::new();
+        let reloj = RelojFijo;
+
+        let resultado = sincronizar_git_libro_impl(
+            ConfigDestinoSyncDTO {
+                tipo: "git".to_string(),
+                ruta_o_url: remoto.to_string_lossy().into_owned(),
+                credenciales: Some("ghp_token_secreto".to_string()),
+                frase_de_paso: None,
+            },
+            "frase-sincronizacion-git-123",
+            &clon,
+            &origen,
+            &serializador,
+            &cifrador,
+            &reloj,
+        )
+        .unwrap();
+
+        assert!(resultado.exitoso);
+        assert_eq!(resultado.eventos_enviados, 1);
+
+        let mut archivos = Vec::new();
+        recoger_archivos(&clon, &mut archivos);
+        assert!(!archivos.is_empty());
+        for archivo in archivos {
+            let contenido = std::fs::read(&archivo).unwrap();
+            assert!(
+                !String::from_utf8_lossy(&contenido).contains("ghp_token_secreto"),
+                "el secreto apareció en {}",
+                archivo.display()
+            );
+        }
     }
 }
