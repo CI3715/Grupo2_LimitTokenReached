@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-11-26
 
-**Estado:** Implementado en backend; integración y validación de extremo a extremo pendientes
+**Estado:** Implementado en backend e integrado con la interfaz; validación de extremo a extremo pendiente
 
 **Decisores:** Grupo 2, Secc. 1 – LimitTokenReached
 
@@ -12,7 +12,7 @@
 
 El libro personal necesita poder exportarse y transferirse sin exponer sus eventos, cuentas o saldos. La frase de paso no es una clave aleatoria; se deriva una clave con una función costosa y se utiliza cifrado autenticado para detectar modificaciones. El formato del libro antes del cifrado se describe en [formato-exportacion.md](../formato-exportacion.md).
 
-La sincronización del libro entre dispositivos es distinta de la sincronización de gastos grupales con el servidor descrita en [ADR-018](018-sincronizacion-idempotente-y-cursor.md). Este ADR documenta la implementación de respaldo existente en `app/crates/infraestructura/src/criptografia_respaldo.rs`; no presupone que la interfaz o todos los transportes estén terminados.
+La sincronización del libro entre dispositivos es distinta de la sincronización de gastos grupales con el servidor descrita en [ADR-018](018-sincronizacion-idempotente-y-cursor.md). Este ADR documenta el cifrado implementado en `app/crates/infraestructura/src/criptografia_respaldo.rs`. La interfaz y los transportes de carpeta y Git están conectados; su validación manual completa sigue pendiente.
 
 ## Decisión e implementación
 
@@ -51,7 +51,7 @@ La cabecera autenticada comprende desde `CUENTASCLARAS-BACKUP\n` hasta `NONCE=..
 ## Consecuencias y pendientes
 
 - La pérdida de la frase impide recuperar el contenido cifrado. El cifrado no oculta la existencia ni el tamaño aproximado del archivo.
-- Existen comandos Tauri para exportar, importar y sincronizar mediante carpeta. Todavía no se encontró transporte Git, configuración de destinos ni almacenamiento de la frase de sincronización en el keyring. El keyring existente corresponde a la sesión.
+- Existen comandos Tauri para exportar, importar y sincronizar mediante carpeta. También existen transporte Git y pantalla de respaldo: la URL o ruta del destino se guarda en localStorage y las credenciales Git se resuelven mediante el helper de Git. La frase de sincronización permanece en la página y no se guarda en el keyring; el keyring existente corresponde a la sesión.
 - Las pruebas automatizadas cubren, entre otros casos, ida y vuelta, frase incorrecta, alteración, versión no soportada y ausencia de cambios en la base. La matriz registra la validación pendiente de interfaz y demo.
 - La política de límites de tamaño de archivo y la medición del coste de Argon2 en dispositivos soportados quedan pendientes de evaluación.
 

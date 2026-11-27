@@ -1,52 +1,52 @@
 # Guía de respaldo y sincronización entre dispositivos
 
-> **Estado de la funcionalidad:** el backend expone comandos Tauri para exportar e importar el libro, cifrado o plano, y sincronizarlo con una carpeta compartida. La interfaz de estos flujos, la configuración persistente, el transporte Git y el almacenamiento de sus secretos aún no están conectados en esta rama. Los pasos de pantalla siguientes son el flujo previsto y no una guía de controles ya disponibles. No se ha verificado manualmente de extremo a extremo.
-
-La sincronización del libro personal entre dispositivos es independiente de la sincronización de gastos grupales con el servidor. Conserva una copia de seguridad separada del destino compartido.
+La pantalla **Respaldo** permite exportar e importar el libro y sincronizarlo por carpeta compartida o por un repositorio Git. Estos flujos están integrados en el código; queda pendiente su validación manual completa en dispositivos. La sincronización del libro es independiente de la sincronización de gastos grupales con el servidor.
 
 ## Antes de comenzar
 
-1. Prepara dos instalaciones compatibles con libros y dispositivos independientes. Conserva una copia adicional antes de importar.
-2. Elige una frase de paso de al menos 12 caracteres y consérvala en un lugar seguro. Debe coincidir exactamente al abrir el archivo; si se pierde, no se pueden recuperar los datos cifrados con ella.
-3. Para carpeta compartida, elige una carpeta que ambos dispositivos puedan leer y escribir. Usa datos de prueba hasta completar la integración y validación.
-4. No pongas contraseñas, tokens ni frases en archivos compartidos o mensajes. El almacenamiento seguro de secretos específico de esta función aún está pendiente.
+- Conserva una copia adicional de tus datos antes de restaurar o sincronizar por primera vez.
+- Elige una frase de paso de al menos 12 caracteres y guárdala en un lugar seguro. Si la pierdes, no podrás recuperar el respaldo cifrado. Utiliza exactamente la misma frase en los dispositivos que comparten un destino.
+- No escribas credenciales en la URL del repositorio. La aplicación utiliza el gestor de credenciales configurado para Git en cada dispositivo.
+- La aplicación recuerda el tipo y la ruta o URL del destino en el almacenamiento local de la interfaz. La frase de sincronización se mantiene en la página, no se guarda para futuras sesiones: deberás introducirla de nuevo al volver.
 
-## Respaldo y restauración: flujo previsto en la interfaz
+## Exportar y restaurar un respaldo
 
-1. En el dispositivo de origen, abre el futuro flujo de respaldo manual y selecciona la ubicación del archivo.
-2. Elige cifrado e introduce y confirma la frase. El backend exige al menos 12 caracteres al exportar. Guarda el archivo en un lugar accesible para el dispositivo nuevo.
-3. La exportación sin cifrar contiene información personal legible. Úsala solo cuando sea necesaria y protege la copia.
-4. En el dispositivo nuevo, abre el futuro flujo de importación, selecciona el archivo y, si está cifrado, proporciona la misma frase.
-5. Revisa los eventos nuevos, existentes y rechazados; compara cuentas, saldos e historial con el origen. Un rechazo requiere revisión antes de dar por completada la restauración.
+1. Abre **Respaldo** y busca **Exportar copia de seguridad**. Escribe la carpeta de destino o la ruta completa de un archivo `.ccbak`; si indicas una carpeta, se usa el nombre `respaldo.ccbak`.
+2. Selecciona **Cifrar**, introduce la frase y repítela. Si eliges **No cifrar**, la copia contiene información financiera legible y debes protegerla.
+3. Pulsa **Exportar copia** y lleva el archivo al dispositivo nuevo.
+4. En **Importar copia de seguridad**, selecciona el archivo o escribe su ruta. Introduce la frase si la copia está cifrada y pulsa **Importar copia**.
+5. Revisa el resumen de eventos nuevos, existentes y rechazados. Compara cuentas, saldos e historial con el origen y revisa cualquier rechazo antes de dar por terminada la restauración.
 
-Los comandos disponibles son `exportar_libro` e `importar_libro`; aún no se encontraron pantallas que los invoquen. La importación fusiona eventos y no está diseñada para borrar eventos locales ausentes en el archivo.
+Si el selector no entrega una ruta completa, la pantalla solicita escribirla manualmente. Importar fusiona los eventos con los locales.
 
-## Carpeta compartida: flujo previsto en la interfaz
+## Sincronizar con carpeta compartida
 
-1. Prepara una carpeta compartida accesible desde ambas instalaciones y verifica permisos de lectura y escritura. Las rutas locales pueden ser distintas si apuntan al mismo destino.
-2. Cuando exista la configuración en pantalla, selecciona la carpeta y usa la misma frase en ambos dispositivos. Espera a que el servicio de carpeta termine de transferir los archivos antes de cada operación.
-3. Sincroniza el primer dispositivo, luego el segundo y nuevamente el primero para completar el intercambio. Consulta los eventos enviados, recibidos y rechazados.
-4. Si hay rechazos, conserva los archivos y revisa el reporte. No elimines ni edites manualmente los lotes para resolver un conflicto.
+1. Prepara una carpeta accesible con permisos de lectura y escritura desde ambos dispositivos. Las rutas locales pueden ser diferentes si apuntan a la misma carpeta.
+2. En **Respaldo**, selecciona **Carpeta compartida** y escribe la ruta. Si el selector no proporciona la ruta correcta, escríbela manualmente.
+3. Introduce la frase común y pulsa **Guardar destino y sincronizar**. Espera a que el servicio de carpeta termine de transferir los archivos.
+4. Repite en el segundo dispositivo y vuelve a sincronizar el primero. Consulta el reporte y los rechazos.
 
-El comando existente `sincronizar_carpeta_libro` recibe la ruta y frase por llamada; lee lotes `.ccbak` recursivamente y publica lotes cifrados bajo el identificador del dispositivo. Todavía no existe en esta rama una pantalla de configuración o sincronización automática del libro.
+## Sincronizar con Git privado
 
-## Git privado: pendiente
+1. Prepara un repositorio privado dedicado y instala y configura Git en cada dispositivo, incluyendo nombre y correo para sus commits, y habilita el acceso al repositorio mediante el gestor de credenciales o el método de autenticación configurado. Git se ejecuta sin solicitud interactiva en terminal, por lo que el acceso debe estar disponible previamente.
+2. En **Respaldo**, selecciona **Repositorio Git** e introduce la URL sin credenciales y la frase común.
+3. Pulsa **Guardar destino y sincronizar** en el primer dispositivo, después en el segundo y finalmente vuelve a sincronizar el primero. Revisa el reporte en cada uno.
+4. Si Git rechaza las credenciales, actualízalas en su gestor en ese dispositivo y reintenta. La aplicación no recibe credenciales en el formulario.
 
-La configuración de un repositorio Git privado, sus credenciales, clonación y sincronización aún no están implementadas en el backend revisado. Cuando se incorporen se deberá completar aquí el procedimiento real, sin incluir credenciales en la URL ni en el repositorio. No se puede utilizar este método desde la aplicación actual.
+La sincronización se inicia con **Guardar destino y sincronizar** o **Sincronizar ahora**; actualmente no se ejecuta automáticamente al abrir la aplicación. La fecha y el reporte de la última sincronización exitosa se muestran durante la sesión de la pantalla y no se conservan al volver a abrirla.
 
 ## Problemas frecuentes
 
-| Situación                               | Qué hacer                                                                                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Frase incorrecta o archivo dañado       | Comprueba la frase y usa una copia íntegra. Conserva el libro local y el archivo original.                                               |
-| Versión no soportada                    | Verifica la versión de la aplicación y conserva el archivo hasta disponer de una versión compatible.                                     |
-| Carpeta inaccesible                     | Revisa ruta, permisos, conexión y transferencia del servicio de carpeta; vuelve a intentar.                                              |
-| Evento rechazado por contenido distinto | Conserva el reporte y las copias; consulta al equipo con el identificador, sin compartir secretos ni datos financieros.                  |
-| Falta un cambio en otro dispositivo     | Comprueba que ambas instalaciones utilicen la misma carpeta y frase, que la transferencia haya terminado y que ambas hayan sincronizado. |
-
-El catálogo de errores contempla además credenciales Git inválidas, pero el transporte Git y su conexión a la interfaz aún están pendientes. Los mensajes y nombres definitivos de los controles deberán verificarse al integrar el frontend.
+| Situación                               | Qué hacer                                                                                                               |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Frase incorrecta o archivo dañado       | Comprueba la frase y utiliza una copia íntegra. Conserva el archivo original y los datos locales.                       |
+| Versión no soportada                    | Verifica la versión de la aplicación y conserva el archivo hasta disponer de una versión compatible.                    |
+| Destino inaccesible                     | Comprueba la ruta o URL, conexión y permisos. En carpeta, espera a que termine la transferencia.                        |
+| Credenciales Git rechazadas             | Actualízalas en el gestor de credenciales de Git y vuelve a sincronizar.                                                |
+| Evento rechazado por contenido distinto | Conserva el reporte y las copias; consulta al equipo con el identificador, sin compartir secretos ni datos financieros. |
+| Falta un cambio                         | Comprueba destino y frase, espera la transferencia y sincroniza ambos dispositivos de nuevo.                            |
 
 ## Referencias
 
 - [ADR de cifrado](adr/019-cifrado-respaldo.md).
-- [Matriz de validación y guion de demo](qa-sincronizacion-respaldo.md).
+- [Matriz de validación y demo](qa-sincronizacion-respaldo.md).
