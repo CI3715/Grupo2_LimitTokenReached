@@ -41,6 +41,15 @@ function formattedDate(value: string) {
       }).format(date);
 }
 
+function exportDestinationPath(destination: string) {
+  const path = destination.trim();
+  if (/\.ccbak$/i.test(path)) return path;
+
+  const directory = path.replace(/[\\/]+$/, "");
+  const separator = path.includes("\\") ? "\\" : "/";
+  return `${directory}${separator}respaldo.ccbak`;
+}
+
 type BackupActions = {
   exportResult: ExportBackupResponse | null;
   importResult: ImportBackupResponse | null;
@@ -197,7 +206,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
 
   async function submitExport(values: ExportBackupFormValues) {
     const success = await backup.exportar({
-      ruta_destino: values.ruta_destino,
+      ruta_destino: exportDestinationPath(values.ruta_destino),
       cifrar: values.cifrar,
       frase_de_paso: values.cifrar ? values.frase_de_paso : null,
     });
@@ -251,7 +260,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
     <div className="backup-sections">
       <section className="backup-panel" aria-labelledby="backup-export-title">
         <div className="backup-panel-heading">
-          <span className="backup-icon" aria-hidden="true">↓</span>
+          <span className="backup-icon" aria-hidden="true">↑</span>
           <div>
             <h2 id="backup-export-title">Exportar copia de seguridad</h2>
             <p>Crea una copia local de tus eventos.</p>
@@ -265,14 +274,15 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             <FormField<ExportBackupFormValues>
               name="ruta_destino"
               label="Ruta de destino"
-              help="Escribe la ruta completa y el nombre del archivo .ccbak."
+              help="Escribe una carpeta para guardar respaldo.ccbak, o indica directamente la ruta de un archivo .ccbak."
               className="backup-export-path"
             >
               {(props) => (
                 <input
+                  {...exportForm.register("ruta_destino")}
                   {...props}
                   autoComplete="off"
-                  placeholder={"C:\\Copias\\respaldo.ccbak"}
+                  placeholder={"C:\\User\\Desktop\\Copia\\"}
                 />
               )}
             </FormField>
@@ -323,7 +333,12 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
                 label="Frase de paso"
               >
                 {(props) => (
-                  <input {...props} type="password" autoComplete="new-password" />
+                  <input
+                    {...exportForm.register("frase_de_paso")}
+                    {...props}
+                    type="password"
+                    autoComplete="new-password"
+                  />
                 )}
               </FormField>
               <FormField<ExportBackupFormValues>
@@ -331,7 +346,12 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
                 label="Repite la frase de paso"
               >
                 {(props) => (
-                  <input {...props} type="password" autoComplete="new-password" />
+                  <input
+                    {...exportForm.register("confirmar_frase")}
+                    {...props}
+                    type="password"
+                    autoComplete="new-password"
+                  />
                 )}
               </FormField>
               </div>
@@ -358,7 +378,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
 
       <section className="backup-panel" aria-labelledby="backup-import-title">
         <div className="backup-panel-heading">
-          <span className="backup-icon" aria-hidden="true">↑</span>
+          <span className="backup-icon" aria-hidden="true">↓</span>
           <div>
             <h2 id="backup-import-title">Importar copia de seguridad</h2>
             <p>Fusiona los eventos de una copia con este dispositivo.</p>
@@ -378,6 +398,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             {(props) => (
               <div className="backup-path-control">
                 <input
+                  {...importForm.register("ruta_archivo")}
                   {...props}
                   autoComplete="off"
                   placeholder={"C:\\Copias\\respaldo.ccbak"}
@@ -413,7 +434,12 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             className="backup-import-passphrase"
           >
             {(props) => (
-              <input {...props} type="password" autoComplete="current-password" />
+              <input
+                {...importForm.register("frase_de_paso")}
+                {...props}
+                type="password"
+                autoComplete="current-password"
+              />
             )}
           </FormField>
           {pickerNotice && <p className="backup-note" role="status">{pickerNotice}</p>}
@@ -490,6 +516,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             {(props) => (
               <div className="backup-path-control">
                 <input
+                  {...syncForm.register("ruta_o_url")}
                   {...props}
                   autoComplete="off"
                   placeholder={selectedMode === "git" ? "https://…" : "C:\\Datos\\Compartida"}
@@ -530,14 +557,25 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
                   name="usuario_git"
                   label="Usuario Git"
                 >
-                  {(props) => <input {...props} autoComplete="username" />}
+                  {(props) => (
+                    <input
+                      {...syncForm.register("usuario_git")}
+                      {...props}
+                      autoComplete="username"
+                    />
+                  )}
                 </FormField>
                 <FormField<DeviceSyncFormValues>
                   name="credenciales_git"
                   label="Token o contraseña"
                 >
                   {(props) => (
-                    <input {...props} type="password" autoComplete="new-password" />
+                    <input
+                      {...syncForm.register("credenciales_git")}
+                      {...props}
+                      type="password"
+                      autoComplete="new-password"
+                    />
                   )}
                 </FormField>
               </div>
@@ -553,7 +591,12 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             help="Por seguridad, la frase no se guarda en este dispositivo."
           >
             {(props) => (
-              <input {...props} type="password" autoComplete="new-password" />
+              <input
+                {...syncForm.register("frase_de_paso")}
+                {...props}
+                type="password"
+                autoComplete="new-password"
+              />
             )}
           </FormField>
           {pickerNotice && <p className="backup-note" role="status">{pickerNotice}</p>}

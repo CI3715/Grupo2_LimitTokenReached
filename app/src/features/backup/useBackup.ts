@@ -34,6 +34,13 @@ export function backupErrorMessage(error: unknown) {
     return "No se pudo acceder al destino. Comprueba la ruta y vuelve a intentarlo.";
   }
   if (
+    normalized.includes("acceso denegado") ||
+    normalized.includes("os error 5") ||
+    normalized.includes("permission denied")
+  ) {
+    return "No se pudo escribir en esa ubicación. Comprueba que sea una carpeta y que tengas permiso para guardar allí.";
+  }
+  if (
     normalized.includes("credenciales") ||
     normalized.includes("credencialesgitinvalidas")
   ) {
