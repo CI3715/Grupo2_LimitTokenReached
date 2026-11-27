@@ -15,11 +15,16 @@
 
 #![allow(dead_code)]
 
+use aplicacion::puertos::RepositorioEventos;
+use dominio::libro::{EventoLibro, ResumenFusion};
+use infraestructura::RepositorioEventosSqlite;
 use infraestructura::bd;
+use infraestructura::repositorio_eventos_sqlite::canonizar_json_str;
 use rusqlite::{Connection, params};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use serde_json::{Value, json};
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 pub const ESCALA_MONTOS: i64 = 100_000_000; // 10^8, igual que la app
@@ -410,4 +415,147 @@ pub fn a_texto_exportacion(conn: &Connection) -> String {
         ));
     }
     texto
+}
+
+pub fn contar_filas(conn: &Connection, tabla: &str) -> i64 {
+    let sql = format!("SELECT COUNT(*) FROM {tabla}");
+    conn.query_row(&sql, [], |fila| fila.get(0)).unwrap()
+}
+
+/// Pasa un evento de prueba al tipo que usa el motor de fusión.
+pub fn a_evento_libro(evento: &EventoPrueba) -> EventoLibro {
+    EventoLibro {
+        id: evento.id.clone(),
+        tipo: evento.tipo.clone(),
+        registrado_en: evento.registrado_en.clone(),
+        dispositivo: evento.dispositivo.clone(),
+        datos_canonicos: canonizar_json_str(&evento.datos.to_string()).unwrap(),
+    }
+}
+
+/// Archivo temporal que se borra al terminar la prueba.
+pub struct ArchivoTemporal(pub PathBuf);
+
+impl ArchivoTemporal {
+    pub fn nuevo(prefijo: &str, extension: &str) -> Self {
+        Self(std::env::temp_dir().join(format!(
+            "cuentas-claras-{prefijo}-{}.{extension}",
+            Uuid::new_v4()
+        )))
+    }
+}
+
+impl Drop for ArchivoTemporal {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// Carpeta temporal (por ejemplo, la carpeta compartida de sincronización).
+pub struct CarpetaTemporal(pub PathBuf);
+
+impl CarpetaTemporal {
+    pub fn nueva(prefijo: &str) -> Self {
+        Self(std::env::temp_dir().join(format!("cuentas-claras-{prefijo}-{}", Uuid::new_v4())))
+    }
+}
+
+impl Drop for CarpetaTemporal {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Un dispositivo simulado: su propia base SQLite en un archivo temporal, abierta como
+/// la abre la app. Los eventos entran por el motor real de fusión, así que `cuenta` y
+/// `movimiento` salen de reconstruir las proyecciones desde los eventos.
+pub struct Dispositivo {
+    pub repo: RepositorioEventosSqlite,
+    pub lectura: Connection,
+    // Va al final para que el archivo se borre después de cerrar las conexiones.
+    archivo: ArchivoTemporal,
+}
+
+impl Dispositivo {
+    pub fn nuevo() -> Self {
+        let archivo = ArchivoTemporal::nuevo("dispositivo", "db");
+        let escritura = bd::abrir(&archivo.0).unwrap();
+        let lectura = bd::abrir(&archivo.0).unwrap();
+        Self {
+            repo: RepositorioEventosSqlite::new(escritura),
+            lectura,
+            archivo,
+        }
+    }
+
+    pub fn con_eventos(eventos: &[EventoPrueba]) -> Self {
+        let dispositivo = Self::nuevo();
+        dispositivo.fusionar(eventos);
+        dispositivo
+    }
+
+    pub fn ruta(&self) -> &Path {
+        &self.archivo.0
+    }
+
+    pub fn fusionar(&self, eventos: &[EventoPrueba]) -> ResumenFusion {
+        let libro: Vec<EventoLibro> = eventos.iter().map(a_evento_libro).collect();
+        self.fusionar_libro(&libro)
+    }
+
+    pub fn fusionar_libro(&self, eventos: &[EventoLibro]) -> ResumenFusion {
+        self.repo.fusionar_lote_transaccional(eventos).unwrap()
+    }
+
+    pub fn eventos(&self) -> Vec<EventoLibro> {
+        self.repo.listar_eventos_ordenados().unwrap()
+    }
+
+    pub fn foto(&self) -> FotoLibro {
+        foto(&self.lectura)
+    }
+
+    pub fn contar_eventos(&self) -> i64 {
+        contar_eventos(&self.lectura)
+    }
+
+    /// Saldo de Efectivo USD que guarda la tabla `cuenta`.
+    pub fn saldo(&self) -> Decimal {
+        saldo_proyectado(&self.lectura, CUENTA_EFECTIVO)
+    }
+
+    /// Saldo de Efectivo USD recalculado solo desde los eventos.
+    pub fn saldo_recalculado(&self) -> Decimal {
+        saldo_recalculado(&self.lectura, CUENTA_EFECTIVO)
+    }
+}
+
+/// Generador pseudoaleatorio mínimo (xorshift): reproducible por semilla y sin dependencias.
+pub struct Aleatorio(u64);
+
+impl Aleatorio {
+    pub fn nuevo(semilla: u64) -> Self {
+        Self(semilla.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1)
+    }
+
+    fn siguiente(&mut self) -> u64 {
+        let mut x = self.0;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        self.0 = x;
+        x
+    }
+
+    /// Número entre 0 y `limite - 1`.
+    pub fn hasta(&mut self, limite: usize) -> usize {
+        (self.siguiente() % limite as u64) as usize
+    }
+
+    pub fn mezclar<T>(&mut self, elementos: &mut [T]) {
+        for i in (1..elementos.len()).rev() {
+            let j = self.hasta(i + 1);
+            elementos.swap(i, j);
+        }
+    }
 }
