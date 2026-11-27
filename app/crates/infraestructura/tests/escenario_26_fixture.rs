@@ -1,5 +1,5 @@
-//! Comprueba que el constructor del escenario 2.6 (`tests/comun`) arma los números del
-//! enunciado: 40 eventos y 151,67 de base, 42 por dispositivo, y 44 y 166,67 al juntarlos.
+//! Revisa que el constructor del escenario 2.6 dé los números del enunciado: 40 eventos y
+//! 151,67 de base, 42 por dispositivo, y 44 y 166,67 al juntarlos.
 
 mod comun;
 
