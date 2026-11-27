@@ -1,6 +1,6 @@
 # Guía de respaldo y sincronización entre dispositivos
 
-La pantalla **Respaldo** permite exportar e importar el libro y sincronizarlo por carpeta compartida o por un repositorio Git. Estos flujos están integrados en el código; queda pendiente su validación manual completa en dispositivos. La sincronización del libro es independiente de la sincronización de gastos grupales con el servidor.
+La pantalla **Respaldo** permite exportar e importar el libro y sincronizarlo por carpeta compartida o por un repositorio Git. Estos flujos están integrados en el código; la validación manual en dispositivos fue reportada como exitosa. La sincronización del libro es independiente de la sincronización de gastos grupales con el servidor.
 
 ## Antes de comenzar
 
