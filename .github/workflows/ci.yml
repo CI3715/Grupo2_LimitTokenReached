@@ -107,6 +107,10 @@ jobs:
       - name: Run authentication HTTP adapter tests
         run: cargo test -p infraestructura --test autenticacion_http
 
+      # Entrega 8: fusión de eventos y cifrado del respaldo (SQLite real, sin red).
+      - name: Run merge and encryption suites
+        run: cargo test -p infraestructura --test escenario_26_fixture --test fusion_eventos --test cifrado_respaldo --test script_reconstruccion
+
   auto-merge:
     name: Auto-merge after CI
     needs: [backend-lint, frontend-lint, rust-lint]
