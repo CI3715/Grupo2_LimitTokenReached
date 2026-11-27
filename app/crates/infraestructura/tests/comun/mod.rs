@@ -1,17 +1,13 @@
-//! Datos de prueba compartidos: escenario 2.6 de la Entrega 8 (convergencia Laptop/Teléfono).
+//! Datos de prueba compartidos para el escenario 2.6 (laptop y teléfono).
 //!
-//! Cada archivo de `tests/` que lo necesite declara `mod comun;`.
+//! Cada archivo de tests que lo use pone `mod comun;`.
 //!
-//! El escenario parte de 40 eventos con Efectivo USD = 151,67. Sin conexión:
-//! - la laptop registra -20,00 y -5,00 (42 eventos, 126,67);
-//! - el teléfono registra +50,00 y -10,00 (42 eventos, 191,67).
+//! Parte de 40 eventos con Efectivo USD = 151,67. Sin conexión, la laptop registra -20 y -5
+//! (queda 126,67) y el teléfono +50 y -10 (queda 191,67). Al juntar todo son 44 eventos y
+//! 166,67, en el orden que sea.
 //!
-//! Al juntar todo quedan 44 eventos y 166,67, sin importar el orden.
-//!
-//! Los eventos usan los nombres y campos reales que escribe la app en la tabla `eventos`
-//! (`CuentaCreada`, `MovimientoRegistrado`) y se proyectan en `cuenta` y `movimiento`
-//! igual que los repositorios SQLite. Los ids, dispositivos y horas son fijos para que
-//! las pruebas sean reproducibles.
+//! Los eventos usan los mismos nombres y campos que guarda la app en la tabla `eventos`.
+//! Los ids, dispositivos y horas son fijos para que los resultados se repitan.
 
 #![allow(dead_code)]
 
@@ -44,7 +40,7 @@ pub const SALDO_CONVERGIDO: &str = "166.67";
 pub const EVENTOS_BASE: i64 = 40;
 pub const EVENTOS_CONVERGIDOS: i64 = 44;
 
-/// Un evento tal como vive en la tabla `eventos`.
+/// Un evento como está en la tabla `eventos`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EventoPrueba {
     pub id: String,
@@ -54,7 +50,7 @@ pub struct EventoPrueba {
     pub datos: Value,
 }
 
-/// Una fila leída de la tabla `eventos`.
+/// Una fila de la tabla `eventos`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilaEvento {
     pub id: String,
@@ -64,7 +60,7 @@ pub struct FilaEvento {
     pub datos: String,
 }
 
-/// Estado completo de un libro: sirve para comprobar que "la base no cambió".
+/// Foto del libro (eventos y saldos), para ver si la base cambió o no.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FotoLibro {
     pub eventos: Vec<FilaEvento>,
@@ -85,7 +81,7 @@ fn id_movimiento(n: u128) -> String {
     Uuid::from_u128(0x2600_0000_0000_4000_8000_0001_0000_0000 + n).to_string()
 }
 
-/// Hora RFC 3339 con nanosegundos, como la escribe `chrono::to_rfc3339`.
+/// Hora con nanosegundos, igual que la guarda la app.
 fn marca(dia: u32, hora: u32, minuto: u32, segundo: u32) -> String {
     format!("2026-11-{dia:02}T{hora:02}:{minuto:02}:{segundo:02}.000000000+00:00")
 }
@@ -138,7 +134,7 @@ fn movimiento(
 
 impl Escenario26 {
     pub fn nuevo() -> Self {
-        // Base: la cuenta (100,00) + 38 ingresos de 1,00 + 1 ingreso de 13,67 = 40 eventos.
+        // la cuenta con 100,00 + 38 ingresos de 1,00 + uno de 13,67 = 40 eventos
         let mut base = vec![cuenta_creada(0, marca(1, 8, 0, 0), "100.00")];
         for i in 1..=38_u32 {
             base.push(movimiento(
@@ -190,7 +186,7 @@ impl Escenario26 {
         }
     }
 
-    /// Los 44 eventos: base + laptop + teléfono.
+    /// Los 44 eventos juntos.
     pub fn todos(&self) -> Vec<EventoPrueba> {
         let mut todos = self.base.clone();
         todos.extend(self.laptop.clone());
@@ -198,19 +194,19 @@ impl Escenario26 {
         todos
     }
 
-    /// Libro con los 40 eventos iniciales.
+    /// Libro con los 40 eventos de base.
     pub fn libro_base(&self) -> Connection {
         libro_con(&self.base)
     }
 
-    /// Libro de la laptop: base + sus 2 eventos (42).
+    /// Libro de la laptop (base + sus 2 eventos).
     pub fn libro_laptop(&self) -> Connection {
         let mut eventos = self.base.clone();
         eventos.extend(self.laptop.clone());
         libro_con(&eventos)
     }
 
-    /// Libro del teléfono: base + sus 2 eventos (42).
+    /// Libro del teléfono (base + sus 2 eventos).
     pub fn libro_telefono(&self) -> Connection {
         let mut eventos = self.base.clone();
         eventos.extend(self.telefono.clone());
@@ -218,21 +214,21 @@ impl Escenario26 {
     }
 }
 
-/// Base SQLite en memoria, con todas las migraciones aplicadas y sin eventos.
+/// Base en memoria con las migraciones aplicadas, vacía.
 pub fn base_vacia() -> Connection {
     let mut conn = Connection::open_in_memory().unwrap();
     bd::migrar(&mut conn).unwrap();
     conn
 }
 
-/// Base nueva con estos eventos ya aplicados.
+/// Base nueva con estos eventos cargados.
 pub fn libro_con(eventos: &[EventoPrueba]) -> Connection {
     let conn = base_vacia();
     aplicar(&conn, eventos);
     conn
 }
 
-/// Inserta eventos y actualiza las tablas `cuenta` y `movimiento`, como hace la app.
+/// Mete los eventos y actualiza `cuenta` y `movimiento` como lo haría la app.
 pub fn aplicar(conn: &Connection, eventos: &[EventoPrueba]) {
     for evento in eventos {
         conn.execute(
@@ -317,7 +313,7 @@ pub fn contar_eventos(conn: &Connection) -> i64 {
         .unwrap()
 }
 
-/// Saldo que guarda la tabla `cuenta` (la proyección que muestra la app).
+/// Saldo que tiene la tabla `cuenta` (el que ve el usuario).
 pub fn saldo_proyectado(conn: &Connection, cuenta: &str) -> Decimal {
     let crudo: i64 = conn
         .query_row(
@@ -348,8 +344,8 @@ fn leer_eventos(conn: &Connection, orden: &str) -> Vec<FilaEvento> {
         .collect()
 }
 
-/// Saldo calculado solo desde los eventos, en el orden determinista del formato
-/// (hora, dispositivo, id). Sirve de referencia para las pruebas de fusión.
+/// Saldo calculado solo con los eventos, en el orden del formato (hora, dispositivo, id).
+/// Sirve para compararlo con el de la tabla.
 pub fn saldo_recalculado(conn: &Connection, cuenta: &str) -> Decimal {
     let mut saldo = Decimal::ZERO;
     for fila in leer_eventos(conn, "registrado_en, dispositivo, id") {
@@ -380,8 +376,8 @@ pub fn saldo_recalculado(conn: &Connection, cuenta: &str) -> Decimal {
     saldo.normalize()
 }
 
-/// Foto del libro (eventos ordenados por id y saldos de cada cuenta). Dos libros con el
-/// mismo conjunto de eventos dan la misma foto sin importar el orden de inserción.
+/// Foto del libro: eventos ordenados por id y saldo de cada cuenta. Si dos libros tienen
+/// los mismos eventos la foto es igual, sin importar en qué orden entraron.
 pub fn foto(conn: &Connection) -> FotoLibro {
     let mut sentencia = conn
         .prepare("SELECT id, saldo FROM cuenta ORDER BY id")
@@ -399,9 +395,9 @@ pub fn foto(conn: &Connection) -> FotoLibro {
     }
 }
 
-/// Texto de exportación sin cifrar según `docs/formato-exportacion.md`.
+/// Texto de exportación sin cifrar, según `docs/formato-exportacion.md`.
 ///
-/// Es solo para pruebas: cuando exista la exportación real hay que reemplazarlo por ella.
+/// Solo sirve para probar el constructor; la exportación de verdad es el serializador.
 pub fn a_texto_exportacion(conn: &Connection) -> String {
     let filas = leer_eventos(conn, "seq");
     let mut texto = format!(
@@ -422,7 +418,7 @@ pub fn contar_filas(conn: &Connection, tabla: &str) -> i64 {
     conn.query_row(&sql, [], |fila| fila.get(0)).unwrap()
 }
 
-/// Pasa un evento de prueba al tipo que usa el motor de fusión.
+/// Convierte un evento de prueba al tipo que usa la fusión.
 pub fn a_evento_libro(evento: &EventoPrueba) -> EventoLibro {
     EventoLibro {
         id: evento.id.clone(),
@@ -433,7 +429,7 @@ pub fn a_evento_libro(evento: &EventoPrueba) -> EventoLibro {
     }
 }
 
-/// Archivo temporal que se borra al terminar la prueba.
+/// Archivo temporal, se borra al terminar.
 pub struct ArchivoTemporal(pub PathBuf);
 
 impl ArchivoTemporal {
@@ -451,7 +447,7 @@ impl Drop for ArchivoTemporal {
     }
 }
 
-/// Carpeta temporal (por ejemplo, la carpeta compartida de sincronización).
+/// Carpeta temporal (sirve de carpeta compartida para sincronizar).
 pub struct CarpetaTemporal(pub PathBuf);
 
 impl CarpetaTemporal {
@@ -466,13 +462,13 @@ impl Drop for CarpetaTemporal {
     }
 }
 
-/// Un dispositivo simulado: su propia base SQLite en un archivo temporal, abierta como
-/// la abre la app. Los eventos entran por el motor real de fusión, así que `cuenta` y
-/// `movimiento` salen de reconstruir las proyecciones desde los eventos.
+/// Un dispositivo de mentira: tiene su propia base en un archivo temporal, abierta como la
+/// abre la app. Los eventos entran por la fusión de verdad, así que `cuenta` y `movimiento`
+/// salen de reconstruir desde los eventos.
 pub struct Dispositivo {
     pub repo: RepositorioEventosSqlite,
     pub lectura: Connection,
-    // Va al final para que el archivo se borre después de cerrar las conexiones.
+    // va al final para que el archivo se borre cuando ya se cerraron las conexiones
     archivo: ArchivoTemporal,
 }
 
@@ -519,18 +515,18 @@ impl Dispositivo {
         contar_eventos(&self.lectura)
     }
 
-    /// Saldo de Efectivo USD que guarda la tabla `cuenta`.
+    /// Saldo de Efectivo USD según la tabla `cuenta`.
     pub fn saldo(&self) -> Decimal {
         saldo_proyectado(&self.lectura, CUENTA_EFECTIVO)
     }
 
-    /// Saldo de Efectivo USD recalculado solo desde los eventos.
+    /// Saldo de Efectivo USD recalculado con los eventos.
     pub fn saldo_recalculado(&self) -> Decimal {
         saldo_recalculado(&self.lectura, CUENTA_EFECTIVO)
     }
 }
 
-/// Generador pseudoaleatorio mínimo (xorshift): reproducible por semilla y sin dependencias.
+/// Generador de números al azar sencillo (xorshift). Con la misma semilla da lo mismo.
 pub struct Aleatorio(u64);
 
 impl Aleatorio {
@@ -547,7 +543,7 @@ impl Aleatorio {
         x
     }
 
-    /// Número entre 0 y `limite - 1`.
+    /// Número entre 0 y limite - 1.
     pub fn hasta(&mut self, limite: usize) -> usize {
         (self.siguiente() % limite as u64) as usize
     }

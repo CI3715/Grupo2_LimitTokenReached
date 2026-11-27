@@ -1,8 +1,5 @@
-//! Suite del motor de fusión de eventos (Entrega 8, RF-INT-02 a RF-INT-05, INV-13, INV-14).
-//!
-//! Corre contra SQLite real (archivos temporales) y el motor de fusión de la app:
-//! idempotencia, conmutatividad del escenario 2.6, rechazo aislado de conflictos y
-//! deduplicación de gastos de grupo (E7). Los datos salen de `tests/comun`.
+//! Pruebas del motor de fusión: idempotencia, escenario 2.6, conflictos por ID repetido y
+//! gastos de grupo. Usan SQLite de verdad (archivos temporales) y los datos de `tests/comun`.
 
 mod comun;
 
@@ -22,14 +19,14 @@ use rust_decimal::Decimal;
 use serde_json::json;
 use std::path::Path;
 
-/// Cambio que se le hace a un evento para provocar un conflicto.
+/// Cambio que le hacemos a un evento para provocar un conflicto.
 type Modificacion = fn(&mut EventoPrueba);
 
 fn d(texto: &str) -> Decimal {
     texto.parse().unwrap()
 }
 
-/// Laptop (base + sus 2 eventos) y teléfono (base + sus 2 eventos), cada uno con su base.
+/// La laptop y el teléfono, cada uno con la base y sus 2 eventos.
 fn laptop_y_telefono(escenario: &Escenario26) -> (Dispositivo, Dispositivo) {
     let mut en_laptop = escenario.base.clone();
     en_laptop.extend(escenario.laptop.clone());
@@ -41,9 +38,7 @@ fn laptop_y_telefono(escenario: &Escenario26) -> (Dispositivo, Dispositivo) {
     )
 }
 
-// ---------------------------------------------------------------------------------------
-// Idempotencia: importar el mismo archivo dos veces es igual a importarlo una vez
-// ---------------------------------------------------------------------------------------
+// idempotencia: importar el mismo archivo dos veces es igual que importarlo una vez
 
 #[test]
 fn fusionar_el_mismo_lote_dos_veces_es_igual_a_fusionarlo_una_vez() {
@@ -83,7 +78,7 @@ fn importar_el_mismo_archivo_dos_veces_es_igual_a_importarlo_una_vez() {
     .unwrap();
     assert_eq!(exportados, 44);
 
-    // Instalación nueva: restaura todo el libro.
+    // instalación nueva: restaura todo el libro
     let destino = Dispositivo::nuevo();
     let primera = importar_respaldo_cifrado::ejecutar(
         &archivo.0,
@@ -104,7 +99,7 @@ fn importar_el_mismo_archivo_dos_veces_es_igual_a_importarlo_una_vez() {
     );
     assert_eq!(destino.saldo(), d(SALDO_CONVERGIDO));
 
-    // Segunda importación del mismo archivo: no cambia nada.
+    // segunda vez con el mismo archivo: no cambia nada
     let segunda = importar_respaldo_cifrado::ejecutar(
         &archivo.0,
         "",
@@ -119,15 +114,13 @@ fn importar_el_mismo_archivo_dos_veces_es_igual_a_importarlo_una_vez() {
     assert_eq!(destino.foto(), despues_de_una);
 }
 
-// ---------------------------------------------------------------------------------------
-// Conmutatividad del escenario 2.6: Laptop -> Teléfono y Teléfono -> Laptop convergen
-// ---------------------------------------------------------------------------------------
+// escenario 2.6: laptop -> teléfono y teléfono -> laptop llegan a lo mismo
 
 #[test]
 fn laptop_a_telefono_y_telefono_a_laptop_convergen_a_los_mismos_44_eventos() {
     let escenario = Escenario26::nuevo();
 
-    // Orden 1: primero el teléfono recibe de la laptop, luego la laptop del teléfono.
+    // orden 1: el teléfono recibe de la laptop y luego la laptop del teléfono
     let (laptop, telefono) = laptop_y_telefono(&escenario);
     let al_telefono = telefono.fusionar_libro(&laptop.eventos());
     assert_eq!(al_telefono.insertados, 2);
@@ -145,7 +138,7 @@ fn laptop_a_telefono_y_telefono_a_laptop_convergen_a_los_mismos_44_eventos() {
     assert_eq!(laptop.foto(), telefono.foto());
     let foto_orden_1 = laptop.foto();
 
-    // Orden 2: primero la laptop recibe del teléfono, luego el teléfono de la laptop.
+    // orden 2: al revés
     let (laptop, telefono) = laptop_y_telefono(&escenario);
     let a_la_laptop = laptop.fusionar_libro(&telefono.eventos());
     assert_eq!(a_la_laptop.insertados, 2);
@@ -166,9 +159,8 @@ fn laptop_a_telefono_y_telefono_a_laptop_convergen_a_los_mismos_44_eventos() {
     );
 }
 
-/// Prueba por propiedades: los 44 eventos llegan en orden aleatorio y troceados en lotes
-/// de tamaño aleatorio; el libro final siempre es el mismo. (La cuenta va primero porque
-/// los movimientos necesitan que exista su cuenta.)
+/// Propiedad: los 44 eventos llegan en orden al azar y en lotes de tamaño al azar, y el libro
+/// final siempre es el mismo. La cuenta va primero porque los movimientos la necesitan.
 #[test]
 fn cualquier_orden_y_troceado_de_los_44_eventos_converge_al_mismo_libro() {
     let todos = Escenario26::nuevo().todos();
@@ -207,9 +199,7 @@ fn cualquier_orden_y_troceado_de_los_44_eventos_converge_al_mismo_libro() {
     }
 }
 
-// ---------------------------------------------------------------------------------------
-// Rechazo aislado: mismo ID con contenido modificado
-// ---------------------------------------------------------------------------------------
+// rechazo de un ID repetido con contenido distinto
 
 #[test]
 fn id_repetido_con_contenido_distinto_se_rechaza_y_el_resto_del_lote_entra() {
@@ -219,7 +209,7 @@ fn id_repetido_con_contenido_distinto_se_rechaza_y_el_resto_del_lote_entra() {
     let dispositivo = Dispositivo::con_eventos(&local);
     let antes = dispositivo.foto();
 
-    // El primer evento de la laptop llega con otro monto; los del teléfono son nuevos y válidos.
+    // el primer evento de la laptop llega con otro monto; los del teléfono son nuevos y buenos
     let mut alterado = escenario.laptop[0].clone();
     alterado.datos["monto"] = json!("999.00");
     let lote = vec![
@@ -242,7 +232,7 @@ fn id_repetido_con_contenido_distinto_se_rechaza_y_el_resto_del_lote_entra() {
         resumen.rechazados[0].motivo
     );
 
-    // El evento local original no se tocó y el monto alterado nunca se aplicó.
+    // el evento original sigue igual y el monto alterado nunca se aplicó
     let despues = dispositivo.foto();
     let original = antes
         .eventos
@@ -323,9 +313,7 @@ fn un_evento_invalido_se_rechaza_sin_abortar_el_resto_del_lote() {
     assert_eq!(dispositivo.saldo(), d("131.67")); // 151,67 - 20,00
 }
 
-// ---------------------------------------------------------------------------------------
-// Deduplicación de gastos de grupo (E7): la misma parte bajada en dos dispositivos
-// ---------------------------------------------------------------------------------------
+// gastos de grupo: la misma parte bajada en dos dispositivos
 
 const GRUPO: &str = "grupo-viaje";
 
@@ -363,7 +351,7 @@ impl RepositorioCuentas for CuentasPrueba {
     }
 }
 
-/// Parte de un gasto de grupo tal como la entrega el servidor.
+/// Una parte de gasto de grupo como la manda el servidor.
 fn parte_de_grupo(id_evento: &str, monto: &str) -> EventoCambioDTO {
     EventoCambioDTO {
         id_evento: id_evento.to_string(),
@@ -379,8 +367,8 @@ fn parte_de_grupo(id_evento: &str, monto: &str) -> EventoCambioDTO {
     }
 }
 
-/// El dispositivo "baja" la parte del servidor y la aplica a su cuenta, igual que al
-/// sincronizar. Devuelve cuántas partes se aplicaron (0 si ya la tenía).
+/// El dispositivo baja la parte del servidor y la aplica a su cuenta, como al sincronizar.
+/// Devuelve cuántas se aplicaron (0 si ya la tenía).
 fn bajar_gasto(dispositivo: &Dispositivo, parte: &EventoCambioDTO) -> usize {
     let repo = RepositorioSincronizacionSqlite::new(bd::abrir(dispositivo.ruta()).unwrap());
     repo.guardar_cuenta_grupo(&CuentaGrupoSeleccionDTO {
@@ -413,16 +401,15 @@ fn bajar_gasto(dispositivo: &Dispositivo, parte: &EventoCambioDTO) -> usize {
     repo.aplicar_lote_transaccional(&plan).unwrap().len()
 }
 
-/// Parte de grupo "normal": sus ids derivados ordenan primero el movimiento y después la
-/// marca de gasto aplicado, que es el orden en que la reconstrucción lo necesita.
+/// Parte normal: al ordenar los ids, el movimiento queda antes que su marca de "aplicado".
 fn parte_normal() -> EventoCambioDTO {
     parte_de_grupo("evento-cena", "15.00")
 }
 
-/// Parte cuyos ids derivados ordenan la marca de aplicado ANTES que su movimiento
-/// (el UUID v5 de `GastoDeGrupoAplicado:evento-hotel` es menor que el de
-/// `MovimientoRegistrado:evento-hotel`). Con ids de servidor al azar pasa en la mitad
-/// de los gastos, porque los dos eventos tienen la misma hora y el mismo dispositivo.
+/// Parte donde la marca de "aplicado" queda ANTES que su movimiento al ordenar: el UUID de
+/// `GastoDeGrupoAplicado:evento-hotel` es menor que el de `MovimientoRegistrado:evento-hotel`.
+/// Los dos eventos tienen la misma hora y dispositivo, así que con ids al azar pasa en la
+/// mitad de los casos.
 fn parte_con_aplicado_primero() -> EventoCambioDTO {
     parte_de_grupo("evento-hotel", "33.33")
 }
@@ -438,11 +425,11 @@ fn la_misma_parte_de_grupo_bajada_en_dos_dispositivos_queda_una_sola_vez() {
     assert_eq!(bajar_gasto(&telefono, &parte), 1);
     assert_eq!(laptop.saldo(), d("136.67")); // 151,67 - 15,00
     assert_eq!(telefono.saldo(), d("136.67"));
-    // 40 de la base + el movimiento + la marca de gasto de grupo aplicado.
+    // 40 de la base + el movimiento + la marca de aplicado
     assert_eq!(laptop.contar_eventos(), 42);
     assert_eq!(telefono.contar_eventos(), 42);
 
-    // Al unir los libros no aparece nada nuevo ni nada rechazado: es el mismo evento.
+    // al unir los libros no entra nada nuevo ni se rechaza nada, es el mismo evento
     let resumen = telefono.fusionar_libro(&laptop.eventos());
     assert!(
         resumen.rechazados.is_empty(),
@@ -456,9 +443,8 @@ fn la_misma_parte_de_grupo_bajada_en_dos_dispositivos_queda_una_sola_vez() {
     assert_eq!(laptop.foto().eventos, telefono.foto().eventos);
 }
 
-/// El teléfono recibe por el libro un gasto de grupo cuyos dos eventos tienen la misma hora y
-/// el mismo dispositivo; la marca de aplicado ordena antes que su movimiento. La fusión debe
-/// funcionar igual, sin importar cómo ordenen los ids derivados.
+/// El teléfono recibe un gasto de grupo cuyos dos eventos tienen la misma hora y dispositivo,
+/// y la marca de aplicado ordena antes que el movimiento. La fusión tiene que funcionar igual.
 #[test]
 fn el_orden_de_los_ids_de_un_gasto_de_grupo_no_rompe_la_fusion() {
     let escenario = Escenario26::nuevo();
@@ -482,8 +468,8 @@ fn el_orden_de_los_ids_de_un_gasto_de_grupo_no_rompe_la_fusion() {
     );
 }
 
-/// Reconstruir todo desde los eventos tampoco duplica el gasto de grupo, aunque el usuario
-/// ya haya elegido la cuenta del grupo (`cuenta_por_grupo` apunta a `cuenta`).
+/// Reconstruir desde los eventos no duplica el gasto de grupo, ni siquiera cuando el usuario
+/// ya eligió la cuenta del grupo (`cuenta_por_grupo` apunta a `cuenta`).
 #[test]
 fn reconstruir_las_proyecciones_con_una_cuenta_de_grupo_elegida_no_duplica_el_gasto() {
     let telefono = Dispositivo::con_eventos(&Escenario26::nuevo().base);
@@ -504,8 +490,8 @@ fn reconstruir_las_proyecciones_con_una_cuenta_de_grupo_elegida_no_duplica_el_ga
     );
 }
 
-/// Caso real: la laptop ya bajó un gasto de grupo (eligió su cuenta) y luego recibe del
-/// teléfono 2 eventos nuevos. La fusión debe funcionar y conservar el gasto una sola vez.
+/// La laptop ya bajó un gasto de grupo (eligió su cuenta) y después recibe 2 eventos del
+/// teléfono. La fusión debe funcionar y dejar el gasto una sola vez.
 #[test]
 fn fusionar_eventos_nuevos_en_un_dispositivo_con_cuenta_de_grupo_elegida() {
     let escenario = Escenario26::nuevo();
@@ -532,25 +518,23 @@ fn si_el_libro_ya_trae_la_parte_el_dispositivo_no_la_aplica_otra_vez_al_bajarla(
     let telefono = Dispositivo::con_eventos(&escenario.base);
     let parte = parte_normal();
 
-    // La laptop baja la parte; el teléfono la recibe primero por el libro...
+    // la laptop baja la parte y el teléfono la recibe primero por el libro...
     assert_eq!(bajar_gasto(&laptop, &parte), 1);
     let resumen = telefono.fusionar_libro(&laptop.eventos());
     assert_eq!(resumen.insertados, 2);
     assert_eq!(telefono.saldo(), d("136.67"));
 
-    // ...y después la baja también del servidor: no debe descontarse otra vez.
+    // ...y después también la baja del servidor: no se debe descontar otra vez
     assert_eq!(bajar_gasto(&telefono, &parte), 0);
     assert_eq!(telefono.saldo(), d("136.67"));
     assert_eq!(telefono.contar_eventos(), 42);
     assert_eq!(contar_filas(&telefono.lectura, "movimiento_grupo"), 1);
 }
 
-// ---------------------------------------------------------------------------------------
-// Correcciones: un MovimientoCorregido hecho en un dispositivo debe poder fusionarse
-// ---------------------------------------------------------------------------------------
+// correcciones: un MovimientoCorregido de un dispositivo tiene que poder fusionarse
 
-/// El evento tiene los campos que escribe `guardar_ajuste` en la app: `movimiento_original_id`,
-/// `cuenta_id`, `tipo_original` y `variacion_monto`. Un gasto de 20,00 corregido a 15,00 deja
+/// El evento trae los campos que escribe `guardar_ajuste` en la app (`movimiento_original_id`,
+/// `cuenta_id`, `tipo_original` y `variacion_monto`). Un gasto de 20,00 corregido a 15,00 da
 /// una variación de -5,00 y el saldo sube 5,00.
 #[test]
 fn una_correccion_hecha_en_un_dispositivo_se_fusiona_en_el_otro() {
@@ -591,14 +575,12 @@ fn una_correccion_hecha_en_un_dispositivo_se_fusiona_en_el_otro() {
     assert_eq!(telefono.saldo_recalculado(), d("136.67"));
 }
 
-// ---------------------------------------------------------------------------------------
-// Escenario 2.6 completo por carpeta compartida: convergencia e informes de sincronización
-// ---------------------------------------------------------------------------------------
+// escenario 2.6 por carpeta compartida: convergencia e informes
 
 const FRASE: &str = "frase-de-prueba-123";
 
-/// Cifrado de mentira (XOR con la frase) para no pagar Argon2id en cada lote: aquí se
-/// prueba la fusión y el transporte, no la criptografía.
+/// Cifrado de mentira (XOR con la frase) para no esperar Argon2id en cada lote: aquí se prueba
+/// la fusión y el transporte, no la criptografía.
 struct CifradorDePrueba;
 
 impl CifradorRespaldo for CifradorDePrueba {
@@ -645,8 +627,8 @@ fn sincronizar(carpeta: &Path, dispositivo: &Dispositivo) -> (usize, usize) {
     (reporte.eventos_enviados, reporte.eventos_recibidos)
 }
 
-/// Ambos dispositivos parten con los 40 eventos ya sincronizados; después, sin conexión,
-/// cada uno registra sus 2 movimientos.
+/// Los dos parten con los 40 eventos ya sincronizados y después, sin conexión, cada uno
+/// registra sus 2 movimientos.
 fn escenario_26_por_carpeta(carpeta: &Path) -> (Dispositivo, Dispositivo) {
     let escenario = Escenario26::nuevo();
     let laptop = Dispositivo::con_eventos(&escenario.base);
@@ -692,8 +674,8 @@ fn por_carpeta_compartida_laptop_primero_o_telefono_primero_converge_a_44_y_166_
     );
 }
 
-/// Informes de la especificación (§2.6): la laptop envía 2 y recibe 0; el teléfono envía 2 y
-/// recibe 2; la laptop vuelve a sincronizar y recibe 2 sin enviar nada; luego todo en 0.
+/// Informes que pide la especificación: la laptop envía 2 y recibe 0, el teléfono envía 2 y
+/// recibe 2, la laptop vuelve a sincronizar y recibe 2 sin enviar, y después todo en 0.
 #[test]
 fn los_informes_de_sincronizacion_del_escenario_26_coinciden_con_la_especificacion() {
     let carpeta = CarpetaTemporal::nueva("informes");
