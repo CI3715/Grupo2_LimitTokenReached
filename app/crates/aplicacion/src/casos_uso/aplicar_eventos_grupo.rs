@@ -115,3 +115,44 @@ pub fn preparar_evento(
         efecto_saldo: -monto,
     })
 }
+
+#[cfg(test)]
+mod pruebas {
+    use super::*;
+
+    /// Congela el namespace, el material y los roles usados en la derivación.
+    /// Si alguien cambia cualquiera de los tres, esta prueba falla antes de que
+    /// la duplicación aparezca al sincronizar entre dispositivos.
+    #[test]
+    fn congela_los_uuid_v5_derivados_del_evento_del_servidor() {
+        let id_evento = "evt-servidor-123";
+
+        assert_eq!(
+            id_movimiento_desde_evento_servidor(id_evento).to_string(),
+            "5715e7cd-fd46-5882-9fdd-7b8a5787b929"
+        );
+        assert_eq!(
+            id_evento_movimiento_desde_servidor(id_evento),
+            "743a2b55-069c-5a75-a6ed-3abf71031ce4"
+        );
+        assert_eq!(
+            id_evento_aplicado_desde_servidor(id_evento),
+            "b11ac08a-bfd1-5832-9d75-5874619724bb"
+        );
+    }
+
+    #[test]
+    fn los_ids_derivados_son_v5_y_difieren_por_evento_y_por_rol() {
+        let id = id_movimiento_desde_evento_servidor("evt-servidor-123");
+        assert_eq!(id.to_string().as_bytes()[14], b'5');
+
+        assert_ne!(
+            id_evento_movimiento_desde_servidor("evt-servidor-123"),
+            id_evento_movimiento_desde_servidor("evt-servidor-124")
+        );
+        assert_ne!(
+            id_evento_movimiento_desde_servidor("evt-servidor-123"),
+            id_evento_aplicado_desde_servidor("evt-servidor-123")
+        );
+    }
+}

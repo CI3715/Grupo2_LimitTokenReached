@@ -179,4 +179,24 @@ mod pruebas {
         assert_eq!(resumen.insertados, 1);
         assert_eq!(para_insertar, vec![nuevo]);
     }
+
+    #[test]
+    fn distinta_marca_temporal_o_dispositivo_se_rechaza_con_motivo() {
+        let local = evento("e1", "2026-11-26T10:00:00Z", "disp-a", "{}");
+        let otra_fecha = evento("e1", "2026-11-26T11:00:00Z", "disp-a", "{}");
+        let otro_dispositivo = evento("e1", "2026-11-26T10:00:00Z", "disp-b", "{}");
+
+        assert!(!local.mismo_contenido(&otra_fecha));
+        assert!(!local.mismo_contenido(&otro_dispositivo));
+        assert!(
+            local
+                .motivo_conflicto(&otra_fecha)
+                .contains("marca temporal")
+        );
+        assert!(
+            local
+                .motivo_conflicto(&otro_dispositivo)
+                .contains("dispositivo")
+        );
+    }
 }
