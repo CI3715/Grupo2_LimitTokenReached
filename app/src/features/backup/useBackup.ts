@@ -4,9 +4,10 @@ import { useCallback, useState } from "react";
 import {
   exportBackup,
   importBackup,
-  syncSharedFolder,
+  syncBackupDestination,
 } from "@/services/backup";
 import type {
+  BackupSyncDestination,
   DeviceSyncResponse,
   ExportBackupResponse,
   ImportBackupResponse,
@@ -44,7 +45,7 @@ export function backupErrorMessage(error: unknown) {
     normalized.includes("credenciales") ||
     normalized.includes("credencialesgitinvalidas")
   ) {
-    return "Las credenciales fueron rechazadas. Actualízalas para continuar.";
+    return "Git rechazó las credenciales guardadas. Actualízalas en el gestor de credenciales de Git de este dispositivo y vuelve a sincronizar.";
   }
   if (
     normalized.includes("versión de formato no soportada") ||
@@ -115,15 +116,18 @@ export function useBackup() {
     }
   }, []);
 
-  const sincronizar = useCallback(async (ruta: string, frase: string) => {
+  const sincronizar = useCallback(async (
+    destino: BackupSyncDestination,
+    frase: string,
+  ) => {
     setSyncing(true);
     setSyncError("");
     try {
-      const result = await syncSharedFolder(ruta, frase);
+      const result = await syncBackupDestination(destino, frase);
       setSyncResult(result);
       return true;
     } catch (error: unknown) {
-      console.error("No se pudo sincronizar la carpeta compartida.", error);
+      console.error("No se pudo sincronizar el destino de respaldo.", error);
       setSyncError(backupErrorMessage(error));
       return false;
     } finally {

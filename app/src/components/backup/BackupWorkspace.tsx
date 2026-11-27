@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { FormField } from "@/components/forms/FormField";
 import type {
+  BackupSyncDestination,
   DeviceSyncResponse,
   ExportBackupResponse,
   ImportBackupResponse,
@@ -19,11 +20,6 @@ import {
 } from "@/types/schemas";
 
 const DESTINATION_STORAGE_KEY = "cuentas-claras.backup-destination";
-
-type DestinationConfig = {
-  tipo: "carpeta" | "git";
-  ruta_o_url: string;
-};
 
 function filePath(file: File | undefined) {
   if (!file || !("path" in file)) return "";
@@ -69,7 +65,10 @@ type BackupActions = {
     ruta_archivo: string;
     frase_de_paso: string;
   }) => Promise<boolean>;
-  sincronizar: (ruta: string, frase: string) => Promise<boolean>;
+  sincronizar: (
+    destino: BackupSyncDestination,
+    frase: string,
+  ) => Promise<boolean>;
 };
 
 export function BackupWorkspace({ backup }: { backup: BackupActions }) {
@@ -84,8 +83,6 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
     defaultValues: {
       tipo: "carpeta",
       ruta_o_url: "",
-      usuario_git: "",
-      credenciales_git: "",
       frase_de_paso: "",
     },
   });
@@ -100,8 +97,6 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
   });
   const [pickerNotice, setPickerNotice] = useState("");
   const [syncNotice, setSyncNotice] = useState("");
-  const [destinationLoaded, setDestinationLoaded] = useState(false);
-  const [autoSyncKey, setAutoSyncKey] = useState("");
 
   const exportForm = useForm<ExportBackupFormValues>({
     resolver: zodResolver(exportBackupSchema),
@@ -123,8 +118,8 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
 
   const { sincronizar } = backup;
   const sync = useCallback(
-    async (ruta: string, frase: string) => {
-      const successful = await sincronizar(ruta, frase);
+    async (destino: BackupSyncDestination, frase: string) => {
+      const successful = await sincronizar(destino, frase);
       if (successful) setSyncNotice("Sincronización completada.");
       else setSyncNotice("");
       return successful;
@@ -153,38 +148,9 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
       } catch (error: unknown) {
         console.error("No se pudo leer el destino de sincronización guardado.", error);
         setSyncNotice("No se pudo cargar el destino guardado. Configúralo de nuevo.");
-      } finally {
-        setDestinationLoaded(true);
       }
     });
   }, [syncForm]);
-
-  useEffect(() => {
-    if (
-      !destinationLoaded ||
-      selectedMode !== "carpeta" ||
-      !syncDestination.trim() ||
-      !syncPassphrase.trim()
-    ) {
-      return;
-    }
-
-    const key = `${syncDestination}\u0000${syncPassphrase}`;
-    if (autoSyncKey === key) return;
-
-    const timeout = window.setTimeout(() => {
-      setAutoSyncKey(key);
-      void sync(syncDestination.trim(), syncPassphrase);
-    }, 0);
-    return () => window.clearTimeout(timeout);
-  }, [
-    destinationLoaded,
-    selectedMode,
-    syncDestination,
-    syncPassphrase,
-    sync,
-    autoSyncKey,
-  ]);
 
   function choosePath(
     file: File | undefined,
@@ -229,14 +195,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
 
   async function submitSync(values: DeviceSyncFormValues) {
     setSyncNotice("");
-    if (values.tipo === "git") {
-      setSyncNotice(
-        "La sincronización con repositorios Git todavía no está disponible en el backend.",
-      );
-      return;
-    }
-
-    const config: DestinationConfig = {
+    const config: BackupSyncDestination = {
       tipo: values.tipo,
       ruta_o_url: values.ruta_o_url,
     };
@@ -251,9 +210,7 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
       return;
     }
 
-    setAutoSyncKey(`${values.ruta_o_url}\u0000${values.frase_de_paso}`);
-    await sync(values.ruta_o_url, values.frase_de_paso);
-    syncForm.setValue("frase_de_paso", "");
+    await sync(config, values.frase_de_paso);
   }
 
   return (
@@ -551,44 +508,15 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             )}
           </FormField>
           {selectedMode === "git" && (
-            <>
-              <div className="form-grid form-grid-two-columns">
-                <FormField<DeviceSyncFormValues>
-                  name="usuario_git"
-                  label="Usuario Git"
-                >
-                  {(props) => (
-                    <input
-                      {...syncForm.register("usuario_git")}
-                      {...props}
-                      autoComplete="username"
-                    />
-                  )}
-                </FormField>
-                <FormField<DeviceSyncFormValues>
-                  name="credenciales_git"
-                  label="Token o contraseña"
-                >
-                  {(props) => (
-                    <input
-                      {...syncForm.register("credenciales_git")}
-                      {...props}
-                      type="password"
-                      autoComplete="new-password"
-                    />
-                  )}
-                </FormField>
-              </div>
-              <p className="backup-warning" role="status">
-                El backend actual no ofrece comandos para configurar ni sincronizar repositorios Git.
-                Estas credenciales no se guardan ni se envían.
-              </p>
-            </>
+            <p className="backup-note" role="status">
+              Git usará el gestor de credenciales configurado en este dispositivo.
+              Las credenciales no se guardan ni se envían desde la aplicación.
+            </p>
           )}
           <FormField<DeviceSyncFormValues>
             name="frase_de_paso"
             label="Frase de paso de sincronización"
-            help="Por seguridad, la frase no se guarda en este dispositivo."
+            help="No se guarda en el dispositivo; se mantiene en esta página para permitir nuevas sincronizaciones."
           >
             {(props) => (
               <input
@@ -605,14 +533,18 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             <div className="backup-error-panel" role="alert">
               <p>{backup.syncError}</p>
               {backup.syncError.includes("credenciales") && selectedMode === "git" && (
-                <p>Actualiza el token o la contraseña en el formulario y vuelve a intentarlo.</p>
+                <p>
+                  Actualiza las credenciales de este repositorio en el gestor de
+                  credenciales de Git y pulsa “Sincronizar ahora” para reintentar.
+                  La frase de paso se conserva para el reintento.
+                </p>
               )}
             </div>
           )}
           <button
             className="account-primary"
             type="submit"
-            disabled={backup.syncing || selectedMode === "git"}
+            disabled={backup.syncing}
           >
             {backup.syncing ? "Sincronizando…" : "Guardar destino y sincronizar"}
           </button>
@@ -621,8 +553,8 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
         <div className="backup-sync-status">
           <h3>Estado de sincronización</h3>
           <p>
-            Al abrir esta página, la sincronización automática se ejecuta tras
-            introducir la frase de paso del destino guardado.
+            La sincronización sólo se ejecuta cuando pulsas “Guardar destino y
+            sincronizar” o “Sincronizar ahora”.
           </p>
           <p>
             Última sincronización exitosa:{" "}
@@ -655,13 +587,12 @@ export function BackupWorkspace({ backup }: { backup: BackupActions }) {
             className="account-secondary"
             disabled={
               backup.syncing ||
-              selectedMode !== "carpeta" ||
               !syncDestination.trim() ||
               !syncPassphrase.trim()
             }
             onClick={() =>
               void sync(
-                syncDestination.trim(),
+                { tipo: selectedMode, ruta_o_url: syncDestination.trim() },
                 syncPassphrase,
               )
             }

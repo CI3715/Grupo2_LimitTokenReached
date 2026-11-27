@@ -28,3 +28,7 @@ export type DeviceSyncResponse = {
   eventos_rechazados: RejectedBackupEvent[];
   fecha_ultima_sync: string;
 };
+
+export type BackupSyncDestination =
+  | { tipo: "carpeta"; ruta_o_url: string }
+  | { tipo: "git"; ruta_o_url: string };

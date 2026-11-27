@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  BackupSyncDestination,
   DeviceSyncResponse,
   ExportBackupResponse,
   ImportBackupResponse,
@@ -28,4 +29,26 @@ export function syncSharedFolder(
     rutaCarpeta: ruta_carpeta,
     fraseDePaso: frase_de_paso,
   });
+}
+
+export function syncGitRepository(
+  configuracion: Extract<BackupSyncDestination, { tipo: "git" }>,
+  frase_de_paso: string,
+) {
+  return invoke<DeviceSyncResponse>("sincronizar_git_libro", {
+    configuracion: {
+      ...configuracion,
+      credenciales: null,
+    },
+    fraseDePaso: frase_de_paso,
+  });
+}
+
+export function syncBackupDestination(
+  destino: BackupSyncDestination,
+  frase_de_paso: string,
+) {
+  return destino.tipo === "git"
+    ? syncGitRepository(destino, frase_de_paso)
+    : syncSharedFolder(destino.ruta_o_url, frase_de_paso);
 }
