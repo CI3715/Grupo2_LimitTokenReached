@@ -297,6 +297,26 @@ pub struct ReporteIntegridad {
     pub discrepancias: Vec<String>,
 }
 
+/// Lote cifrado leído del destino, con el dispositivo que lo publicó.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoteRecibido {
+    pub dispositivo: String,
+    pub contenido: Vec<u8>,
+}
+
+/// Transporte de lotes cifrados entre dispositivos propios del usuario.
+///
+/// Cada adaptador (Git, carpeta compartida o falso en memoria) solo mueve bytes:
+/// el cifrado, la fusión y el formato de los lotes quedan en la aplicación.
+pub trait TransporteSincronizacion: Send + Sync {
+    /// Trae los lotes publicados por todos los dispositivos.
+    fn leer_lotes(&self) -> Result<Vec<LoteRecibido>, String>;
+
+    /// Publica un lote nuevo en la carpeta del dispositivo indicado.
+    /// El transporte nunca debe reescribir un lote ya existente.
+    fn publicar_lote(&self, dispositivo: &str, contenido: &[u8]) -> Result<(), String>;
+}
+
 /// Puerto de almacenamiento del libro de eventos inmutables y reconstrucción de saldos.
 pub trait RepositorioEventos: Send + Sync {
     /// Devuelve el UUID único de esta instalación.
