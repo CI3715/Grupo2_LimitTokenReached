@@ -17,7 +17,8 @@ export function AccountsSidebar({
     | "monedas"
     | "auth"
     | "profile"
-    | "groups";
+    | "groups"
+    | "backup";
   sesionActiva?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -105,6 +106,14 @@ export function AccountsSidebar({
         <div className="sidebar-divider" />
         <p className="eyebrow">Sistema</p>
         <nav aria-label="Sistema">
+          <Link
+            href="/respaldo/"
+            aria-current={active === "backup" ? "page" : undefined}
+            className={active === "backup" ? "nav-current" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            <span aria-hidden="true">▤</span> Respaldo
+          </Link>
           <Link
             href="/conexion/"
             aria-current={active === "connection" ? "page" : undefined}
