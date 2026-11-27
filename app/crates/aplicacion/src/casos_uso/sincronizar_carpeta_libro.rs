@@ -75,9 +75,10 @@ pub fn ejecutar(
         let plano = cifrador.descifrar(&cifrado, frase_paso)?;
         let libro = serializador.deserializar_plano(&plano)?;
 
-        if ruta.starts_with(&carpeta_propia) {
-            ya_enviados.extend(libro.eventos.iter().map(|evento| evento.id.clone()));
-        }
+        // Cualquier evento que ya esté en un lote está en el destino, haya sido
+        // publicado por este dispositivo o por otro. Mirar solo la carpeta propia
+        // haría que un dispositivo volviera a enviar los eventos que acaba de recibir.
+        ya_enviados.extend(libro.eventos.iter().map(|evento| evento.id.clone()));
         eventos_entrantes.extend(libro.eventos);
     }
 

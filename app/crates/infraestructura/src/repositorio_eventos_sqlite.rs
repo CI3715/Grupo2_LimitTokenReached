@@ -104,6 +104,30 @@ impl RepositorioEventosSqlite {
     fn reconstruir_en_tx(tx: &Transaction<'_>) -> Result<(), String> {
         let eventos = Self::leer_eventos_ordenados_tx(tx)?;
 
+        // `cuenta_por_grupo` es configuración del usuario y referencia `cuenta`.
+        // Se guarda antes de limpiar y se reinserta después de reconstruir las
+        // cuentas; si no, borrar `cuenta` violaría la llave foránea.
+        let selecciones_grupo: Vec<(String, String, String, String)> = {
+            let mut sentencia = tx
+                .prepare("SELECT grupo_id, cuenta_id, moneda, actualizada_en FROM cuenta_por_grupo")
+                .map_err(|e| e.to_string())?;
+            let filas = sentencia
+                .query_map([], |fila| {
+                    Ok((
+                        fila.get::<_, String>(0)?,
+                        fila.get::<_, String>(1)?,
+                        fila.get::<_, String>(2)?,
+                        fila.get::<_, String>(3)?,
+                    ))
+                })
+                .map_err(|e| e.to_string())?;
+            filas
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?
+        };
+        tx.execute("DELETE FROM cuenta_por_grupo", [])
+            .map_err(|e| e.to_string())?;
+
         // Limpiar tablas de proyección derivadas (la tabla `eventos` es inmutable y NO se toca)
         tx.execute("DELETE FROM movimiento_grupo", [])
             .map_err(|e| e.to_string())?;
@@ -214,7 +238,12 @@ impl RepositorioEventosSqlite {
             }
         }
 
-        // 2. Cuentas, movimientos, ajustes y gastos de grupo.
+        // 2. Cuentas y movimientos primero. Los ajustes y las marcas de gasto de grupo
+        //    referencian movimientos, y el orden determinista por id puede colocarlos
+        //    antes que su `MovimientoRegistrado`: se difer hasta una segunda pasada.
+        let mut ajustes_pendientes: Vec<(&EventoLibro, Value)> = Vec::new();
+        let mut grupos_pendientes: Vec<(&EventoLibro, Value)> = Vec::new();
+
         for ev in &eventos {
             let datos: Value = serde_json::from_str(&ev.datos_canonicos)
                 .map_err(|e| format!("Evento {} corrupto: {e}", ev.id))?;
@@ -315,67 +344,124 @@ impl RepositorioEventosSqlite {
                     .map_err(|e| format!("Error actualizando saldo en {}: {e}", ev.id))?;
                 }
 
-                "MovimientoCorregido" => {
-                    let id = datos["id"].as_str().unwrap_or(&ev.id);
-                    let movimiento_id = datos["movimiento_id"].as_str().ok_or_else(|| {
-                        format!("MovimientoCorregido {} sin movimiento_id", ev.id)
-                    })?;
-                    let variacion_str = datos["variacion_monto"].as_str().ok_or_else(|| {
-                        format!("MovimientoCorregido {} sin variacion_monto", ev.id)
-                    })?;
-                    let variacion_escalada = decimal_str_a_escalado(variacion_str)?;
-                    let motivo = datos["motivo"].as_str().unwrap_or("");
-                    let registrado_en =
-                        datos["registrado_en"].as_str().unwrap_or(&ev.registrado_en);
-
-                    tx.execute(
-                        "INSERT INTO ajuste
-                         (id, movimiento_id, variacion_monto, motivo, registrado_en)
-                         VALUES (?1, ?2, ?3, ?4, ?5)",
-                        params![id, movimiento_id, variacion_escalada, motivo, registrado_en],
-                    )
-                    .map_err(|e| format!("Error proyectando MovimientoCorregido {}: {e}", ev.id))?;
-
-                    tx.execute(
-                        "UPDATE cuenta
-                         SET saldo = saldo + ?1
-                         WHERE id = (SELECT cuenta_id FROM movimiento WHERE id = ?2)",
-                        params![variacion_escalada, movimiento_id],
-                    )
-                    .map_err(|e| format!("Error aplicando ajuste {}: {e}", ev.id))?;
-                }
-
-                "GastoDeGrupoAplicado" => {
-                    if let (Some(id_evento), Some(movimiento_id), Some(grupo_id), Some(gasto_id)) = (
-                        datos["id_evento"].as_str(),
-                        datos["movimiento_id"].as_str(),
-                        datos["grupo_id"].as_str(),
-                        datos["gasto_id"].as_str(),
-                    ) {
-                        tx.execute(
-                            "INSERT OR IGNORE INTO eventos_grupo_aplicados
-                             (id_evento, movimiento_id, aplicado_en)
-                             VALUES (?1, ?2, ?3)",
-                            params![id_evento, movimiento_id, ev.registrado_en],
-                        )
-                        .map_err(|e| e.to_string())?;
-
-                        tx.execute(
-                            "INSERT OR IGNORE INTO movimiento_grupo
-                             (movimiento_id, id_evento, grupo_id, gasto_id, concepto_grupo, moneda)
-                             SELECT m.id, ?1, ?2, ?3, m.nota, c.moneda_codigo
-                             FROM movimiento m
-                             JOIN cuenta c ON c.id = m.cuenta_id
-                             WHERE m.id = ?4",
-                            params![id_evento, grupo_id, gasto_id, movimiento_id],
-                        )
-                        .map_err(|e| e.to_string())?;
-                    }
-                }
+                "MovimientoCorregido" => ajustes_pendientes.push((ev, datos)),
+                "GastoDeGrupoAplicado" => grupos_pendientes.push((ev, datos)),
 
                 // Los tipos futuros desconocidos se conservan en `eventos` sin
                 // romper la reconstrucción de las proyecciones conocidas.
                 _ => {}
+            }
+        }
+
+        for (ev, datos) in ajustes_pendientes {
+            let id = datos["id"].as_str().unwrap_or(&ev.id);
+            let movimiento_id = datos["movimiento_original_id"]
+                .as_str()
+                .or_else(|| datos["movimiento_id"].as_str())
+                .ok_or_else(|| {
+                    format!("MovimientoCorregido {} sin movimiento_original_id", ev.id)
+                })?;
+            let variacion_str = datos["variacion_monto"]
+                .as_str()
+                .ok_or_else(|| format!("MovimientoCorregido {} sin variacion_monto", ev.id))?;
+            let tipo_original = datos["tipo_original"]
+                .as_str()
+                .ok_or_else(|| format!("MovimientoCorregido {} sin tipo_original", ev.id))?;
+            let variacion_escalada = decimal_str_a_escalado(variacion_str)?;
+
+            let cuenta_id = match datos["cuenta_id"].as_str() {
+                Some(cuenta_id) => cuenta_id.to_string(),
+                None => tx
+                    .query_row(
+                        "SELECT cuenta_id FROM movimiento WHERE id = ?1",
+                        params![movimiento_id],
+                        |fila| fila.get::<_, String>(0),
+                    )
+                    .map_err(|e| {
+                        format!(
+                            "MovimientoCorregido {} no encontró el movimiento {}: {e}",
+                            ev.id, movimiento_id
+                        )
+                    })?,
+            };
+
+            let orden: i64 = tx
+                .query_row(
+                    "SELECT COALESCE(MAX(orden) + 1, 1) FROM ajuste
+                     WHERE movimiento_original_id = ?1",
+                    params![movimiento_id],
+                    |fila| fila.get::<_, i64>(0),
+                )
+                .unwrap_or(1);
+            let fecha = datos["fecha"].as_str().unwrap_or(&ev.registrado_en);
+
+            tx.execute(
+                "INSERT INTO ajuste
+                 (id, movimiento_original_id, cuenta_id, tipo_original, variacion_monto, fecha, orden)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    id,
+                    movimiento_id,
+                    cuenta_id,
+                    tipo_original,
+                    variacion_escalada,
+                    fecha,
+                    orden
+                ],
+            )
+            .map_err(|e| {
+                format!("Error proyectando MovimientoCorregido {}: {e}", ev.id)
+            })?;
+
+            // `variacion_monto` se guarda con el signo del movimiento original: un gasto
+            // corregido a la baja (-5,00) aumenta el saldo en 5,00.
+            let efecto = if tipo_original.eq_ignore_ascii_case("Ingreso") {
+                variacion_escalada
+            } else {
+                -variacion_escalada
+            };
+            tx.execute(
+                "UPDATE cuenta SET saldo = saldo + ?1 WHERE id = ?2",
+                params![efecto, cuenta_id],
+            )
+            .map_err(|e| format!("Error aplicando ajuste {}: {e}", ev.id))?;
+        }
+
+        for (grupo_id, cuenta_id, moneda, actualizada_en) in selecciones_grupo {
+            tx.execute(
+                "INSERT INTO cuenta_por_grupo
+                 (grupo_id, cuenta_id, moneda, actualizada_en)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![grupo_id, cuenta_id, moneda, actualizada_en],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+
+        for (ev, datos) in grupos_pendientes {
+            if let (Some(id_evento), Some(movimiento_id), Some(grupo_id), Some(gasto_id)) = (
+                datos["id_evento"].as_str(),
+                datos["movimiento_id"].as_str(),
+                datos["grupo_id"].as_str(),
+                datos["gasto_id"].as_str(),
+            ) {
+                tx.execute(
+                    "INSERT OR IGNORE INTO eventos_grupo_aplicados
+                     (id_evento, movimiento_id, aplicado_en)
+                     VALUES (?1, ?2, ?3)",
+                    params![id_evento, movimiento_id, ev.registrado_en],
+                )
+                .map_err(|e| e.to_string())?;
+
+                tx.execute(
+                    "INSERT OR IGNORE INTO movimiento_grupo
+                     (movimiento_id, id_evento, grupo_id, gasto_id, concepto_grupo, moneda)
+                     SELECT m.id, ?1, ?2, ?3, m.nota, c.moneda_codigo
+                     FROM movimiento m
+                     JOIN cuenta c ON c.id = m.cuenta_id
+                     WHERE m.id = ?4",
+                    params![id_evento, grupo_id, gasto_id, movimiento_id],
+                )
+                .map_err(|e| e.to_string())?;
             }
         }
 
@@ -539,16 +625,24 @@ impl RepositorioEventos for RepositorioEventosSqlite {
                     }
                 }
                 "MovimientoCorregido" => {
-                    if let (Some(mov_id), Some(var_str)) = (
-                        datos["movimiento_id"].as_str(),
-                        datos["variacion_monto"].as_str(),
-                    ) {
+                    let mov_id = datos["movimiento_original_id"]
+                        .as_str()
+                        .or_else(|| datos["movimiento_id"].as_str());
+                    let var_str = datos["variacion_monto"].as_str();
+                    let tipo_original = datos["tipo_original"].as_str().unwrap_or("Gasto");
+
+                    if let (Some(mov_id), Some(var_str)) = (mov_id, var_str) {
                         match (
                             cuenta_por_movimiento.get(mov_id),
                             decimal_str_a_escalado(var_str),
                         ) {
                             (Some(cta_id), Ok(variacion)) => {
-                                *saldos_esperados.entry(cta_id.clone()).or_insert(0) += variacion;
+                                let efecto = if tipo_original.eq_ignore_ascii_case("Ingreso") {
+                                    variacion
+                                } else {
+                                    -variacion
+                                };
+                                *saldos_esperados.entry(cta_id.clone()).or_insert(0) += efecto;
                             }
                             (None, _) => discrepancias.push(format!(
                                 "Ajuste {} referencia movimiento inexistente {}",
@@ -556,6 +650,11 @@ impl RepositorioEventos for RepositorioEventosSqlite {
                             )),
                             (_, Err(e)) => discrepancias.push(format!("Evento {}: {e}", ev.id)),
                         }
+                    } else {
+                        discrepancias.push(format!(
+                            "MovimientoCorregido {} tiene campos incompletos",
+                            ev.id
+                        ));
                     }
                 }
                 _ => {}
