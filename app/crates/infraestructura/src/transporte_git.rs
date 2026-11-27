@@ -63,8 +63,10 @@ impl TransporteGit {
     }
 
     fn rama_actual(&self) -> Result<String, String> {
+        // `symbolic-ref` funciona también en un clon sin commits, donde
+        // `rev-parse HEAD` falla porque todavía no existe la revisión.
         Ok(self
-            .git(&["rev-parse", "--abbrev-ref", "HEAD"])?
+            .git(&["symbolic-ref", "--quiet", "--short", "HEAD"])?
             .trim()
             .to_string())
     }
@@ -76,7 +78,21 @@ impl TransporteSincronizacion for TransporteGit {
         self.git(&["fetch", "--quiet", "origin"])?;
 
         let rama = self.rama_actual()?;
-        self.git(&["pull", "--quiet", "--no-edit", "--rebase", "origin", &rama])?;
+        let referencia_remota = format!("refs/remotes/origin/{rama}");
+
+        if self
+            .git(&["rev-parse", "--verify", "--quiet", "HEAD"])
+            .is_ok()
+        {
+            self.git(&["pull", "--quiet", "--no-edit", "--rebase", "origin", &rama])?;
+        } else if self
+            .git(&["show-ref", "--verify", "--quiet", &referencia_remota])
+            .is_ok()
+        {
+            // El clon está vacío pero el remoto ya tiene commits: adoptamos su rama.
+            self.git(&["reset", "--hard", &format!("origin/{rama}")])?;
+        }
+        // Si ambos están vacíos todavía no hay nada que traer.
 
         recoger_lotes(&self.directorio)
     }
@@ -304,5 +320,32 @@ mod pruebas {
 
         assert_eq!(transporte_a.leer_lotes().unwrap().len(), 2);
         assert_eq!(transporte_b.leer_lotes().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn lee_lotes_con_el_remoto_vacio_y_luego_con_un_clon_sin_commits() {
+        let dir = DirTemporal::nueva();
+        let remoto = dir.ruta("remoto.git");
+        let remoto_texto = remoto.to_string_lossy().into_owned();
+        git_en(
+            &dir.0,
+            &["init", "--bare", "--quiet", remoto_texto.as_str()],
+        );
+
+        let clon_vacio = dir.ruta("clon-vacio");
+        let transporte_vacio = TransporteGit::new(remoto_texto.clone(), clon_vacio.clone());
+        assert!(transporte_vacio.leer_lotes().unwrap().is_empty());
+
+        let ruta_a = dir.ruta("dispositivo-a");
+        let transporte_a = TransporteGit::new(remoto_texto, ruta_a.clone());
+        transporte_a.asegurar_clon().unwrap();
+        configurar_identidad(&ruta_a);
+        transporte_a.publicar_lote("disp-a", b"lote-a").unwrap();
+
+        // Ese mismo clon sigue sin commits propios: debe adoptar la rama del remoto.
+        let lotes = transporte_vacio.leer_lotes().unwrap();
+        assert_eq!(lotes.len(), 1);
+        assert_eq!(lotes[0].dispositivo, "disp-a");
+        assert_eq!(lotes[0].contenido, b"lote-a");
     }
 }
