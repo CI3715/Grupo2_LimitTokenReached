@@ -66,3 +66,19 @@ test("oculta errores técnicos desconocidos", () => {
     "No se pudo completar la operación. Inténtalo nuevamente.",
   );
 });
+
+test("interpreta los códigos serializados por los comandos", () => {
+  const codigos = [
+    "FraseIncorrectaOArchivoDanado",
+    "VersionFormatoNoSoportada",
+    "DestinoInaccesibleOSinConexion",
+    "CredencialesGitInvalidas",
+    "EventoConflictoContenido",
+  ];
+  for (let i = 0; i < codigos.length; i++)
+    assert.equal(backupErrorMessage({ codigo: codigos[i] }), casos[i][1]);
+  assert.equal(
+    backupErrorMessage({ codigo: "ErrorOperacion", detalle: "src/privado" }),
+    "No se pudo completar la operación. Inténtalo nuevamente.",
+  );
+});

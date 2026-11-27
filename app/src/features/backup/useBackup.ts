@@ -14,6 +14,16 @@ import type {
 import { useCallback, useState } from "react";
 
 export function backupErrorMessage(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "codigo" in error &&
+    typeof error.codigo === "string"
+  ) {
+    if (error.codigo === "FraseDemasiadoCorta")
+      return "La frase de paso debe tener al menos 12 caracteres.";
+    return backupErrorMessage(error.codigo);
+  }
   const message =
     typeof error === "string"
       ? error
