@@ -1,8 +1,36 @@
 use aplicacion::puertos::RepositorioSincronizacion;
 use rusqlite::{Connection, OptionalExtension, params};
 use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::json;
 use std::sync::Mutex;
+
+const ESCALA_MONTOS: i64 = 100_000_000; // 10^8
+
+fn decimal_a_escalado(monto: Decimal) -> Result<i64, String> {
+    let escalado = monto
+        .checked_mul(Decimal::from(ESCALA_MONTOS))
+        .ok_or_else(|| "Desbordamiento al escalar el monto".to_string())?;
+
+    escalado
+        .trunc()
+        .to_i64()
+        .ok_or_else(|| "El monto excede el rango permitido por SQLite (i64)".to_string())
+}
+
+fn escalado_a_decimal(valor: i64) -> Decimal {
+    Decimal::new(valor, 8).normalize()
+}
+
+/// Normaliza la fecha del gasto del servidor a RFC 3339 UTC para que el
+/// recorrido determinista `(timestamp, device_id, event_id)` sea estable.
+fn registrado_en_servidor(fecha: &str) -> String {
+    if fecha.len() >= 20 && fecha.contains('T') {
+        fecha.to_string()
+    } else {
+        format!("{}T00:00:00Z", fecha.get(..10).unwrap_or(fecha))
+    }
+}
 
 pub struct RepositorioSincronizacionSqlite {
     conexion: Mutex<Connection>,
@@ -175,6 +203,13 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
 
         for pendiente in &plan.pendientes {
             let evento = &pendiente.evento;
+            let monto_parte_decimal = evento
+                .monto_parte
+                .trim()
+                .parse::<Decimal>()
+                .map_err(|error| format!("Monto de parte inválido: {error}"))?;
+            let monto_parte_escalado = decimal_a_escalado(monto_parte_decimal)?;
+
             tx.execute(
                 "INSERT INTO partes_grupo_pendientes
                  (id_evento, grupo_id, gasto_id, concepto, fecha, moneda,
@@ -188,7 +223,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                     evento.concepto,
                     evento.fecha,
                     evento.moneda,
-                    evento.monto_parte,
+                    monto_parte_escalado,
                     evento.incluye_redondeo as i64,
                     evento.posicion_cursor as i64,
                 ],
@@ -218,6 +253,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
             let concepto_movimiento = movimiento.nota.clone();
             let fecha = movimiento.fecha.to_string();
             let monto = movimiento.monto;
+            let monto_escalado = decimal_a_escalado(monto)?;
             let efecto_saldo = aplicacion.efecto_saldo;
 
             tx.execute(
@@ -227,7 +263,7 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 params![
                     movimiento_id,
                     cuenta_id,
-                    monto.to_string(),
+                    monto_escalado,
                     fecha,
                     categoria_id,
                     concepto_movimiento,
@@ -235,18 +271,19 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
             )
             .map_err(|error| format!("No se pudo guardar el gasto de grupo: {error}"))?;
 
-            let saldo: String = tx
+            let saldo_raw: i64 = tx
                 .query_row(
                     "SELECT saldo FROM cuenta WHERE id = ?1",
                     params![cuenta_id],
                     |row| row.get(0),
                 )
                 .map_err(|error| format!("No se pudo obtener el saldo: {error}"))?;
-            let saldo_actual = Decimal::from_str_exact(&saldo)
-                .map_err(|error| format!("Saldo invalido: {error}"))?;
+            let saldo_actual = escalado_a_decimal(saldo_raw);
+            let nuevo_saldo_escalado = decimal_a_escalado(saldo_actual + efecto_saldo)?;
+
             tx.execute(
                 "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
-                params![(saldo_actual + efecto_saldo).to_string(), cuenta_id],
+                params![nuevo_saldo_escalado, cuenta_id],
             )
             .map_err(|error| format!("No se pudo actualizar el saldo: {error}"))?;
 
@@ -259,8 +296,19 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 "categoria_id": categoria_id,
                 "nota": concepto_movimiento,
             });
-            crate::bd::insertar_evento(&tx, "MovimientoRegistrado", &datos_movimiento)
-                .map_err(|error| error.to_string())?;
+            let id_evento_movimiento =
+                aplicacion::casos_uso::aplicar_eventos_grupo::id_evento_movimiento_desde_servidor(
+                    &evento.id_evento,
+                );
+            crate::bd::insertar_evento_con_id(
+                &tx,
+                &id_evento_movimiento,
+                "MovimientoRegistrado",
+                &registrado_en_servidor(&evento.fecha),
+                "servidor",
+                &datos_movimiento,
+            )
+            .map_err(|error| error.to_string())?;
 
             let datos_aplicado = json!({
                 "id_evento": evento.id_evento,
@@ -268,8 +316,19 @@ impl RepositorioSincronizacion for RepositorioSincronizacionSqlite {
                 "grupo_id": evento.grupo_id,
                 "gasto_id": evento.gasto_id,
             });
-            crate::bd::insertar_evento(&tx, "GastoDeGrupoAplicado", &datos_aplicado)
-                .map_err(|error| error.to_string())?;
+            let id_evento_aplicado =
+                aplicacion::casos_uso::aplicar_eventos_grupo::id_evento_aplicado_desde_servidor(
+                    &evento.id_evento,
+                );
+            crate::bd::insertar_evento_con_id(
+                &tx,
+                &id_evento_aplicado,
+                "GastoDeGrupoAplicado",
+                &registrado_en_servidor(&evento.fecha),
+                "servidor",
+                &datos_aplicado,
+            )
+            .map_err(|error| error.to_string())?;
 
             tx.execute(
                 "INSERT INTO movimiento_grupo

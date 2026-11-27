@@ -11,15 +11,17 @@ class Base(DeclarativeBase):
     pass
 
 
-ruta_db = Path(settings.DATABASE_PATH)
-if not ruta_db.is_absolute():
-    ruta_db = BASE_DIR / ruta_db
-ruta_db.parent.mkdir(parents=True, exist_ok=True)
-
-engine = create_engine(
-    f"sqlite:///{ruta_db.as_posix()}",
-    connect_args={"check_same_thread": False},
-)
+if settings.DATABASE_URL:
+    engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+else:
+    ruta_db = Path(settings.DATABASE_PATH)
+    if not ruta_db.is_absolute():
+        ruta_db = BASE_DIR / ruta_db
+    ruta_db.parent.mkdir(parents=True, exist_ok=True)
+    engine = create_engine(
+        f"sqlite:///{ruta_db.as_posix()}",
+        connect_args={"check_same_thread": False},
+    )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 

@@ -1,15 +1,17 @@
 pub mod comandos;
 
 use aplicacion::puertos::{
-    ClienteSocial, Reloj, RepositorioCategorias, RepositorioColaGastos, RepositorioCuentas,
-    RepositorioMonedas, RepositorioMovimientos, RepositorioPatrimonio, RepositorioPreferencias,
-    RepositorioSincronizacion, RepositorioTasas,
+    CifradorRespaldo, ClienteSocial, Reloj, RepositorioCategorias, RepositorioColaGastos,
+    RepositorioCuentas, RepositorioEventos, RepositorioMonedas, RepositorioMovimientos,
+    RepositorioPatrimonio, RepositorioPreferencias, RepositorioSincronizacion, RepositorioTasas,
+    SerializadorLibro,
 };
 use infraestructura::{
-    ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite, RepositorioColaGastosSqlite,
-    RepositorioCuentasSqlite, RepositorioMonedasSqlite, RepositorioMovimientosSqlite,
-    RepositorioPatrimonioSqlite, RepositorioPreferenciasSqlite, RepositorioSincronizacionSqlite,
-    RepositorioTasasSqlite, bd,
+    CifradorRespaldoAesGcm, ClienteSocialHttp, RelojSistema, RepositorioCategoriasSqlite,
+    RepositorioColaGastosSqlite, RepositorioCuentasSqlite, RepositorioEventosSqlite,
+    RepositorioMonedasSqlite, RepositorioMovimientosSqlite, RepositorioPatrimonioSqlite,
+    RepositorioPreferenciasSqlite, RepositorioSincronizacionSqlite, RepositorioTasasSqlite,
+    SerializadorLibroPlano, bd,
 };
 use tauri::Manager;
 
@@ -77,6 +79,19 @@ pub fn run() {
             let reloj: Box<dyn Reloj> = Box::new(RelojSistema);
             app.manage(reloj);
 
+            // Entrega 8: libro de eventos, formato plano y cifrado de respaldos.
+            let conn_eventos = bd::abrir(&ruta_db)?;
+            let state_eventos: Box<dyn RepositorioEventos> =
+                Box::new(RepositorioEventosSqlite::new(conn_eventos));
+            app.manage(state_eventos);
+
+            let state_serializador: Box<dyn SerializadorLibro> =
+                Box::new(SerializadorLibroPlano::new());
+            app.manage(state_serializador);
+
+            let state_cifrador: Box<dyn CifradorRespaldo> = Box::new(CifradorRespaldoAesGcm::new());
+            app.manage(state_cifrador);
+
             let url_servidor = option_env!("SERVER_HOST_IP").unwrap_or("http://localhost:8000");
             let cliente_social: Box<dyn ClienteSocial> =
                 Box::new(ClienteSocialHttp::new(url_servidor));
@@ -84,7 +99,7 @@ pub fn run() {
 
             // Iniciar sincronización automática al arrancar y cada 5 minutos
             comandos::sync::iniciar_sincronizacion_automatica(app.handle().clone());
-            
+
             Ok(())
         })
         .plugin(tauri_plugin_log::Builder::new().build())
@@ -127,6 +142,9 @@ pub fn run() {
             comandos::categorias::listar_categorias,
             comandos::moneda::eliminar_moneda,
             comandos::previsualizacion::previsualizar_division,
+            comandos::respaldo::exportar_libro,
+            comandos::respaldo::importar_libro,
+            comandos::respaldo::sincronizar_carpeta_libro,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");

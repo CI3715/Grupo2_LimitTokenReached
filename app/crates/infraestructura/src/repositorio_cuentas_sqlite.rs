@@ -2,6 +2,8 @@ use crate::bd;
 use chrono::Utc;
 use rusqlite::Connection;
 use rusqlite::params;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::json;
 use std::sync::Mutex;
 use uuid::Uuid;
@@ -9,6 +11,23 @@ use uuid::Uuid;
 use aplicacion::puertos::RepositorioCuentas;
 use contrato::crear_cuenta::CrearCuentaRequest;
 use contrato::cuenta::{CuentaDTO, TipoCuentaDTO};
+
+const ESCALA_MONTOS: i64 = 100_000_000; // 10^8
+
+fn decimal_a_escalado(monto: Decimal) -> Result<i64, String> {
+    let escalado = monto
+        .checked_mul(Decimal::from(ESCALA_MONTOS))
+        .ok_or_else(|| "Desbordamiento al escalar el monto".to_string())?;
+
+    escalado
+        .trunc()
+        .to_i64()
+        .ok_or_else(|| "El monto excede el rango permitido por SQLite (i64)".to_string())
+}
+
+fn escalado_a_decimal(valor: i64) -> Decimal {
+    Decimal::new(valor, 8).normalize()
+}
 
 pub struct RepositorioCuentasSqlite {
     pub conexion: Mutex<Connection>,
@@ -34,6 +53,13 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
             .trim_matches('"')
             .to_string();
 
+        let saldo_decimal = req
+            .saldo_inicial
+            .trim()
+            .parse::<Decimal>()
+            .map_err(|e| format!("Saldo inicial inválido: {e}"))?;
+        let saldo_escalado = decimal_a_escalado(saldo_decimal)?;
+
         let id_generado = Uuid::new_v4().to_string();
         let creada_en = Utc::now().date_naive().to_string();
 
@@ -50,7 +76,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
         bd::insertar_evento(&tx, "CuentaCreada", &datos_evento)
             .map_err(|e| format!("Error al registrar evento inmutable: {}", e))?;
 
-        // 3. Insertar proyección en la tabla 'cuenta'
+        // 3. Insertar proyección en la tabla 'cuenta' con el saldo escalado (monto * 10^8)
         tx.execute(
             "
             INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo, creada_en)
@@ -61,13 +87,13 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
                 req.nombre.trim(),
                 tipo_str,
                 req.moneda_codigo,
-                req.saldo_inicial,
+                saldo_escalado,
                 creada_en,
             ],
         )
         .map_err(|e| format!("Error al guardar la cuenta en SQLite: {e}"))?;
 
-        // 4. Confirmar transaccion
+        // 4. Confirmar transacción
         tx.commit()
             .map_err(|e| format!("Error al hacer commit en SQLite: {}", e))?;
 
@@ -76,7 +102,7 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
             nombre: req.nombre.trim().to_string(),
             tipo: req.tipo,
             moneda_codigo: req.moneda_codigo.clone(),
-            saldo: req.saldo_inicial.clone(),
+            saldo: escalado_a_decimal(saldo_escalado).to_string(),
             creada_en: Utc::now().to_rfc3339(),
             activa: true,
         })
@@ -95,11 +121,13 @@ impl RepositorioCuentas for RepositorioCuentasSqlite {
                 let nombre: String = row.get(1)?;
                 let tipo_str: String = row.get(2)?;
                 let moneda_codigo: String = row.get(3)?;
-                let saldo: String = row.get(4)?;
+                let saldo_raw: i64 = row.get(4)?;
                 let activa: i64 = row.get(5)?;
 
                 let tipo: TipoCuentaDTO = serde_json::from_str(&format!("\"{}\"", tipo_str))
                     .unwrap_or(TipoCuentaDTO::Efectivo);
+
+                let saldo = escalado_a_decimal(saldo_raw).to_string();
 
                 Ok(CuentaDTO {
                     id,

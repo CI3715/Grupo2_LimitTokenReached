@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parents[5]
 class Settings(BaseSettings):
     SERVER_HOST_IP: str = "http://localhost:8000"
     DATABASE_PATH: str = "servidor/data/usuarios_auth.db"
+    DATABASE_URL: str | None = None
     JWT_SECRET: SecretStr = SecretStr("")
     JWT_ISSUER: str = "cuentas-claras"
     JWT_TTL_MINUTES: int = 60

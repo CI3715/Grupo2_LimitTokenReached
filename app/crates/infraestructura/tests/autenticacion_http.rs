@@ -28,6 +28,7 @@ fn servidor(codigo: u16, cuerpo: &str) -> (String, JoinHandle<String>) {
                 Err(error) => panic!("No se pudo aceptar HTTP: {error}"),
             }
         };
+        socket.set_nonblocking(false).unwrap();
         socket
             .set_read_timeout(Some(Duration::from_secs(5)))
             .unwrap();

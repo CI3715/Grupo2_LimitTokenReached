@@ -1,11 +1,14 @@
 pub mod autenticacion;
 pub mod categoria;
+pub mod comandos_sync;
 pub mod crear_cuenta;
 pub mod cuenta;
 pub mod error_validacion;
+pub mod errores_sync;
 pub mod moneda;
 pub mod movimiento;
 pub mod patrimonio;
+pub mod respaldo_sincronizacion;
 pub mod sincronizacion;
 pub mod social;
 pub mod tasa;
@@ -13,9 +16,14 @@ pub mod tasa;
 // Re-exportaciones para uso cómodo desde otros crates
 pub use autenticacion::{IniciarSesionRequest, RegistrarUsuarioRequest, SesionDTO, UsuarioDTO};
 pub use categoria::{CategoriaDTO, CrearCategoriaRequest, TipoCategoriaDTO};
+pub use comandos_sync::{
+    ConfigDestinoSyncDTO, ExportarLibroRequest, ExportarLibroResponse, ImportarLibroRequest,
+    ImportarLibroResponse, ResultadoSyncDTO,
+};
 pub use crear_cuenta::CrearCuentaRequest;
 pub use cuenta::{CuentaDTO, TipoCuentaDTO};
 pub use error_validacion::ErrorValidacionDTO;
+pub use errores_sync::ErrorSincronizacion;
 pub use moneda::{CambiarMonedaBaseRequest, CrearMonedaRequest, EliminarMonedaRequest, MonedaDTO};
 pub use movimiento::{
     CorregirMovimientoRequest, MovimientoDTO, RegistrarMovimientoRequest, TipoMovimientoDTO,
@@ -23,6 +31,9 @@ pub use movimiento::{
 pub use patrimonio::{
     ConsultarPatrimonioRequest, ConsultarPatrimonioResponse, SaldoCuentaDTO, SubtotalMonedaDTO,
     TasaFaltanteDTO, TasaUsadaDTO,
+};
+pub use respaldo_sincronizacion::{
+    EncabezadoExportacionDTO, EventoRechazadoDTO, ReporteSincronizacionDTO,
 };
 pub use sincronizacion::{
     CuentaGrupoSeleccionDTO, EstadoSincronizacionDTO, EventoCambioDTO, ObtenerCambiosRequest,
@@ -59,3 +70,9 @@ mod social_tests;
 
 #[cfg(test)]
 mod sincronizacion_tests;
+
+#[cfg(test)]
+mod respaldo_sincronizacion_tests;
+
+#[cfg(test)]
+mod errores_sync_tests;
