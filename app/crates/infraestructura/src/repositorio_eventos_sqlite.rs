@@ -663,4 +663,76 @@ mod pruebas {
         assert_eq!(valor, "887.96");
         assert_eq!(eliminada, 1);
     }
+
+    #[test]
+    fn verificar_integridad_detecta_un_saldo_corruptido_y_lo_confirma_tras_reconstruir() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        migrar(&mut conn).unwrap();
+
+        crate::bd::insertar_evento_con_id(
+            &conn,
+            "ev-cuenta",
+            "CuentaCreada",
+            "2026-11-20T10:00:00Z",
+            "disp-a",
+            &json!({
+                "id": "cuenta-1",
+                "nombre": "Efectivo USD",
+                "tipo": "Efectivo",
+                "moneda_codigo": "USD",
+                "saldo_inicial": "100.00",
+            }),
+        )
+        .unwrap();
+        crate::bd::insertar_evento_con_id(
+            &conn,
+            "ev-ingreso",
+            "MovimientoRegistrado",
+            "2026-11-20T11:00:00Z",
+            "disp-a",
+            &json!({
+                "id": "mov-1",
+                "cuenta_id": "cuenta-1",
+                "tipo": "Ingreso",
+                "monto": "50.00",
+                "fecha": "2026-11-20",
+            }),
+        )
+        .unwrap();
+
+        let repositorio = RepositorioEventosSqlite::new(conn);
+        repositorio
+            .reconstruir_proyecciones_desde_eventos()
+            .unwrap();
+
+        let informe = repositorio.verificar_integridad().unwrap();
+        assert!(informe.integro, "{:?}", informe.discrepancias);
+        assert_eq!(informe.total_eventos_verificados, 2);
+        assert_eq!(informe.cuentas_verificadas, 1);
+
+        // Corromper solo la proyección, nunca los eventos.
+        {
+            let conexion = repositorio.conexion.lock().unwrap();
+            conexion
+                .execute(
+                    "UPDATE cuenta SET saldo = ?1 WHERE id = ?2",
+                    params![15_000_000_000i64 - 1, "cuenta-1"],
+                )
+                .unwrap();
+        }
+
+        let informe = repositorio.verificar_integridad().unwrap();
+        assert!(!informe.integro);
+        assert_eq!(informe.discrepancias.len(), 1);
+        assert!(
+            informe.discrepancias[0].contains("Saldo inconsistente"),
+            "{:?}",
+            informe.discrepancias
+        );
+
+        repositorio
+            .reconstruir_proyecciones_desde_eventos()
+            .unwrap();
+        assert!(repositorio.verificar_integridad().unwrap().integro);
+    }
 }
