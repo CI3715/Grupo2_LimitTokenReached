@@ -4,18 +4,19 @@
 //! frase, advertencia de irrecuperabilidad y botón “Sincronizar ahora”) queda fuera
 //! de este crate.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use aplicacion::puertos::{
     CifradorRespaldo, Reloj, ReporteSincronizacionLibro, RepositorioEventos, SerializadorLibro,
 };
 use contrato::respaldo_sincronizacion::{EventoRechazadoDTO, ReporteSincronizacionDTO};
 use contrato::{
-    ExportarLibroRequest, ExportarLibroResponse, ImportarLibroRequest, ImportarLibroResponse,
-    ResultadoSyncDTO,
+    ConfigDestinoSyncDTO, ExportarLibroRequest, ExportarLibroResponse, ImportarLibroRequest,
+    ImportarLibroResponse, ResultadoSyncDTO,
 };
 use dominio::libro::{EventoRechazado, ResumenFusion};
-use tauri::State;
+use infraestructura::TransporteGit;
+use tauri::{AppHandle, Manager, State};
 
 fn mapear_rechazados(rechazados: &[EventoRechazado]) -> Vec<EventoRechazadoDTO> {
     rechazados
@@ -191,6 +192,70 @@ pub fn sincronizar_carpeta_libro(
     sincronizar_carpeta_libro_impl(
         ruta_carpeta,
         frase_de_paso,
+        repo_eventos.inner().as_ref(),
+        serializador.inner().as_ref(),
+        cifrador.inner().as_ref(),
+        reloj.inner().as_ref(),
+    )
+}
+
+/// Sincroniza el libro con un repositorio Git propio del usuario.
+fn sincronizar_git_libro_impl(
+    configuracion: ConfigDestinoSyncDTO,
+    frase_de_paso: &str,
+    ruta_clon: &Path,
+    repo_eventos: &dyn RepositorioEventos,
+    serializador: &dyn SerializadorLibro,
+    cifrador: &dyn CifradorRespaldo,
+    reloj: &dyn Reloj,
+) -> Result<ResultadoSyncDTO, String> {
+    if configuracion.tipo != "git" {
+        return Err("El tipo de destino debe ser \"git\".".to_string());
+    }
+    if configuracion.ruta_o_url.trim().is_empty() {
+        return Err("La URL del repositorio no puede estar vacía.".to_string());
+    }
+    if configuracion.credenciales.is_some() {
+        return Err(
+            "Las credenciales se gestionan con el helper de Git; no se envían en la configuración."
+                .to_string(),
+        );
+    }
+
+    let transporte = TransporteGit::new(configuracion.ruta_o_url.clone(), ruta_clon);
+    let reporte = aplicacion::casos_uso::sincronizar_libro::ejecutar(
+        &transporte,
+        frase_de_paso,
+        repo_eventos,
+        serializador,
+        cifrador,
+        reloj,
+    )?;
+
+    Ok(mapear_sincronizacion(&reporte))
+}
+
+#[tauri::command]
+pub fn sincronizar_git_libro(
+    configuracion: ConfigDestinoSyncDTO,
+    frase_de_paso: String,
+    repo_eventos: State<'_, Box<dyn RepositorioEventos>>,
+    serializador: State<'_, Box<dyn SerializadorLibro>>,
+    cifrador: State<'_, Box<dyn CifradorRespaldo>>,
+    reloj: State<'_, Box<dyn Reloj>>,
+    app: AppHandle,
+) -> Result<ResultadoSyncDTO, String> {
+    const ERROR_REPOSITORIO: &str = "No se pudo llegar al repositorio; se reintentará.";
+    let directorio = app
+        .path()
+        .app_data_dir()
+        .map_err(|_| ERROR_REPOSITORIO.to_string())?;
+    std::fs::create_dir_all(&directorio).map_err(|_| ERROR_REPOSITORIO.to_string())?;
+
+    sincronizar_git_libro_impl(
+        configuracion,
+        &frase_de_paso,
+        &directorio.join("git"),
         repo_eventos.inner().as_ref(),
         serializador.inner().as_ref(),
         cifrador.inner().as_ref(),
@@ -518,5 +583,165 @@ mod pruebas {
 
         assert_eq!(origen.listar_eventos_ordenados().unwrap().len(), 1);
         assert_eq!(destino.listar_eventos_ordenados().unwrap().len(), 1);
+    }
+
+    fn git_en(directorio: &Path, argumentos: &[&str]) {
+        let salida = std::process::Command::new("git")
+            .arg("-C")
+            .arg(directorio)
+            .args(argumentos)
+            .env("GIT_TERMINAL_PROMPT", "0")
+            .output()
+            .unwrap();
+        assert!(
+            salida.status.success(),
+            "git {:?} falló: {}",
+            argumentos,
+            String::from_utf8_lossy(&salida.stderr)
+        );
+    }
+
+    fn clon_configurado(dir: &DirTemporal, remoto: &str, nombre: &str) -> PathBuf {
+        git_en(&dir.0, &["clone", "--quiet", remoto, nombre]);
+        let ruta = dir.ruta(nombre);
+        git_en(
+            &ruta,
+            &["config", "user.email", "pruebas@cuentasclaras.local"],
+        );
+        git_en(&ruta, &["config", "user.name", "Prueba"]);
+        ruta
+    }
+
+    #[test]
+    fn sincronizar_git_entre_dos_libros_converge_y_es_idempotente() {
+        let dir = DirTemporal::nueva();
+        let remoto = dir.ruta("remoto.git");
+        git_en(
+            &dir.0,
+            &["init", "--bare", "--quiet", remoto.to_str().unwrap()],
+        );
+        let remoto_texto = remoto.to_string_lossy().into_owned();
+
+        let clon_a = clon_configurado(&dir, &remoto_texto, "clon-a");
+        let clon_b = clon_configurado(&dir, &remoto_texto, "clon-b");
+
+        let origen = repositorio_con_un_evento(&dir.ruta("origen.db"));
+        let destino = repositorio_vacio(&dir.ruta("destino.db"));
+        let serializador = SerializadorLibroPlano::new();
+        let cifrador = CifradorRespaldoAesGcm::new();
+        let reloj = RelojFijo;
+        let frase = "frase-sincronizacion-git-123";
+        let configuracion = ConfigDestinoSyncDTO {
+            tipo: "git".to_string(),
+            ruta_o_url: remoto_texto,
+            credenciales: None,
+        };
+
+        assert_eq!(
+            sincronizar_git_libro_impl(
+                ConfigDestinoSyncDTO {
+                    tipo: "carpeta".to_string(),
+                    ..configuracion.clone()
+                },
+                frase,
+                &clon_a,
+                &origen,
+                &serializador,
+                &cifrador,
+                &reloj,
+            )
+            .unwrap_err(),
+            "El tipo de destino debe ser \"git\"."
+        );
+        assert_eq!(
+            sincronizar_git_libro_impl(
+                ConfigDestinoSyncDTO {
+                    ruta_o_url: String::new(),
+                    ..configuracion.clone()
+                },
+                frase,
+                &clon_a,
+                &origen,
+                &serializador,
+                &cifrador,
+                &reloj,
+            )
+            .unwrap_err(),
+            "La URL del repositorio no puede estar vacía."
+        );
+        assert_eq!(
+            sincronizar_git_libro_impl(
+                ConfigDestinoSyncDTO {
+                    credenciales: Some("usuario:clave".to_string()),
+                    ..configuracion.clone()
+                },
+                frase,
+                &clon_a,
+                &origen,
+                &serializador,
+                &cifrador,
+                &reloj,
+            )
+            .unwrap_err(),
+            "Las credenciales se gestionan con el helper de Git; no se envían en la configuración."
+        );
+
+        let primero = sincronizar_git_libro_impl(
+            configuracion.clone(),
+            frase,
+            &clon_a,
+            &origen,
+            &serializador,
+            &cifrador,
+            &reloj,
+        )
+        .unwrap();
+        assert!(primero.exitoso);
+        assert_eq!(primero.eventos_enviados, 1);
+        assert_eq!(primero.eventos_recibidos, 0);
+
+        let segundo = sincronizar_git_libro_impl(
+            configuracion.clone(),
+            frase,
+            &clon_b,
+            &destino,
+            &serializador,
+            &cifrador,
+            &reloj,
+        )
+        .unwrap();
+        assert_eq!(segundo.eventos_recibidos, 1);
+        assert_eq!(segundo.eventos_enviados, 0);
+
+        let tercero = sincronizar_git_libro_impl(
+            configuracion.clone(),
+            frase,
+            &clon_a,
+            &origen,
+            &serializador,
+            &cifrador,
+            &reloj,
+        )
+        .unwrap();
+        assert_eq!(tercero.eventos_enviados, 0);
+        assert_eq!(tercero.eventos_recibidos, 0);
+
+        let cuarto = sincronizar_git_libro_impl(
+            configuracion,
+            frase,
+            &clon_b,
+            &destino,
+            &serializador,
+            &cifrador,
+            &reloj,
+        )
+        .unwrap();
+        assert_eq!(cuarto.eventos_enviados, 0);
+        assert_eq!(cuarto.eventos_recibidos, 0);
+
+        assert_eq!(
+            origen.listar_eventos_ordenados().unwrap(),
+            destino.listar_eventos_ordenados().unwrap()
+        );
     }
 }

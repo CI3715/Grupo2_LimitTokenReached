@@ -11,6 +11,8 @@ use std::{
 };
 
 use aplicacion::puertos::{LoteRecibido, TransporteSincronizacion};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use uuid::Uuid;
 
 const ERROR_REPOSITORIO: &str = "No se pudo llegar al repositorio; se reintentará.";
@@ -110,7 +112,10 @@ impl TransporteSincronizacion for TransporteGit {
 
         let ruta = carpeta.join(format!("lote-{}.ccbak", Uuid::new_v4()));
         let temporal = ruta.with_extension("tmp");
-        fs::write(&temporal, contenido).map_err(|_| ERROR_REPOSITORIO.to_string())?;
+        // Git puede convertir saltos de línea en archivos de texto. El paquete cifrado
+        // autentica su cabecera byte a byte, así que se guarda en base64 sin saltos.
+        let contenido_git = STANDARD.encode(contenido);
+        fs::write(&temporal, contenido_git).map_err(|_| ERROR_REPOSITORIO.to_string())?;
         fs::rename(&temporal, &ruta).map_err(|_| {
             let _ = fs::remove_file(&temporal);
             ERROR_REPOSITORIO.to_string()
@@ -210,9 +215,17 @@ fn recoger_en(raiz: &Path, directorio: &Path, lotes: &mut Vec<LoteRecibido>) -> 
             .extension()
             .is_some_and(|extension| extension == "ccbak")
         {
+            let texto =
+                String::from_utf8(fs::read(&ruta).map_err(|_| ERROR_REPOSITORIO.to_string())?)
+                    .map_err(|_| ERROR_REPOSITORIO.to_string())?;
+            let limpio: String = texto.chars().filter(|c| *c != '\r' && *c != '\n').collect();
+            let contenido = STANDARD
+                .decode(limpio)
+                .map_err(|_| ERROR_REPOSITORIO.to_string())?;
+
             lotes.push(LoteRecibido {
                 dispositivo: dispositivo_de_ruta(raiz, &ruta),
-                contenido: fs::read(&ruta).map_err(|_| ERROR_REPOSITORIO.to_string())?,
+                contenido,
             });
         }
     }
