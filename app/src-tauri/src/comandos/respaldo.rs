@@ -18,6 +18,50 @@ use dominio::libro::{EventoRechazado, ResumenFusion};
 use infraestructura::{TransporteCarpeta, TransporteGit};
 use tauri::{AppHandle, Manager, State};
 
+#[derive(Debug, serde::Serialize)]
+enum CodigoErrorRespaldo {
+    FraseIncorrectaOArchivoDanado,
+    VersionFormatoNoSoportada,
+    DestinoInaccesibleOSinConexion,
+    CredencialesGitInvalidas,
+    EventoConflictoContenido,
+    FraseDemasiadoCorta,
+    ErrorOperacion,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ErrorRespaldoDTO {
+    codigo: CodigoErrorRespaldo,
+}
+
+fn error_respaldo(error: String) -> ErrorRespaldoDTO {
+    let codigo = match error.as_str() {
+        mensaje if mensaje.starts_with("Frase de paso incorrecta o archivo dañado") => {
+            CodigoErrorRespaldo::FraseIncorrectaOArchivoDanado
+        }
+        mensaje if mensaje.starts_with("Versión de formato no soportada") => {
+            CodigoErrorRespaldo::VersionFormatoNoSoportada
+        }
+        mensaje if mensaje.starts_with("Las credenciales fueron rechazadas") => {
+            CodigoErrorRespaldo::CredencialesGitInvalidas
+        }
+        mensaje
+            if mensaje.starts_with("No se pudo llegar a la carpeta")
+                || mensaje.starts_with("No se pudo llegar al repositorio") =>
+        {
+            CodigoErrorRespaldo::DestinoInaccesibleOSinConexion
+        }
+        mensaje if mensaje.starts_with("Evento con identificador repetido y contenido distinto") => {
+            CodigoErrorRespaldo::EventoConflictoContenido
+        }
+        mensaje if mensaje.starts_with("La frase de paso debe tener al menos 12 caracteres") => {
+            CodigoErrorRespaldo::FraseDemasiadoCorta
+        }
+        _ => CodigoErrorRespaldo::ErrorOperacion,
+    };
+    ErrorRespaldoDTO { codigo }
+}
+
 fn mapear_rechazados(rechazados: &[EventoRechazado]) -> Vec<EventoRechazadoDTO> {
     rechazados
         .iter()
@@ -98,14 +142,14 @@ pub fn exportar_libro(
     serializador: State<'_, Box<dyn SerializadorLibro>>,
     cifrador: State<'_, Box<dyn CifradorRespaldo>>,
     reloj: State<'_, Box<dyn Reloj>>,
-) -> Result<ExportarLibroResponse, String> {
+) -> Result<ExportarLibroResponse, ErrorRespaldoDTO> {
     exportar_libro_impl(
         datos,
         repo_eventos.inner().as_ref(),
         serializador.inner().as_ref(),
         cifrador.inner().as_ref(),
         reloj.inner().as_ref(),
-    )
+    ).map_err(error_respaldo)
 }
 
 /// Importa un respaldo cifrado o plano. El caso de uso valida todo el archivo
@@ -143,14 +187,14 @@ pub fn importar_libro(
     serializador: State<'_, Box<dyn SerializadorLibro>>,
     cifrador: State<'_, Box<dyn CifradorRespaldo>>,
     reloj: State<'_, Box<dyn Reloj>>,
-) -> Result<ImportarLibroResponse, String> {
+) -> Result<ImportarLibroResponse, ErrorRespaldoDTO> {
     importar_libro_impl(
         datos,
         repo_eventos.inner().as_ref(),
         serializador.inner().as_ref(),
         cifrador.inner().as_ref(),
         reloj.inner().as_ref(),
-    )
+    ).map_err(error_respaldo)
 }
 
 /// Sincroniza el libro con una carpeta compartida: trae los lotes `*.ccbak`,
@@ -189,7 +233,7 @@ pub fn sincronizar_carpeta_libro(
     serializador: State<'_, Box<dyn SerializadorLibro>>,
     cifrador: State<'_, Box<dyn CifradorRespaldo>>,
     reloj: State<'_, Box<dyn Reloj>>,
-) -> Result<ResultadoSyncDTO, String> {
+) -> Result<ResultadoSyncDTO, ErrorRespaldoDTO> {
     sincronizar_carpeta_libro_impl(
         ruta_carpeta,
         frase_de_paso,
@@ -197,7 +241,7 @@ pub fn sincronizar_carpeta_libro(
         serializador.inner().as_ref(),
         cifrador.inner().as_ref(),
         reloj.inner().as_ref(),
-    )
+    ).map_err(error_respaldo)
 }
 
 /// Sincroniza el libro con un repositorio Git propio del usuario.
@@ -245,13 +289,13 @@ pub fn sincronizar_git_libro(
     cifrador: State<'_, Box<dyn CifradorRespaldo>>,
     reloj: State<'_, Box<dyn Reloj>>,
     app: AppHandle,
-) -> Result<ResultadoSyncDTO, String> {
+) -> Result<ResultadoSyncDTO, ErrorRespaldoDTO> {
     const ERROR_REPOSITORIO: &str = "No se pudo llegar al repositorio; se reintentará.";
     let directorio = app
         .path()
         .app_data_dir()
-        .map_err(|_| ERROR_REPOSITORIO.to_string())?;
-    std::fs::create_dir_all(&directorio).map_err(|_| ERROR_REPOSITORIO.to_string())?;
+        .map_err(|_| error_respaldo(ERROR_REPOSITORIO.to_string()))?;
+    std::fs::create_dir_all(&directorio).map_err(|_| error_respaldo(ERROR_REPOSITORIO.to_string()))?;
 
     sincronizar_git_libro_impl(
         configuracion,
@@ -261,12 +305,26 @@ pub fn sincronizar_git_libro(
         serializador.inner().as_ref(),
         cifrador.inner().as_ref(),
         reloj.inner().as_ref(),
-    )
+    ).map_err(error_respaldo)
 }
 
 #[cfg(test)]
 mod pruebas {
     use super::*;
+
+    #[test]
+    fn errores_serializan_codigos_sin_trazas() {
+        for (entrada, esperado) in [
+            ("Frase de paso incorrecta o archivo dañado.", "FraseIncorrectaOArchivoDanado"),
+            ("Versión de formato no soportada: 2.0.", "VersionFormatoNoSoportada"),
+            ("No se pudo llegar a la carpeta; se reintentará.", "DestinoInaccesibleOSinConexion"),
+            ("Las credenciales fueron rechazadas; cómo actualizarlas.", "CredencialesGitInvalidas"),
+            ("Evento con identificador repetido y contenido distinto", "EventoConflictoContenido"),
+            ("panic src/secreto.rs", "ErrorOperacion"),
+        ] {
+            assert_eq!(serde_json::to_value(error_respaldo(entrada.to_string())).unwrap(), serde_json::json!({"codigo": esperado}));
+        }
+    }
 
     fn rechazado() -> EventoRechazado {
         EventoRechazado {

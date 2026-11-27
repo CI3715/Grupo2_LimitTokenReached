@@ -20,7 +20,7 @@ La sincronización del libro entre dispositivos es distinta de la sincronizació
 - Se utiliza **AES-256-GCM**, con nonce aleatorio de **12 bytes** por exportación y etiqueta de autenticación de **16 bytes**. El cifrador requiere al menos 12 caracteres al exportar y libera la clave derivada mediante `Zeroizing`.
 - Se cifra el libro plano completo. La cabecera exterior se autentica como datos asociados (AAD), incluyendo el salto de línea después de `NONCE`. Una frase incorrecta o un fallo de autenticación devuelve el mensaje «Frase de paso incorrecta o archivo dañado.».
 - El serializador filtra campos de credenciales y tokens y enmascara cadenas con forma de JWT. Esto no garantiza detectar cualquier secreto arbitrario escrito en texto libre; no se deben incluir secretos en los datos del libro.
-- El caso de uso de importación descifra y deserializa antes de fusionar eventos. El rechazo de una versión no soportada ocurre antes del descifrado; los comandos actualmente devuelven errores como `String`, aunque existe un enum de errores tipados en el crate de contratos.
+- El caso de uso de importación descifra y deserializa antes de fusionar eventos. El rechazo de una versión no soportada ocurre antes del descifrado; los comandos convierten los errores en un DTO con código tipado y sin detalles técnicos. Los conflictos aislados se informan en la lista de eventos rechazados; las capas internas todavía utilizan mensajes de texto.
 
 ### Cabecera exterior existente
 

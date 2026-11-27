@@ -65,6 +65,8 @@ jobs:
         run: npm run test:movements
       - name: Run authentication frontend contract tests
         run: npm run test:auth
+      - name: Run backup error tests
+        run: npm run test:backup-errors
       - name: Build Next.js
         run: npm run build
 
@@ -106,6 +108,9 @@ jobs:
         run: cargo test -p infraestructura --test repositorio_movimientos_sqlite --test repositorio_categorias_sqlite --test repositorio_monedas_sqlite
       - name: Run authentication HTTP adapter tests
         run: cargo test -p infraestructura --test autenticacion_http
+
+      - name: Run transport contract tests
+        run: cargo test -p infraestructura --test contrato_transporte
 
       # Entrega 8: fusión de eventos y cifrado del respaldo (SQLite real, sin red).
       - name: Run merge and encryption suites

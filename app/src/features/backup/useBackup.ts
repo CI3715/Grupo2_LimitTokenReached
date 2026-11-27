@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import {
   exportBackup,
   importBackup,
@@ -12,8 +11,19 @@ import type {
   ExportBackupResponse,
   ImportBackupResponse,
 } from "@/types/backup";
+import { useCallback, useState } from "react";
 
 export function backupErrorMessage(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "codigo" in error &&
+    typeof error.codigo === "string"
+  ) {
+    if (error.codigo === "FraseDemasiadoCorta")
+      return "La frase de paso debe tener al menos 12 caracteres.";
+    return backupErrorMessage(error.codigo);
+  }
   const message =
     typeof error === "string"
       ? error
@@ -29,7 +39,8 @@ export function backupErrorMessage(error: unknown) {
     return "La frase de paso no es correcta o el archivo está dañado.";
   }
   if (
-    normalized.includes("no se pudo llegar al repositorio o a la carpeta") ||
+    normalized.includes("no se pudo llegar al repositorio") ||
+    normalized.includes("no se pudo llegar a la carpeta") ||
     normalized.includes("destinoinaccesibleosinconexion")
   ) {
     return "No se pudo acceder al destino. Comprueba la ruta y vuelve a intentarlo.";
@@ -51,22 +62,24 @@ export function backupErrorMessage(error: unknown) {
     normalized.includes("versión de formato no soportada") ||
     normalized.includes("versionformatonosoportada")
   ) {
-    return message;
+    return "La versión del archivo no es compatible con esta aplicación.";
   }
   if (
     normalized.includes("evento con identificador repetido") ||
     normalized.includes("eventoconflictocontenido")
   ) {
-    return message;
+    return "Hay un evento con identificador repetido y contenido diferente.";
   }
-  return message || "No se pudo completar la operación. Inténtalo nuevamente.";
+  return "No se pudo completar la operación. Inténtalo nuevamente.";
 }
 
 export function useBackup() {
-  const [exportResult, setExportResult] =
-    useState<ExportBackupResponse | null>(null);
-  const [importResult, setImportResult] =
-    useState<ImportBackupResponse | null>(null);
+  const [exportResult, setExportResult] = useState<ExportBackupResponse | null>(
+    null,
+  );
+  const [importResult, setImportResult] = useState<ImportBackupResponse | null>(
+    null,
+  );
   const [syncResult, setSyncResult] = useState<DeviceSyncResponse | null>(null);
   const [exportError, setExportError] = useState("");
   const [importError, setImportError] = useState("");
@@ -75,65 +88,68 @@ export function useBackup() {
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
-  const exportar = useCallback(async (datos: {
-    ruta_destino: string;
-    frase_de_paso: string | null;
-    cifrar: boolean;
-  }) => {
-    setExporting(true);
-    setExportError("");
-    setExportResult(null);
-    try {
-      const result = await exportBackup(datos);
-      setExportResult(result);
-      return true;
-    } catch (error: unknown) {
-      console.error("No se pudo exportar la copia de seguridad.", error);
-      setExportError(backupErrorMessage(error));
-      return false;
-    } finally {
-      setExporting(false);
-    }
-  }, []);
+  const exportar = useCallback(
+    async (datos: {
+      ruta_destino: string;
+      frase_de_paso: string | null;
+      cifrar: boolean;
+    }) => {
+      setExporting(true);
+      setExportError("");
+      setExportResult(null);
+      try {
+        const result = await exportBackup(datos);
+        setExportResult(result);
+        return true;
+      } catch (error: unknown) {
+        console.error("No se pudo exportar la copia de seguridad.", error);
+        setExportError(backupErrorMessage(error));
+        return false;
+      } finally {
+        setExporting(false);
+      }
+    },
+    [],
+  );
 
-  const importar = useCallback(async (datos: {
-    ruta_archivo: string;
-    frase_de_paso: string;
-  }) => {
-    setImporting(true);
-    setImportError("");
-    setImportResult(null);
-    try {
-      const result = await importBackup(datos);
-      setImportResult(result);
-      return true;
-    } catch (error: unknown) {
-      console.error("No se pudo importar la copia de seguridad.", error);
-      setImportError(backupErrorMessage(error));
-      return false;
-    } finally {
-      setImporting(false);
-    }
-  }, []);
+  const importar = useCallback(
+    async (datos: { ruta_archivo: string; frase_de_paso: string }) => {
+      setImporting(true);
+      setImportError("");
+      setImportResult(null);
+      try {
+        const result = await importBackup(datos);
+        setImportResult(result);
+        return true;
+      } catch (error: unknown) {
+        console.error("No se pudo importar la copia de seguridad.", error);
+        setImportError(backupErrorMessage(error));
+        return false;
+      } finally {
+        setImporting(false);
+      }
+    },
+    [],
+  );
 
-  const sincronizar = useCallback(async (
-    destino: BackupSyncDestination,
-    frase: string,
-  ) => {
-    setSyncing(true);
-    setSyncError("");
-    try {
-      const result = await syncBackupDestination(destino, frase);
-      setSyncResult(result);
-      return true;
-    } catch (error: unknown) {
-      console.error("No se pudo sincronizar el destino de respaldo.", error);
-      setSyncError(backupErrorMessage(error));
-      return false;
-    } finally {
-      setSyncing(false);
-    }
-  }, []);
+  const sincronizar = useCallback(
+    async (destino: BackupSyncDestination, frase: string) => {
+      setSyncing(true);
+      setSyncError("");
+      try {
+        const result = await syncBackupDestination(destino, frase);
+        setSyncResult(result);
+        return true;
+      } catch (error: unknown) {
+        console.error("No se pudo sincronizar el destino de respaldo.", error);
+        setSyncError(backupErrorMessage(error));
+        return false;
+      } finally {
+        setSyncing(false);
+      }
+    },
+    [],
+  );
 
   return {
     exportResult,
