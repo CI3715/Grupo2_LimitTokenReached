@@ -278,7 +278,7 @@ pub struct LibroDeserializado {
     pub eventos: Vec<EventoLibro>,
 }
 
-/// Resultado de una sincronización con una carpeta compartida.
+/// Resultado de una sincronización del libro con cualquier transporte.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ReporteSincronizacionLibro {
     pub eventos_enviados: usize,
@@ -295,6 +295,26 @@ pub struct ReporteIntegridad {
     pub total_eventos_verificados: usize,
     pub cuentas_verificadas: usize,
     pub discrepancias: Vec<String>,
+}
+
+/// Lote cifrado leído del destino, con el dispositivo que lo publicó.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoteRecibido {
+    pub dispositivo: String,
+    pub contenido: Vec<u8>,
+}
+
+/// Transporte de lotes cifrados entre dispositivos propios del usuario.
+///
+/// Cada adaptador (Git, carpeta compartida o falso en memoria) solo mueve bytes:
+/// el cifrado, la fusión y el formato de los lotes quedan en la aplicación.
+pub trait TransporteSincronizacion: Send + Sync {
+    /// Trae los lotes publicados por todos los dispositivos.
+    fn leer_lotes(&self) -> Result<Vec<LoteRecibido>, String>;
+
+    /// Publica un lote nuevo en la carpeta del dispositivo indicado.
+    /// El transporte nunca debe reescribir un lote ya existente.
+    fn publicar_lote(&self, dispositivo: &str, contenido: &[u8]) -> Result<(), String>;
 }
 
 /// Puerto de almacenamiento del libro de eventos inmutables y reconstrucción de saldos.

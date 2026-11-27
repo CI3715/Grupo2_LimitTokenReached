@@ -5,7 +5,7 @@ mod comun;
 
 use aplicacion::casos_uso::aplicar_eventos_grupo::{ResultadoPreparacion, preparar_evento};
 use aplicacion::casos_uso::{
-    exportar_respaldo_cifrado, importar_respaldo_cifrado, sincronizar_carpeta_libro,
+    exportar_respaldo_cifrado, importar_respaldo_cifrado, sincronizar_libro,
 };
 use aplicacion::puertos::{
     AplicacionGastoPlan, CifradorRespaldo, LoteSincronizacionPlan, Reloj, RepositorioCuentas,
@@ -14,7 +14,9 @@ use aplicacion::puertos::{
 use comun::*;
 use contrato::{CuentaGrupoSeleccionDTO, EventoCambioDTO};
 use dominio::libro::EventoLibro;
-use infraestructura::{RelojSistema, RepositorioSincronizacionSqlite, SerializadorLibroPlano, bd};
+use infraestructura::{
+    RelojSistema, RepositorioSincronizacionSqlite, SerializadorLibroPlano, TransporteCarpeta, bd,
+};
 use rust_decimal::Decimal;
 use serde_json::json;
 use std::path::Path;
@@ -610,8 +612,9 @@ impl Reloj for RelojFijo {
 
 /// Sincroniza y devuelve (enviados, recibidos).
 fn sincronizar(carpeta: &Path, dispositivo: &Dispositivo) -> (usize, usize) {
-    let reporte = sincronizar_carpeta_libro::ejecutar(
-        carpeta,
+    let transporte = TransporteCarpeta::new(carpeta);
+    let reporte = sincronizar_libro::ejecutar(
+        &transporte,
         FRASE,
         &dispositivo.repo,
         &SerializadorLibroPlano::new(),

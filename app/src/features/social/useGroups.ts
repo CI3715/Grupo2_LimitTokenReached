@@ -33,6 +33,7 @@ export function useGroups(activo: boolean) {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [gastoFeedback, setGastoFeedback] = useState("");
 
   const cargarGrupos = useCallback(async () => {
     if (!activo) return;
@@ -125,12 +126,21 @@ export function useGroups(activo: boolean) {
   ) {
     setGuardando(true);
     setError("");
+    setGastoFeedback("");
     try {
       await registrarGastoGrupo(grupoId, datos);
       await cargarDetalle(grupoId);
       return true;
     } catch (cause: unknown) {
-      setError(mensajeDeError(cause, "No se pudo registrar el gasto."));
+      const mensaje = mensajeDeError(
+        cause,
+        "No se pudo registrar el gasto.",
+      );
+      if (mensaje.includes("Gasto guardado pendiente de envío")) {
+        setGastoFeedback(mensaje);
+        return true;
+      }
+      setError(mensaje);
       return false;
     } finally {
       setGuardando(false);
@@ -145,6 +155,7 @@ export function useGroups(activo: boolean) {
     cargandoDetalle,
     guardando,
     error,
+    gastoFeedback,
     cargarGrupos,
     cargarDetalle,
     previsualizar,
