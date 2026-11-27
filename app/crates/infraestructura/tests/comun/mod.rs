@@ -1,0 +1,557 @@
+//! Datos de prueba compartidos para el escenario 2.6 (laptop y teléfono).
+//!
+//! Cada archivo de tests que lo use pone `mod comun;`.
+//!
+//! Parte de 40 eventos con Efectivo USD = 151,67. Sin conexión, la laptop registra -20 y -5
+//! (queda 126,67) y el teléfono +50 y -10 (queda 191,67). Al juntar todo son 44 eventos y
+//! 166,67, en el orden que sea.
+//!
+//! Los eventos usan los mismos nombres y campos que guarda la app en la tabla `eventos`.
+//! Los ids, dispositivos y horas son fijos para que los resultados se repitan.
+
+#![allow(dead_code)]
+
+use aplicacion::puertos::RepositorioEventos;
+use dominio::libro::{EventoLibro, ResumenFusion};
+use infraestructura::RepositorioEventosSqlite;
+use infraestructura::bd;
+use infraestructura::repositorio_eventos_sqlite::canonizar_json_str;
+use rusqlite::{Connection, params};
+use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
+use serde_json::{Value, json};
+use std::path::{Path, PathBuf};
+use uuid::Uuid;
+
+pub const ESCALA_MONTOS: i64 = 100_000_000; // 10^8, igual que la app
+
+pub const CUENTA_EFECTIVO: &str = "00000000-0000-4000-8000-000000000026";
+pub const DISPOSITIVO_LAPTOP: &str = "00000000-0000-4000-8000-0000000000a1";
+pub const DISPOSITIVO_TELEFONO: &str = "00000000-0000-4000-8000-0000000000a2";
+
+const CATEGORIA_INGRESO: &str = "00000000-0000-0000-0000-000000000008"; // Salario
+const CATEGORIA_GASTO: &str = "00000000-0000-0000-0000-000000000001"; // Alimentación
+
+pub const SALDO_BASE: &str = "151.67";
+pub const SALDO_SOLO_LAPTOP: &str = "126.67";
+pub const SALDO_SOLO_TELEFONO: &str = "191.67";
+pub const SALDO_CONVERGIDO: &str = "166.67";
+
+pub const EVENTOS_BASE: i64 = 40;
+pub const EVENTOS_CONVERGIDOS: i64 = 44;
+
+/// Un evento como está en la tabla `eventos`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventoPrueba {
+    pub id: String,
+    pub tipo: String,
+    pub registrado_en: String,
+    pub dispositivo: String,
+    pub datos: Value,
+}
+
+/// Una fila de la tabla `eventos`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FilaEvento {
+    pub id: String,
+    pub tipo: String,
+    pub registrado_en: String,
+    pub dispositivo: String,
+    pub datos: String,
+}
+
+/// Foto del libro (eventos y saldos), para ver si la base cambió o no.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FotoLibro {
+    pub eventos: Vec<FilaEvento>,
+    pub saldos: Vec<(String, i64)>,
+}
+
+pub struct Escenario26 {
+    pub base: Vec<EventoPrueba>,
+    pub laptop: Vec<EventoPrueba>,
+    pub telefono: Vec<EventoPrueba>,
+}
+
+fn id_evento(n: u128) -> String {
+    Uuid::from_u128(0x2600_0000_0000_4000_8000_0000_0000_0000 + n).to_string()
+}
+
+fn id_movimiento(n: u128) -> String {
+    Uuid::from_u128(0x2600_0000_0000_4000_8000_0001_0000_0000 + n).to_string()
+}
+
+/// Hora con nanosegundos, igual que la guarda la app.
+fn marca(dia: u32, hora: u32, minuto: u32, segundo: u32) -> String {
+    format!("2026-11-{dia:02}T{hora:02}:{minuto:02}:{segundo:02}.000000000+00:00")
+}
+
+fn cuenta_creada(n: u128, registrado_en: String, saldo_inicial: &str) -> EventoPrueba {
+    EventoPrueba {
+        id: id_evento(n),
+        tipo: "CuentaCreada".to_string(),
+        registrado_en,
+        dispositivo: DISPOSITIVO_LAPTOP.to_string(),
+        datos: json!({
+            "id": CUENTA_EFECTIVO,
+            "nombre": "Efectivo",
+            "tipo": "efectivo",
+            "moneda_codigo": "USD",
+            "saldo_inicial": saldo_inicial,
+            "creada_en": "2026-11-01",
+        }),
+    }
+}
+
+fn movimiento(
+    n: u128,
+    registrado_en: String,
+    dispositivo: &str,
+    tipo: &str,
+    monto: &str,
+) -> EventoPrueba {
+    let categoria = if tipo == "Ingreso" {
+        CATEGORIA_INGRESO
+    } else {
+        CATEGORIA_GASTO
+    };
+    EventoPrueba {
+        id: id_evento(n),
+        tipo: "MovimientoRegistrado".to_string(),
+        registrado_en,
+        dispositivo: dispositivo.to_string(),
+        datos: json!({
+            "id": id_movimiento(n),
+            "cuenta_id": CUENTA_EFECTIVO,
+            "tipo": tipo,
+            "monto": monto,
+            "fecha": "2026-11-10",
+            "categoria_id": categoria,
+            "nota": Value::Null,
+        }),
+    }
+}
+
+impl Escenario26 {
+    pub fn nuevo() -> Self {
+        // la cuenta con 100,00 + 38 ingresos de 1,00 + uno de 13,67 = 40 eventos
+        let mut base = vec![cuenta_creada(0, marca(1, 8, 0, 0), "100.00")];
+        for i in 1..=38_u32 {
+            base.push(movimiento(
+                u128::from(i),
+                marca(1, 9, i, 0),
+                DISPOSITIVO_LAPTOP,
+                "Ingreso",
+                "1.00",
+            ));
+        }
+        base.push(movimiento(
+            39,
+            marca(1, 10, 0, 0),
+            DISPOSITIVO_LAPTOP,
+            "Ingreso",
+            "13.67",
+        ));
+
+        let laptop = vec![
+            movimiento(
+                100,
+                marca(10, 9, 0, 0),
+                DISPOSITIVO_LAPTOP,
+                "Gasto",
+                "20.00",
+            ),
+            movimiento(101, marca(10, 9, 5, 0), DISPOSITIVO_LAPTOP, "Gasto", "5.00"),
+        ];
+        let telefono = vec![
+            movimiento(
+                200,
+                marca(10, 9, 2, 0),
+                DISPOSITIVO_TELEFONO,
+                "Ingreso",
+                "50.00",
+            ),
+            movimiento(
+                201,
+                marca(10, 9, 7, 0),
+                DISPOSITIVO_TELEFONO,
+                "Gasto",
+                "10.00",
+            ),
+        ];
+        Self {
+            base,
+            laptop,
+            telefono,
+        }
+    }
+
+    /// Los 44 eventos juntos.
+    pub fn todos(&self) -> Vec<EventoPrueba> {
+        let mut todos = self.base.clone();
+        todos.extend(self.laptop.clone());
+        todos.extend(self.telefono.clone());
+        todos
+    }
+
+    /// Libro con los 40 eventos de base.
+    pub fn libro_base(&self) -> Connection {
+        libro_con(&self.base)
+    }
+
+    /// Libro de la laptop (base + sus 2 eventos).
+    pub fn libro_laptop(&self) -> Connection {
+        let mut eventos = self.base.clone();
+        eventos.extend(self.laptop.clone());
+        libro_con(&eventos)
+    }
+
+    /// Libro del teléfono (base + sus 2 eventos).
+    pub fn libro_telefono(&self) -> Connection {
+        let mut eventos = self.base.clone();
+        eventos.extend(self.telefono.clone());
+        libro_con(&eventos)
+    }
+}
+
+/// Base en memoria con las migraciones aplicadas, vacía.
+pub fn base_vacia() -> Connection {
+    let mut conn = Connection::open_in_memory().unwrap();
+    bd::migrar(&mut conn).unwrap();
+    conn
+}
+
+/// Base nueva con estos eventos cargados.
+pub fn libro_con(eventos: &[EventoPrueba]) -> Connection {
+    let conn = base_vacia();
+    aplicar(&conn, eventos);
+    conn
+}
+
+/// Mete los eventos y actualiza `cuenta` y `movimiento` como lo haría la app.
+pub fn aplicar(conn: &Connection, eventos: &[EventoPrueba]) {
+    for evento in eventos {
+        conn.execute(
+            "INSERT INTO eventos (id, tipo, registrado_en, dispositivo, datos)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                evento.id,
+                evento.tipo,
+                evento.registrado_en,
+                evento.dispositivo,
+                evento.datos.to_string()
+            ],
+        )
+        .unwrap();
+        match evento.tipo.as_str() {
+            "CuentaCreada" => proyectar_cuenta(conn, &evento.datos),
+            "MovimientoRegistrado" => proyectar_movimiento(conn, &evento.datos),
+            otro => panic!("El constructor de prueba no sabe proyectar eventos '{otro}'"),
+        }
+    }
+}
+
+fn texto<'a>(datos: &'a Value, campo: &str) -> &'a str {
+    datos[campo]
+        .as_str()
+        .unwrap_or_else(|| panic!("Falta el campo de texto '{campo}'"))
+}
+
+fn escalar(monto: &str) -> i64 {
+    (monto.parse::<Decimal>().unwrap() * Decimal::from(ESCALA_MONTOS))
+        .trunc()
+        .to_i64()
+        .unwrap()
+}
+
+fn proyectar_cuenta(conn: &Connection, datos: &Value) {
+    conn.execute(
+        "INSERT INTO cuenta (id, nombre, tipo, moneda_codigo, saldo, creada_en, activa)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1)",
+        params![
+            texto(datos, "id"),
+            texto(datos, "nombre"),
+            texto(datos, "tipo"),
+            texto(datos, "moneda_codigo"),
+            escalar(texto(datos, "saldo_inicial")),
+            texto(datos, "creada_en"),
+        ],
+    )
+    .unwrap();
+}
+
+fn proyectar_movimiento(conn: &Connection, datos: &Value) {
+    let monto = escalar(texto(datos, "monto"));
+    let efecto = match texto(datos, "tipo") {
+        "Ingreso" => monto,
+        "Gasto" => -monto,
+        otro => panic!("Tipo de movimiento inválido: {otro}"),
+    };
+    conn.execute(
+        "INSERT INTO movimiento (id, cuenta_id, tipo, monto, fecha, categoria_id, nota)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            texto(datos, "id"),
+            texto(datos, "cuenta_id"),
+            texto(datos, "tipo"),
+            monto,
+            texto(datos, "fecha"),
+            texto(datos, "categoria_id"),
+            datos["nota"].as_str(),
+        ],
+    )
+    .unwrap();
+    conn.execute(
+        "UPDATE cuenta SET saldo = saldo + ?1 WHERE id = ?2",
+        params![efecto, texto(datos, "cuenta_id")],
+    )
+    .unwrap();
+}
+
+pub fn contar_eventos(conn: &Connection) -> i64 {
+    conn.query_row("SELECT COUNT(*) FROM eventos", [], |fila| fila.get(0))
+        .unwrap()
+}
+
+/// Saldo que tiene la tabla `cuenta` (el que ve el usuario).
+pub fn saldo_proyectado(conn: &Connection, cuenta: &str) -> Decimal {
+    let crudo: i64 = conn
+        .query_row(
+            "SELECT saldo FROM cuenta WHERE id = ?1",
+            params![cuenta],
+            |fila| fila.get(0),
+        )
+        .unwrap();
+    Decimal::new(crudo, 8).normalize()
+}
+
+fn leer_eventos(conn: &Connection, orden: &str) -> Vec<FilaEvento> {
+    let sql =
+        format!("SELECT id, tipo, registrado_en, dispositivo, datos FROM eventos ORDER BY {orden}");
+    let mut sentencia = conn.prepare(&sql).unwrap();
+    sentencia
+        .query_map([], |fila| {
+            Ok(FilaEvento {
+                id: fila.get(0)?,
+                tipo: fila.get(1)?,
+                registrado_en: fila.get(2)?,
+                dispositivo: fila.get(3)?,
+                datos: fila.get(4)?,
+            })
+        })
+        .unwrap()
+        .map(|fila| fila.unwrap())
+        .collect()
+}
+
+/// Saldo calculado solo con los eventos, en el orden del formato (hora, dispositivo, id).
+/// Sirve para compararlo con el de la tabla.
+pub fn saldo_recalculado(conn: &Connection, cuenta: &str) -> Decimal {
+    let mut saldo = Decimal::ZERO;
+    for fila in leer_eventos(conn, "registrado_en, dispositivo, id") {
+        let datos: Value = serde_json::from_str(&fila.datos).unwrap();
+        match fila.tipo.as_str() {
+            "CuentaCreada" if texto(&datos, "id") == cuenta => {
+                saldo += texto(&datos, "saldo_inicial").parse::<Decimal>().unwrap();
+            }
+            "MovimientoRegistrado" if texto(&datos, "cuenta_id") == cuenta => {
+                let monto = texto(&datos, "monto").parse::<Decimal>().unwrap();
+                match texto(&datos, "tipo") {
+                    "Ingreso" => saldo += monto,
+                    "Gasto" => saldo -= monto,
+                    otro => panic!("Tipo de movimiento inválido: {otro}"),
+                }
+            }
+            "MovimientoCorregido" if texto(&datos, "cuenta_id") == cuenta => {
+                let variacion = texto(&datos, "variacion_monto").parse::<Decimal>().unwrap();
+                match texto(&datos, "tipo_original") {
+                    "Ingreso" => saldo += variacion,
+                    "Gasto" => saldo -= variacion,
+                    otro => panic!("Tipo original inválido: {otro}"),
+                }
+            }
+            _ => {}
+        }
+    }
+    saldo.normalize()
+}
+
+/// Foto del libro: eventos ordenados por id y saldo de cada cuenta. Si dos libros tienen
+/// los mismos eventos la foto es igual, sin importar en qué orden entraron.
+pub fn foto(conn: &Connection) -> FotoLibro {
+    let mut sentencia = conn
+        .prepare("SELECT id, saldo FROM cuenta ORDER BY id")
+        .unwrap();
+    let saldos = sentencia
+        .query_map([], |fila| {
+            Ok((fila.get::<_, String>(0)?, fila.get::<_, i64>(1)?))
+        })
+        .unwrap()
+        .map(|fila| fila.unwrap())
+        .collect();
+    FotoLibro {
+        eventos: leer_eventos(conn, "id"),
+        saldos,
+    }
+}
+
+/// Texto de exportación sin cifrar, según `docs/formato-exportacion.md`.
+///
+/// Solo sirve para probar el constructor; la exportación de verdad es el serializador.
+pub fn a_texto_exportacion(conn: &Connection) -> String {
+    let filas = leer_eventos(conn, "seq");
+    let mut texto = format!(
+        "VERSION=1.0\nFECHA_EXPORTACION=2026-11-25T10:00:00Z\nTOTAL_EVENTOS={}\n",
+        filas.len()
+    );
+    for fila in filas {
+        texto.push_str(&format!(
+            "{}|{}|{}|{}|{}\n",
+            fila.tipo, fila.id, fila.registrado_en, fila.dispositivo, fila.datos
+        ));
+    }
+    texto
+}
+
+pub fn contar_filas(conn: &Connection, tabla: &str) -> i64 {
+    let sql = format!("SELECT COUNT(*) FROM {tabla}");
+    conn.query_row(&sql, [], |fila| fila.get(0)).unwrap()
+}
+
+/// Convierte un evento de prueba al tipo que usa la fusión.
+pub fn a_evento_libro(evento: &EventoPrueba) -> EventoLibro {
+    EventoLibro {
+        id: evento.id.clone(),
+        tipo: evento.tipo.clone(),
+        registrado_en: evento.registrado_en.clone(),
+        dispositivo: evento.dispositivo.clone(),
+        datos_canonicos: canonizar_json_str(&evento.datos.to_string()).unwrap(),
+    }
+}
+
+/// Archivo temporal, se borra al terminar.
+pub struct ArchivoTemporal(pub PathBuf);
+
+impl ArchivoTemporal {
+    pub fn nuevo(prefijo: &str, extension: &str) -> Self {
+        Self(std::env::temp_dir().join(format!(
+            "cuentas-claras-{prefijo}-{}.{extension}",
+            Uuid::new_v4()
+        )))
+    }
+}
+
+impl Drop for ArchivoTemporal {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// Carpeta temporal (sirve de carpeta compartida para sincronizar).
+pub struct CarpetaTemporal(pub PathBuf);
+
+impl CarpetaTemporal {
+    pub fn nueva(prefijo: &str) -> Self {
+        Self(std::env::temp_dir().join(format!("cuentas-claras-{prefijo}-{}", Uuid::new_v4())))
+    }
+}
+
+impl Drop for CarpetaTemporal {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Un dispositivo de mentira: tiene su propia base en un archivo temporal, abierta como la
+/// abre la app. Los eventos entran por la fusión de verdad, así que `cuenta` y `movimiento`
+/// salen de reconstruir desde los eventos.
+pub struct Dispositivo {
+    pub repo: RepositorioEventosSqlite,
+    pub lectura: Connection,
+    // va al final para que el archivo se borre cuando ya se cerraron las conexiones
+    archivo: ArchivoTemporal,
+}
+
+impl Dispositivo {
+    pub fn nuevo() -> Self {
+        let archivo = ArchivoTemporal::nuevo("dispositivo", "db");
+        let escritura = bd::abrir(&archivo.0).unwrap();
+        let lectura = bd::abrir(&archivo.0).unwrap();
+        Self {
+            repo: RepositorioEventosSqlite::new(escritura),
+            lectura,
+            archivo,
+        }
+    }
+
+    pub fn con_eventos(eventos: &[EventoPrueba]) -> Self {
+        let dispositivo = Self::nuevo();
+        dispositivo.fusionar(eventos);
+        dispositivo
+    }
+
+    pub fn ruta(&self) -> &Path {
+        &self.archivo.0
+    }
+
+    pub fn fusionar(&self, eventos: &[EventoPrueba]) -> ResumenFusion {
+        let libro: Vec<EventoLibro> = eventos.iter().map(a_evento_libro).collect();
+        self.fusionar_libro(&libro)
+    }
+
+    pub fn fusionar_libro(&self, eventos: &[EventoLibro]) -> ResumenFusion {
+        self.repo.fusionar_lote_transaccional(eventos).unwrap()
+    }
+
+    pub fn eventos(&self) -> Vec<EventoLibro> {
+        self.repo.listar_eventos_ordenados().unwrap()
+    }
+
+    pub fn foto(&self) -> FotoLibro {
+        foto(&self.lectura)
+    }
+
+    pub fn contar_eventos(&self) -> i64 {
+        contar_eventos(&self.lectura)
+    }
+
+    /// Saldo de Efectivo USD según la tabla `cuenta`.
+    pub fn saldo(&self) -> Decimal {
+        saldo_proyectado(&self.lectura, CUENTA_EFECTIVO)
+    }
+
+    /// Saldo de Efectivo USD recalculado con los eventos.
+    pub fn saldo_recalculado(&self) -> Decimal {
+        saldo_recalculado(&self.lectura, CUENTA_EFECTIVO)
+    }
+}
+
+/// Generador de números al azar sencillo (xorshift). Con la misma semilla da lo mismo.
+pub struct Aleatorio(u64);
+
+impl Aleatorio {
+    pub fn nuevo(semilla: u64) -> Self {
+        Self(semilla.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1)
+    }
+
+    fn siguiente(&mut self) -> u64 {
+        let mut x = self.0;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        self.0 = x;
+        x
+    }
+
+    /// Número entre 0 y limite - 1.
+    pub fn hasta(&mut self, limite: usize) -> usize {
+        (self.siguiente() % limite as u64) as usize
+    }
+
+    pub fn mezclar<T>(&mut self, elementos: &mut [T]) {
+        for i in (1..elementos.len()).rev() {
+            let j = self.hasta(i + 1);
+            elementos.swap(i, j);
+        }
+    }
+}
