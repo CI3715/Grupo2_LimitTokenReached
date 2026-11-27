@@ -145,6 +145,7 @@ pub fn run() {
             comandos::respaldo::exportar_libro,
             comandos::respaldo::importar_libro,
             comandos::respaldo::sincronizar_carpeta_libro,
+            comandos::respaldo::sincronizar_git_libro,
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar la aplicación");
