@@ -25,6 +25,7 @@ type Props = {
   usuarioActual: string;
   amigos: UsuarioResumenDTO[];
   pending: boolean;
+  gastoFeedback: string;
   sync: GroupSyncView;
   onInvite: (nombreUsuario: string) => Promise<boolean>;
   onRegisterExpense: (datos: RegistrarGastoRequestDTO) => Promise<boolean>;
@@ -48,6 +49,7 @@ export function GroupDetail({
   usuarioActual,
   amigos,
   pending,
+  gastoFeedback,
   sync,
   onInvite,
   onRegisterExpense,
@@ -192,6 +194,7 @@ export function GroupDetail({
         miembros={detalle.miembros}
         moneda={detalle.moneda}
         pending={pending}
+        feedback={gastoFeedback}
         onSubmit={onRegisterExpense}
         onPreview={onPreview}
       />
