@@ -3,7 +3,7 @@
 
 mod comun;
 
-use aplicacion::casos_uso::aplicar_eventos_grupo::{ResultadoPreparacion, preparar_evento};
+use aplicacion::casos_uso::aplicar_eventos_grupo::{preparar_evento, ResultadoPreparacion};
 use aplicacion::casos_uso::{
     exportar_respaldo_cifrado, importar_respaldo_cifrado, sincronizar_libro,
 };
@@ -15,7 +15,7 @@ use comun::*;
 use contrato::{CuentaGrupoSeleccionDTO, EventoCambioDTO};
 use dominio::libro::EventoLibro;
 use infraestructura::{
-    RelojSistema, RepositorioSincronizacionSqlite, SerializadorLibroPlano, TransporteCarpeta, bd,
+    bd, RelojSistema, RepositorioSincronizacionSqlite, SerializadorLibroPlano, TransporteCarpeta,
 };
 use rust_decimal::Decimal;
 use serde_json::json;
@@ -114,6 +114,37 @@ fn importar_el_mismo_archivo_dos_veces_es_igual_a_importarlo_una_vez() {
     assert_eq!(segunda.ignorados_duplicados, 44);
     assert!(segunda.rechazados.is_empty());
     assert_eq!(destino.foto(), despues_de_una);
+}
+
+#[test]
+fn importar_respaldo_antiguo_conserva_eventos_locales_recientes() {
+    let escenario = Escenario26::nuevo();
+    let origen = Dispositivo::con_eventos(&escenario.base);
+    let destino = Dispositivo::con_eventos(&escenario.todos());
+    let antes = destino.foto();
+    let archivo = ArchivoTemporal::nuevo("antiguo", "txt");
+    let serializador = SerializadorLibroPlano::new();
+    exportar_respaldo_cifrado::ejecutar_plano(
+        &archivo.0,
+        &origen.repo,
+        &serializador,
+        &RelojSistema,
+    )
+    .unwrap();
+    let resultado = importar_respaldo_cifrado::ejecutar(
+        &archivo.0,
+        "",
+        &destino.repo,
+        &serializador,
+        &CifradorDePrueba,
+    )
+    .unwrap();
+    assert_eq!(resultado.insertados, 0);
+    assert_eq!(resultado.ignorados_duplicados, 40);
+    assert!(resultado.rechazados.is_empty());
+    assert_eq!(destino.foto(), antes);
+    assert_eq!(destino.contar_eventos(), 44);
+    assert_eq!(destino.saldo(), d(SALDO_CONVERGIDO));
 }
 
 // escenario 2.6: laptop -> teléfono y teléfono -> laptop llegan a lo mismo
