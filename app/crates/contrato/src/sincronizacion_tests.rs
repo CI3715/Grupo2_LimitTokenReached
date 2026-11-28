@@ -3,7 +3,7 @@ mod tests {
     use crate::sincronizacion::{EventoCambioDTO, ObtenerCambiosRequest, RespuestaCambiosDTO};
 
     #[test]
-    fn dto_evento_cambio_mantiene_precision_decimal() {
+    fn dto_evento_cambio_mantiene_precision_decimal_en_i64() {
         let evento = EventoCambioDTO {
             id_evento: "evt_123".to_string(),
             tipo: "GastoDeGrupoRegistrado".to_string(),
@@ -12,17 +12,17 @@ mod tests {
             concepto: "Hotel".to_string(),
             fecha: "2026-11-17T10:00:00Z".to_string(),
             moneda: "USD".to_string(),
-            // aqui se fuerza que el monto sea string para cumplir estrictamente el inv-03
-            // si usara f64 o f32, el dinero perderia precision por errores de punto flotante
-            // y la suma de los balances del grupo no daria exactamente cero
-            monto_parte: "33.34".to_string(),
+            // 33.34 * 10^8 = 3_334_000_000
+            monto_parte: 3_334_000_000,
             incluye_redondeo: true,
             posicion_cursor: 1,
         };
 
-        // verifico que el valor exacto viaje intacto a traves de la red, sin redondeos binarios
-        assert_eq!(evento.monto_parte, "33.34");
+        // verifico que el valor exacto viaje intacto, sin errores de punto flotante
+        assert_eq!(evento.monto_parte, 3_334_000_000);
         assert!(evento.incluye_redondeo);
+        // Verifica que los centavos se preservan exactamente
+        assert_eq!(evento.monto_parte % 100_000_000, 34_000_000);
     }
 
     #[test]
@@ -33,9 +33,6 @@ mod tests {
             hay_mas: true,
         };
 
-        // valido la logica de paginacion
-        // se quieren lotes de maximo 100 eventos para no saturar la red ni la memoria del
-        // dispositivo movil durante la sincronizacion en segundo plano
         assert_eq!(respuesta.nuevo_cursor, 100);
         assert!(respuesta.hay_mas);
     }
@@ -44,9 +41,6 @@ mod tests {
     fn request_cambios_permite_cursor_nulo() {
         let req = ObtenerCambiosRequest { desde: None };
 
-        // si el cursor es none, el backend debe interpretar que es la primera
-        // sincronizacion del usuario o que se perdió el estado local, por lo que
-        // debe devolver todos los eventos disponibles desde el principio (cursor 0)
         assert!(
             req.desde.is_none(),
             "el cursor inicial puede ser nulo para sincronizacion completa"
